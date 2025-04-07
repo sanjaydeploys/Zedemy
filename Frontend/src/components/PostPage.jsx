@@ -319,8 +319,8 @@ const PostPage = () => {
     return (
         <Container>
                   <Helmet>
-                    <title>{post ? `${post.title} | HogwartsEdx` : 'Loading...'}</title>
-                                    <title>{post ? `${post.title} | HogwartsEdx` : 'Loading...'}</title>
+                    <title>{post ? `${post.title} | Zedemy by Sanjay Patidar` : 'Loading...'}</title>
+                                    <title>{post ? `${post.title} | Zedemy by Sanjay Patidar` : 'Loading...'}</title>
       
             <meta property="og:title" content={post.title} />
             <meta property="og:description" content={post.content} />
