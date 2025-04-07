@@ -323,19 +323,41 @@ const Dashboard = () => {
   const availableCategories = ['React', 'Node.js', 'AWS', 'Python', 'JavaScript', 'VS Code'];
 
   // Load auth state on mount
-  useEffect(() => {
-    const initializeAuth = async () => {
+ // Handle URL parameters and initialize auth
+ useEffect(() => {
+  const initializeAuth = async () => {
+    const query = new URLSearchParams(location.search);
+    const userParam = query.get('user');
+    const tokenParam = query.get('token');
+
+    if (userParam && tokenParam) {
+      try {
+        const userFromUrl = JSON.parse(decodeURIComponent(userParam));
+        localStorage.setItem('user', JSON.stringify(userFromUrl));
+        localStorage.setItem('token', tokenParam);
+        dispatch({ 
+          type: 'FETCH_USER_SUCCESS', 
+          payload: { user: userFromUrl, token: tokenParam } 
+        });
+      } catch (error) {
+        console.error('Error parsing URL parameters:', error);
+        await dispatch(loadUser());
+      }
+    } else {
       const storedToken = localStorage.getItem('token');
       const storedUser = JSON.parse(localStorage.getItem('user'));
       if (storedToken && storedUser) {
-        dispatch({ type: 'FETCH_USER_SUCCESS', payload: { user: storedUser, token: storedToken } });
+        dispatch({ 
+          type: 'FETCH_USER_SUCCESS', 
+          payload: { user: storedUser, token: storedToken } 
+        });
       } else {
         await dispatch(loadUser());
       }
-    };
-    initializeAuth();
-  }, [dispatch]);
-
+    }
+  };
+  initializeAuth();
+}, [dispatch, location.search]);
   // Fetch initial data when token and user are available
   useEffect(() => {
     const fetchInitialData = async () => {
