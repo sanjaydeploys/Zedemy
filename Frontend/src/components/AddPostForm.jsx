@@ -175,30 +175,48 @@ const AddPostForm = () => {
         setSubtitles(newSubtitles);
     };
 
-    const handleImageUpload = async (e, setImage) => {
+    const handleImageUpload = async (e, setImage, category = 'unknown') => {
         const file = e.target.files[0];
+        if (!file) {
+            console.error('No file selected');
+            return;
+        }
         const formData = new FormData();
         formData.append('image', file);
-
+        formData.append('category', category); // Added
+    
         try {
-            const res = await axios.post('https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/upload/image', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            const res = await axios.post(
+                'https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/upload/image',
+                formData,
+                {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                }
+            );
             setImage(res.data.filePath);
         } catch (error) {
             console.error('Error uploading image:', error);
         }
     };
-
-    const handleVideoUpload = async (e) => {
+    
+    const handleVideoUpload = async (e, setVideo, category = 'unknown') => {
         const file = e.target.files[0];
+        if (!file) {
+            console.error('No file selected');
+            return;
+        }
         const formData = new FormData();
         formData.append('video', file);
-
+        formData.append('category', category); // Added
+    
         try {
-            const res = await axios.post('https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/upload/video', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            const res = await axios.post(
+                'https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/upload/video',
+                formData,
+                {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                }
+            );
             setVideo(res.data.filePath);
         } catch (error) {
             console.error('Error uploading video:', error);
