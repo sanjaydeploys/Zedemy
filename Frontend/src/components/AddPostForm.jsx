@@ -101,22 +101,142 @@ const IconButton = styled(Button)`
     }
 `;
 
+const PreviewImage = styled.img`
+    max-width: 200px;
+    margin-top: 10px;
+    border-radius: 5px;
+`;
+
+const PreviewVideo = styled.video`
+    max-width: 200px;
+    margin-top: 10px;
+    border-radius: 5px;
+`;
+
+const ErrorMessage = styled.div`
+    color: red;
+    font-size: 0.9em;
+    margin-top: 5px;
+`;
+
 const AddPostForm = () => {
     const dispatch = useDispatch();
     const [title, setTitle] = useState('');
     const [titleImage, setTitleImage] = useState(null);
+    const [titleImagePreview, setTitleImagePreview] = useState(null);
     const [content, setContent] = useState('');
     const [category, setCategory] = useState('VS Code');
     const [subtitles, setSubtitles] = useState([{ title: '', image: null, bulletPoints: [{ text: '', image: null, codeSnippet: '' }] }]);
     const [summary, setSummary] = useState('');
-    const { user } = useSelector(state => state.auth);
     const [video, setVideo] = useState(null);
+    const [videoPreview, setVideoPreview] = useState(null);
+    const [error, setError] = useState('');
+    const { user } = useSelector(state => state.auth);
     const categories = [
         'VS Code', 'HTML', 'CSS', 'JavaScript', 'Node.js', 'React', 'Angular', 'Vue.js', 'Next.js', 'Nuxt.js',
         'Gatsby', 'Svelte', 'TypeScript', 'GraphQL', 'PHP', 'Python', 'Ruby', 'Java', 'C#', 'C++', 'Swift',
         'Kotlin', 'Dart', 'Flutter', 'React Native'
     ];
     const [superTitles, setSuperTitles] = useState([{ superTitle: '', attributes: [{ attribute: '', items: [{ title: '', bulletPoints: [''] }] }] }]);
+
+    const validateFile = (file, type) => {
+        if (!file) return 'No file selected';
+        const maxSize = 5 * 1024 * 1024; // 5 MB
+        const validImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        const validVideoTypes = ['video/mp4', 'video/mpeg', 'video/webm'];
+
+        if (file.size > maxSize) {
+            return `File size exceeds 5 MB (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+        }
+
+        if (type === 'image' && !validImageTypes.includes(file.type)) {
+            return `Invalid image type: ${file.type}. Allowed: JPEG, PNG, GIF`;
+        }
+
+        if (type === 'video' && !validVideoTypes.includes(file.type)) {
+            return `Invalid video type: ${file.type}. Allowed: MP4, MPEG, WebM`;
+        }
+
+        return null;
+    };
+
+    const handleImageUpload = async (e, setImage, categoryOverride = category) => {
+        const file = e.target.files[0];
+        setError('');
+        if (!file) {
+            setError('No file selected');
+            return;
+        }
+
+        const error = validateFile(file, 'image');
+        if (error) {
+            setError(error);
+            return;
+        }
+
+        // Preview
+        const previewUrl = URL.createObjectURL(file);
+        if (setImage === setTitleImage) {
+            setTitleImagePreview(previewUrl);
+        }
+
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('category', categoryOverride);
+
+        try {
+            const res = await axios.post(
+                'https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/upload/image',
+                formData,
+                {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                }
+            );
+            setImage(res.data.filePath);
+            console.log('Image uploaded:', res.data.filePath);
+        } catch (error) {
+            setError(`Error uploading image: ${error.message}`);
+            console.error('Error uploading image:', error);
+        }
+    };
+
+    const handleVideoUpload = async (e, setVideo, categoryOverride = category) => {
+        const file = e.target.files[0];
+        setError('');
+        if (!file) {
+            setError('No file selected');
+            return;
+        }
+
+        const error = validateFile(file, 'video');
+        if (error) {
+            setError(error);
+            return;
+        }
+
+        // Preview
+        const previewUrl = URL.createObjectURL(file);
+        setVideoPreview(previewUrl);
+
+        const formData = new FormData();
+        formData.append('video', file);
+        formData.append('category', categoryOverride);
+
+        try {
+            const res = await axios.post(
+                'https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/upload/video',
+                formData,
+                {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                }
+            );
+            setVideo(res.data.filePath);
+            console.log('Video uploaded:', res.data.filePath);
+        } catch (error) {
+            setError(`Error uploading video: ${error.message}`);
+            console.error('Error uploading video:', error);
+        }
+    };
 
     const handleSuperTitleChange = (index, field, value) => {
         const newSuperTitles = [...superTitles];
@@ -161,7 +281,12 @@ const AddPostForm = () => {
                 dispatch(loadUser());
             }
         }
-    }, [dispatch, user]);
+        // Cleanup previews on unmount
+        return () => {
+            if (titleImagePreview) URL.revokeObjectURL(titleImagePreview);
+            if (videoPreview) URL.revokeObjectURL(videoPreview);
+        };
+    }, [dispatch, user, titleImagePreview, videoPreview]);
 
     const handleSubtitleChange = (index, field, value) => {
         const newSubtitles = [...subtitles];
@@ -173,54 +298,6 @@ const AddPostForm = () => {
         const newSubtitles = [...subtitles];
         newSubtitles[subtitleIndex].bulletPoints[pointIndex][field] = value;
         setSubtitles(newSubtitles);
-    };
-
-    const handleImageUpload = async (e, setImage, category = 'unknown') => {
-        const file = e.target.files[0];
-        if (!file) {
-            console.error('No file selected');
-            return;
-        }
-        const formData = new FormData();
-        formData.append('image', file);
-        formData.append('category', category); // Added
-    
-        try {
-            const res = await axios.post(
-                'https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/upload/image',
-                formData,
-                {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                }
-            );
-            setImage(res.data.filePath);
-        } catch (error) {
-            console.error('Error uploading image:', error);
-        }
-    };
-    
-    const handleVideoUpload = async (e, setVideo, category = 'unknown') => {
-        const file = e.target.files[0];
-        if (!file) {
-            console.error('No file selected');
-            return;
-        }
-        const formData = new FormData();
-        formData.append('video', file);
-        formData.append('category', category); // Added
-    
-        try {
-            const res = await axios.post(
-                'https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/upload/video',
-                formData,
-                {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                }
-            );
-            setVideo(res.data.filePath);
-        } catch (error) {
-            console.error('Error uploading video:', error);
-        }
     };
 
     const addSubtitle = () => {
@@ -236,6 +313,7 @@ const AddPostForm = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!user) {
+            setError('User not found');
             console.error('User not found');
             return;
         }
@@ -250,13 +328,17 @@ const AddPostForm = () => {
             dispatch(addPost(title, content, category, sanitizedSubtitles, summary, titleImage, superTitles, video));
             setTitle('');
             setTitleImage(null);
+            setTitleImagePreview(null);
             setContent('');
             setVideo(null);
+            setVideoPreview(null);
             setCategory('VS Code');
             setSubtitles([{ title: '', image: null, bulletPoints: [{ text: '', image: null, codeSnippet: '' }] }]);
             setSummary('');
             setSuperTitles([{ superTitle: '', attributes: [{ attribute: '', items: [{ title: '', bulletPoints: [''] }] }] }]);
+            setError('');
         } catch (error) {
+            setError(`Error adding post: ${error.message}`);
             console.error('Error adding post:', error);
         }
     };
@@ -265,6 +347,7 @@ const AddPostForm = () => {
         <FormContainer>
             <FullWidthSection>
                 <h2>Add New Post</h2>
+                {error && <ErrorMessage>{error}</ErrorMessage>}
                 <form onSubmit={handleSubmit}>
                     <Section>
                         <SectionTitle>Post Details</SectionTitle>
@@ -272,23 +355,45 @@ const AddPostForm = () => {
                             <Tooltip title="Enter the title of your post">
                                 <Label>Title</Label>
                             </Tooltip>
-                            <Input type="text" value={title} onChange={(e) => setTitle(e.target.value)} />
+                            <Input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
                         </FormGroup>
                         <FormGrid>
                             <FormGroup>
                                 <Label>Title Image</Label>
-                                <Input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, setTitleImage)} />
+                                <Input
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/gif"
+                                    onChange={(e) => handleImageUpload(e, setTitleImage, category)}
+                                />
+                                {titleImagePreview && (
+                                    <PreviewImage
+                                        src={titleImagePreview}
+                                        alt="Title preview"
+                                        onError={() => setError('Failed to preview title image')}
+                                    />
+                                )}
                             </FormGroup>
                             <FormGroup>
                                 <Label>Video</Label>
-                                <Input type="file" accept="video/*" onChange={handleVideoUpload} />
+                                <Input
+                                    type="file"
+                                    accept="video/mp4,video/mpeg,video/webm"
+                                    onChange={(e) => handleVideoUpload(e, setVideo, category)}
+                                />
+                                {videoPreview && (
+                                    <PreviewVideo
+                                        src={videoPreview}
+                                        controls
+                                        onError={() => setError('Failed to preview video')}
+                                    />
+                                )}
                             </FormGroup>
                         </FormGrid>
                         <FormGroup>
                             <Tooltip title="Enter the main content of your post">
                                 <Label>Content</Label>
                             </Tooltip>
-                            <TextArea rows="10" value={content} onChange={(e) => setContent(e.target.value)} />
+                            <TextArea rows="10" value={content} onChange={(e) => setContent(e.target.value)} required />
                         </FormGroup>
                         <FormGroup>
                             <Tooltip title="Select the category for your post">
@@ -380,11 +485,15 @@ const AddPostForm = () => {
                                 </FormGroup>
                                 <FormGroup>
                                     <Label>Subtitle Image</Label>
-                                    <Input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (imagePath) => {
-                                        const newSubtitles = [...subtitles];
-                                        newSubtitles[index].image = imagePath;
-                                        setSubtitles(newSubtitles);
-                                    })} />
+                                    <Input
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/gif"
+                                        onChange={(e) => handleImageUpload(e, (imagePath) => {
+                                            const newSubtitles = [...subtitles];
+                                            newSubtitles[index].image = imagePath;
+                                            setSubtitles(newSubtitles);
+                                        }, category)}
+                                    />
                                 </FormGroup>
                                 {subtitle.bulletPoints.map((point, pointIndex) => (
                                     <div key={pointIndex}>
@@ -398,11 +507,15 @@ const AddPostForm = () => {
                                         </FormGroup>
                                         <FormGroup>
                                             <Label>Bullet Point Image</Label>
-                                            <Input type="file" accept="image/*" onChange={(e) => handleImageUpload(e, (imagePath) => {
-                                                const newSubtitles = [...subtitles];
-                                                newSubtitles[index].bulletPoints[pointIndex].image = imagePath;
-                                                setSubtitles(newSubtitles);
-                                            })} />
+                                            <Input
+                                                type="file"
+                                                accept="image/jpeg,image/png,image/gif"
+                                                onChange={(e) => handleImageUpload(e, (imagePath) => {
+                                                    const newSubtitles = [...subtitles];
+                                                    newSubtitles[index].bulletPoints[pointIndex].image = imagePath;
+                                                    setSubtitles(newSubtitles);
+                                                }, category)}
+                                            />
                                         </FormGroup>
                                         <FormGroup>
                                             <Label>Code Snippet</Label>
