@@ -233,6 +233,7 @@ const PostPage = () => {
     const completedPosts = useSelector((state) => state.postReducer.completedPosts || []);
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [imageErrors, setImageErrors] = useState({});
+    const [videoErrors, setVideoErrors] = useState({});
 
     useEffect(() => {
         console.log('Post data:', post);
@@ -322,13 +323,20 @@ const PostPage = () => {
         });
     };
 
-    const handleImageError = (url) => {
-        console.log('Image load error:', url);
-        // Attempt no-cors fetch as fallback
-        fetch(url, { method: 'GET', mode: 'no-cors' })
-            .then(() => console.log('No-cors fetch attempted:', url))
-            .catch(err => console.error('No-cors fetch error:', err));
-        setImageErrors(prev => ({ ...prev, [url]: true }));
+   const handleMediaError = (url, type) => {
+        console.log(`${type} load error:`, url);
+        fetch(url, { method: 'GET', headers: { 'Origin': 'https://zedemy.vercel.app' } })
+            .then(res => {
+                console.log('GET response:', res.status, res.headers.get('access-control-allow-origin'));
+                return res.blob();
+            })
+            .then(blob => console.log('Blob size:', blob.size))
+            .catch(err => console.error('Fetch error:', err));
+        if (type === 'Image') {
+            setImageErrors(prev => ({ ...prev, [url]: true }));
+        } else {
+            setVideoErrors(prev => ({ ...prev, [url]: true }));
+        }
     };
 
     if (!post) {
@@ -365,7 +373,7 @@ const PostPage = () => {
                             src={post.titleImage}
                             alt={post.title}
                             style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'block' }}
-                            onError={() => handleImageError(post.titleImage)}
+                            onError={() => handleMediaError(post.titleImage, 'Image')}
                             onLoad={() => console.log('Image loaded:', post.titleImage)}
                         />
                         {imageErrors[post.titleImage] && (
@@ -373,11 +381,19 @@ const PostPage = () => {
                         )}
                     </>
                 )}
-                {post.titleVideo && (
-                    <video controls style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}>
-                        <source src={post.titleVideo} type="video/mp4" />
-                        Your browser does not support the video tag.
-                    </video>
+               {post.titleVideo && (
+                    <>
+                        <video
+                            controls
+                            src={post.titleVideo}
+                            style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'block' }}
+                            onError={() => handleMediaError(post.titleVideo, 'Video')}
+                            onLoad={() => console.log('Video loaded:', post.titleVideo)}
+                        />
+                        {videoErrors[post.titleVideo] && (
+                            <ImageError>Failed to load video: {post.titleVideo}</ImageError>
+                        )}
+                    </>
                 )}
                 <p>Date Published: {post.date}</p>
                 <p>Author: {post.author}</p>
