@@ -125,7 +125,7 @@ const AddPostForm = () => {
     const [titleImage, setTitleImage] = useState(null);
     const [titleImagePreview, setTitleImagePreview] = useState(null);
     const [content, setContent] = useState('');
-    const [category, setCategory] = useState('VS Code');
+    const [category, setCategory] = useState('');
     const [subtitles, setSubtitles] = useState([{ title: '', image: null, bulletPoints: [{ text: '', image: null, codeSnippet: '' }] }]);
     const [summary, setSummary] = useState('');
     const [video, setVideo] = useState(null);
@@ -183,7 +183,7 @@ const AddPostForm = () => {
         const formData = new FormData();
         formData.append('image', file);
         formData.append('category', categoryOverride);
-
+        console.log('Uploading image with category:', categoryOverride);
         try {
             const res = await axios.post(
                 'https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/upload/image',
@@ -221,6 +221,7 @@ const AddPostForm = () => {
         const formData = new FormData();
         formData.append('video', file);
         formData.append('category', categoryOverride);
+        console.log('Uploading video with category:', categoryOverride);
 
         try {
             const res = await axios.post(
@@ -317,6 +318,10 @@ const AddPostForm = () => {
             console.error('User not found');
             return;
         }
+        if (!category) {
+            setError('Please select a category');
+            return;
+        }
         try {
             const sanitizedSubtitles = subtitles.map(sub => ({
                 ...sub,
@@ -325,6 +330,7 @@ const AddPostForm = () => {
                     codeSnippet: DOMPurify.sanitize(point.codeSnippet)
                 }))
             }));
+            console.log('Submitting post with category:', category);
             dispatch(addPost(title, content, category, sanitizedSubtitles, summary, titleImage, superTitles, video));
             setTitle('');
             setTitleImage(null);
@@ -332,7 +338,7 @@ const AddPostForm = () => {
             setContent('');
             setVideo(null);
             setVideoPreview(null);
-            setCategory('VS Code');
+            setCategory(''); // Changed from 'VS Code'
             setSubtitles([{ title: '', image: null, bulletPoints: [{ text: '', image: null, codeSnippet: '' }] }]);
             setSummary('');
             setSuperTitles([{ superTitle: '', attributes: [{ attribute: '', items: [{ title: '', bulletPoints: [''] }] }] }]);
