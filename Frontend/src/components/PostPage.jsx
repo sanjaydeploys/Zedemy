@@ -323,18 +323,20 @@ const PostPage = () => {
     };
 
     const handleImageError = (url) => {
-        console.log('Image load error:', url);
+        console.error('Image load error:', url);
         fetch(url, { method: 'GET', mode: 'cors' })
-    .then(res => {
-        console.log('Fetch response:', {
-            status: res.status,
-            contentType: res.headers.get('content-type'),
-            corsHeader: res.headers.get('access-control-allow-origin')
-        });
-        return res.blob();
-    })
-    .then(blob => console.log('Blob:', { type: blob.type, size: blob.size }))
-    .catch(err => console.error('Fetch error:', { message: err.message, name: err.name }));
+            .then(res => {
+                console.log('Fetch response:', {
+                    status: res.status,
+                    headers: {
+                        contentType: res.headers.get('content-type'),
+                        cors: res.headers.get('access-control-allow-origin')
+                    }
+                });
+                return res.blob();
+            })
+            .then(blob => console.log('Blob:', { type: blob.type, size: blob.size }))
+            .catch(err => console.error('Fetch error:', { name: err.name, message: err.message }));
         setImageErrors(prev => ({ ...prev, [url]: true }));
     };
 
