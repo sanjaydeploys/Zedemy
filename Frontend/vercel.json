@@ -6,10 +6,6 @@
         {
           "key": "Expect-CT",
           "value": "max-age=0"
-        },
-        {
-          "key": "Content-Security-Policy",
-          "value": "img-src 'self' data: blob: https://sanjaybasket.s3.ap-south-1.amazonaws.com https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/api/auth/user https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/api/notifications github.githubassets.com media.githubusercontent.com camo.githubusercontent.com identicons.github.com avatars.githubusercontent.com private-avatars.githubusercontent.com github-cloud.s3.amazonaws.com objects.githubusercontent.com secured-user-images.githubusercontent.com user-images.githubusercontent.com private-user-images.githubusercontent.com opengraph.githubassets.com copilotprodattachments.blob.core.windows.net github-production-copilot-attachments github-production-user-asset-6210df.s3.amazonaws.com customer-stories-feed.github.com spotlights-feed.github.com objects-origin.githubusercontent.com *.githubusercontent.com; media-src 'self' https://sanjaybasket.s3.ap-south-1.amazonaws.com; default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self' https://zedemy.vercel.app"
         }
       ]
     }
