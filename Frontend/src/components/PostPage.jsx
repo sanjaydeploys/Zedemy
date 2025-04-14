@@ -324,13 +324,10 @@ const PostPage = () => {
 
     const handleImageError = (url) => {
         console.log('Image load error:', url);
-        fetch(url)
-            .then(res => {
-                console.log('Fetch response:', res.status, res.headers.get('content-type'));
-                return res.blob();
-            })
-            .then(blob => console.log('Blob:', blob.type, blob.size))
-            .catch(err => console.error('Fetch error:', err));
+        // Attempt no-cors fetch as fallback
+        fetch(url, { method: 'GET', mode: 'no-cors' })
+            .then(() => console.log('No-cors fetch attempted:', url))
+            .catch(err => console.error('No-cors fetch error:', err));
         setImageErrors(prev => ({ ...prev, [url]: true }));
     };
 
