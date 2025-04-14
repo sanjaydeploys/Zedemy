@@ -230,10 +230,9 @@ const PostPage = () => {
     const dispatch = useDispatch();
     const post = useSelector((state) => state.postReducer.post);
     const user = useSelector((state) => state.auth.user);
-    const completedPosts = useSelector((state) => state.postReducer.completedPosts || []);
+    const completedPosts = useSelector( (state) => state.postReducer.completedPosts || []);
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [imageErrors, setImageErrors] = useState({});
-    const [videoErrors, setVideoErrors] = useState({});
 
     useEffect(() => {
         console.log('Post data:', post);
@@ -323,20 +322,20 @@ const PostPage = () => {
         });
     };
 
-   const handleMediaError = (url, type) => {
-        console.log(`${type} load error:`, url);
-        fetch(url, { method: 'GET', headers: { 'Origin': 'https://zedemy.vercel.app' } })
-            .then(res => {
-                console.log('GET response:', res.status, res.headers.get('access-control-allow-origin'));
-                return res.blob();
-            })
-            .then(blob => console.log('Blob size:', blob.size))
-            .catch(err => console.error('Fetch error:', err));
-        if (type === 'Image') {
-            setImageErrors(prev => ({ ...prev, [url]: true }));
-        } else {
-            setVideoErrors(prev => ({ ...prev, [url]: true }));
-        }
+    const handleImageError = (url) => {
+        console.log('Image load error:', url);
+        fetch(url, { method: 'GET', mode: 'cors' })
+    .then(res => {
+        console.log('Fetch response:', {
+            status: res.status,
+            contentType: res.headers.get('content-type'),
+            corsHeader: res.headers.get('access-control-allow-origin')
+        });
+        return res.blob();
+    })
+    .then(blob => console.log('Blob:', { type: blob.type, size: blob.size }))
+    .catch(err => console.error('Fetch error:', { message: err.message, name: err.name }));
+        setImageErrors(prev => ({ ...prev, [url]: true }));
     };
 
     if (!post) {
@@ -373,7 +372,7 @@ const PostPage = () => {
                             src={post.titleImage}
                             alt={post.title}
                             style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'block' }}
-                            onError={() => handleMediaError(post.titleImage, 'Image')}
+                            onError={() => handleImageError(post.titleImage)}
                             onLoad={() => console.log('Image loaded:', post.titleImage)}
                         />
                         {imageErrors[post.titleImage] && (
@@ -381,19 +380,11 @@ const PostPage = () => {
                         )}
                     </>
                 )}
-               {post.titleVideo && (
-                    <>
-                        <video
-                            controls
-                            src={post.titleVideo}
-                            style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'block' }}
-                            onError={() => handleMediaError(post.titleVideo, 'Video')}
-                            onLoad={() => console.log('Video loaded:', post.titleVideo)}
-                        />
-                        {videoErrors[post.titleVideo] && (
-                            <ImageError>Failed to load video: {post.titleVideo}</ImageError>
-                        )}
-                    </>
+                {post.titleVideo && (
+                    <video controls style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}>
+                        <source src={post.titleVideo} type="video/mp4" />
+                        Your browser does not support the video tag.
+                    </video>
                 )}
                 <p>Date Published: {post.date}</p>
                 <p>Author: {post.author}</p>
