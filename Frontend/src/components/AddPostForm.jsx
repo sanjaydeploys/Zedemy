@@ -141,12 +141,12 @@ const AddPostForm = () => {
 
     const validateFile = (file, type) => {
         if (!file) return 'No file selected';
-        const maxSize = 5 * 1024 * 1024; // 5 MB
+        const maxSize = 2 * 1024 * 1024; // 5 MB
         const validImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
         const validVideoTypes = ['video/mp4', 'video/mpeg', 'video/webm'];
 
         if (file.size > maxSize) {
-            return `File size exceeds 5 MB (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+            return `File size exceeds 2 MB (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
         }
 
         if (type === 'image' && !validImageTypes.includes(file.type)) {
@@ -183,20 +183,28 @@ const AddPostForm = () => {
         const formData = new FormData();
         formData.append('image', file);
         formData.append('category', categoryOverride);
-        console.log('Uploading image with category:', categoryOverride);
+        console.log('Uploading image:', {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            category: categoryOverride
+        });
         try {
             const res = await axios.post(
                 'https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/upload/image',
                 formData,
-                {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                }
+                { headers: { 'Content-Type': 'multipart/form-data' } }
             );
             setImage(res.data.filePath);
             console.log('Image uploaded:', res.data.filePath);
         } catch (error) {
-            setError(`Error uploading image: ${error.message}`);
-            console.error('Error uploading image:', error);
+            const errorMsg = error.response?.data?.error || error.message;
+            setError(`Error uploading image: ${errorMsg}`);
+            console.error('Error uploading image:', {
+                message: error.message,
+                response: error.response?.data,
+                status: error.response?.status
+            });
         }
     };
 
@@ -214,28 +222,35 @@ const AddPostForm = () => {
             return;
         }
 
-        // Preview
         const previewUrl = URL.createObjectURL(file);
         setVideoPreview(previewUrl);
 
         const formData = new FormData();
         formData.append('video', file);
         formData.append('category', categoryOverride);
-        console.log('Uploading video with category:', categoryOverride);
+        console.log('Uploading video:', {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            category: categoryOverride
+        });
 
         try {
             const res = await axios.post(
                 'https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/upload/video',
                 formData,
-                {
-                    headers: { 'Content-Type': 'multipart/form-data' }
-                }
+                { headers: { 'Content-Type': 'multipart/form-data' } }
             );
             setVideo(res.data.filePath);
             console.log('Video uploaded:', res.data.filePath);
         } catch (error) {
-            setError(`Error uploading video: ${error.message}`);
-            console.error('Error uploading video:', error);
+            const errorMsg = error.response?.data?.error || error.message;
+            setError(`Error uploading video: ${errorMsg}`);
+            console.error('Error uploading video:', {
+                message: error.message,
+                response: error.response?.data,
+                status: error.response?.status
+            });
         }
     };
 
