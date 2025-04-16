@@ -142,7 +142,7 @@ const PostList = () => {
       <Title>Latest Posts</Title>
       <PostListContainer>
         {posts.slice(0, page * 5).map(post => (
-          <PostContainer key={post._id}>
+          <PostContainer key={post.postId}>
             <PostTitle><Link to={`/post/${post.slug}`}>{post.title}</Link></PostTitle>
             <PostAuthor>Author: {post.author}</PostAuthor>
             <ReadMoreLink to={`/post/${post.slug}`}>Read More</ReadMoreLink>
