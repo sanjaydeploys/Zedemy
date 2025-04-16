@@ -19,7 +19,7 @@ import {
 import { fetchCertificates } from './certificateActions';
 import { addNotification } from './notificationActions';
 
-const API_BASE_URL = 'https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
+const API_BASE_URL = 'https://desei9yzrk.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
 
 export const fetchPostBySlug = (slug) => async dispatch => {
     console.log('[fetchPostBySlug] Fetching post by slug:', slug);
