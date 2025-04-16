@@ -82,8 +82,9 @@ export const fetchUserPosts = () => async (dispatch) => {
       console.error('[fetchUserPosts] Error:', error.message);
       dispatch({ type: FETCH_USER_POSTS_FAILURE, payload: error.message });
     }
-  };
-export const addPost = (title, content, category, subtitles, summary, titleImage, superTitles, titleVideo) => async (dispatch, getState) => {
+};
+
+export const addPost = (title, content, category, subtitles, summary, titleImage, superTitles, titleVideo, titleImageHash, videoHash) => async (dispatch, getState) => {
     const token = localStorage.getItem('token');
     console.log('[addPost] Starting add post process...');
     if (!token) {
@@ -99,7 +100,19 @@ export const addPost = (title, content, category, subtitles, summary, titleImage
         return;
     }
 
-    const postData = { title, content, category, subtitles, summary, titleImage, superTitles, titleVideo, author: user.name };
+    const postData = { 
+        title, 
+        content, 
+        category, 
+        subtitles, 
+        summary, 
+        titleImage, 
+        superTitles, 
+        titleVideo, 
+        titleImageHash, 
+        videoHash, 
+        author: user.name 
+    };
     console.log('[addPost] Sending post data to backend:', postData);
 
     try {
@@ -111,13 +124,11 @@ export const addPost = (title, content, category, subtitles, summary, titleImage
         dispatch({ type: ADD_POST_SUCCESS, payload: res.data });
         toast.success('Post added successfully!', { position: 'top-right', autoClose: 2000 });
 
-        // Reintroduced GET /api/users/category/:category for frontend consistency
         console.log('[addPost] Fetching users to notify for category:', category);
-        const usersToNotify = await axios.get(`https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/api/users/category/${category}`, {
+        const usersToNotify = await axios.get(`https://desei9yzrk.execute-api.ap-south-1.amazonaws.com/prod/api/users/category/${category}`, {
             headers: { 'x-auth-token': token }
         });
         console.log('[addPost] Users to notify:', usersToNotify.data);
-        // Notifications are handled by backend, so no need to dispatch here
     } catch (error) {
         console.error('[addPost] Error adding post:', {
             message: error.message,
