@@ -233,11 +233,62 @@ const PostPage = () => {
     const completedPosts = useSelector( (state) => state.postReducer.completedPosts || []);
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [imageErrors, setImageErrors] = useState({});
+    const [verifiedImages, setVerifiedImages] = useState({});
+    const [verifiedVideos, setVerifiedVideos] = useState({});
+    useEffect(() => {
+        const verifyMedia = async (url, hash, type) => {
+            if (!url || !hash) return true; // Skip if no hash
+            try {
+                const res = await axios.post('https://desei9yzrk.execute-api.ap-south-1.amazonaws.com/prod/verify/file', {
+                    fileUrl: url,
+                    expectedHash: hash
+                });
+                return res.data.isAuthentic;
+            } catch (error) {
+                console.error(`Failed to verify ${type}:`, error);
+                return false;
+            }
+        };
 
+        if (post) {
+            // Verify titleImage
+            if (post.titleImage && post.titleImageHash) {
+                verifyMedia(post.titleImage, post.titleImageHash, 'image').then(isAuthentic => {
+                    setVerifiedImages(prev => ({ ...prev, [post.titleImage]: isAuthentic }));
+                    if (!isAuthentic) toast.error('Title image authenticity verification failed');
+                });
+            }
+            // Verify titleVideo
+            if (post.titleVideo && post.titleVideoHash) {
+                verifyMedia(post.titleVideo, post.titleVideoHash, 'video').then(isAuthentic => {
+                    setVerifiedVideos(prev => ({ ...prev, [post.titleVideo]: isAuthentic }));
+                    if (!isAuthentic) toast.error('Title video authenticity verification failed');
+                });
+            }
+            // Verify subtitle images
+            post.subtitles.forEach((subtitle, index) => {
+                if (subtitle.image && subtitle.imageHash) {
+                    verifyMedia(subtitle.image, subtitle.imageHash, `subtitle[${index}].image`).then(isAuthentic => {
+                        setVerifiedImages(prev => ({ ...prev, [subtitle.image]: isAuthentic }));
+                        if (!isAuthentic) toast.error(`Subtitle ${index} image authenticity verification failed`);
+                    });
+                }
+                subtitle.bulletPoints.forEach((point, pointIndex) => {
+                    if (point.image && point.imageHash) {
+                        verifyMedia(point.image, point.imageHash, `subtitle[${index}].bulletPoints[${pointIndex}].image`).then(isAuthentic => {
+                            setVerifiedImages(prev => ({ ...prev, [point.image]: isAuthentic }));
+                            if (!isAuthentic) toast.error(`Bullet point ${pointIndex} image authenticity verification failed`);
+                        });
+                    }
+                });
+            });
+        }
+    }, [post]);
     useEffect(() => {
         console.log('Post data:', post);
         console.log('post.titleImage:', post?.titleImage);
     }, [post]);
+
 
     useEffect(() => {
         if (post && post.title) {
@@ -259,7 +310,7 @@ const PostPage = () => {
 
         console.log('Triggering mark as completed for postId:', post.postId);
         try {
-            const response = await fetch(`https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/api/posts/complete/${post.postId}`, {
+            const response = await fetch(`https://desei9yzrk.execute-api.ap-south-1.amazonaws.com/prod/api/posts/complete/${post.postId}`, {
                 method: 'PUT',
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
@@ -269,7 +320,7 @@ const PostPage = () => {
                 if (response.status === 400 && data.msg === 'Post already marked as completed') {
                     console.log('Post already marked as completed on backend:', post.postId);
                     toast.info('This post is already marked as completed');
-                    const completedResponse = await fetch('https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed', {
+                    const completedResponse = await fetch('https://desei9yzrk.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed', {
                         headers: { 'x-auth-token': localStorage.getItem('token') }
                     });
                     const updatedCompletedPosts = await completedResponse.json();
@@ -289,7 +340,7 @@ const PostPage = () => {
                 });
             }
 
-            const completedResponse = await fetch('https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed', {
+            const completedResponse = await fetch('https://desei9yzrk.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed', {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             const updatedCompletedPosts = await completedResponse.json();
@@ -368,7 +419,7 @@ const PostPage = () => {
                     {isSidebarOpen ? 'Close' : 'Menu'}
                 </ToggleButton>
                 <PostHeader>{post.title}</PostHeader>
-                {post.titleImage && (
+                {post.titleImage && verifiedImages[post.titleImage] !== false && (
                     <>
                         <img
                             src={post.titleImage}
@@ -382,7 +433,7 @@ const PostPage = () => {
                         )}
                     </>
                 )}
-                {post.titleVideo && (
+                {post.titleVideo && verifiedVideos[post.titleVideo] !== false && (
                     <video controls style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}>
                         <source src={post.titleVideo} type="video/mp4" />
                         Your browser does not support the video tag.
@@ -415,10 +466,10 @@ const PostPage = () => {
                             </video>
                         )}
                         <ul>
-                            {subtitle.bulletPoints.map((point, pointIndex) => (
+                        {subtitle.bulletPoints.map((point, pointIndex) => (
                                 <li key={pointIndex} style={{ marginBottom: '10px' }}>
                                     {point.text}
-                                    {point.image && (
+                                    {point.image && verifiedImages[point.image] !== false && (
                                         <Zoom>
                                             <img
                                                 src={point.image}
@@ -431,6 +482,7 @@ const PostPage = () => {
                                             )}
                                         </Zoom>
                                     )}
+                                    
                                     {point.video && (
                                         <video controls style={{ width: '100%', maxWidth: '400px', margin: '10px 0' }}>
                                             <source src={point.video} type="video/mp4" />
