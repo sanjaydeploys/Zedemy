@@ -180,7 +180,7 @@ const Login = () => {
     };
 
     const handleGoogleLogin = () => {
-        window.location.href = 'https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/api/auth/google';
+        window.location.href = 'https://desei9yzrk.execute-api.ap-south-1.amazonaws.com/prod/api/auth/google';
     };
 
     return (
