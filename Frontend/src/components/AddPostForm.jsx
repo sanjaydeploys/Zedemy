@@ -123,12 +123,14 @@ const AddPostForm = () => {
     const dispatch = useDispatch();
     const [title, setTitle] = useState('');
     const [titleImage, setTitleImage] = useState(null);
+    const [titleImageHash, setTitleImageHash] = useState(null); // New state for hash
     const [titleImagePreview, setTitleImagePreview] = useState(null);
     const [content, setContent] = useState('');
     const [category, setCategory] = useState('');
-    const [subtitles, setSubtitles] = useState([{ title: '', image: null, bulletPoints: [{ text: '', image: null, codeSnippet: '' }] }]);
+    const [subtitles, setSubtitles] = useState([{ title: '', image: null, imageHash: null, bulletPoints: [{ text: '', image: null, imageHash: null, codeSnippet: '' }] }]); // Added imageHash
     const [summary, setSummary] = useState('');
     const [video, setVideo] = useState(null);
+    const [videoHash, setVideoHash] = useState(null); // New state for hash
     const [videoPreview, setVideoPreview] = useState(null);
     const [error, setError] = useState('');
     const { user } = useSelector(state => state.auth);
@@ -141,7 +143,7 @@ const AddPostForm = () => {
 
     const validateFile = (file, type) => {
         if (!file) return 'No file selected';
-        const maxSize = 2 * 1024 * 1024; // 5 MB
+        const maxSize = 2 * 1024 * 1024; // 2 MB
         const validImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
         const validVideoTypes = ['video/mp4', 'video/mpeg', 'video/webm'];
 
@@ -160,7 +162,7 @@ const AddPostForm = () => {
         return null;
     };
 
-    const handleImageUpload = async (e, setImage, categoryOverride = category) => {
+    const handleImageUpload = async (e, setImage, setImageHash, categoryOverride = category) => {
         const file = e.target.files[0];
         setError('');
         if (!file) {
@@ -191,12 +193,13 @@ const AddPostForm = () => {
         });
         try {
             const res = await axios.post(
-                'https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/upload/image',
+                'https://desei9yzrk.execute-api.ap-south-1.amazonaws.com/prod/upload/image',
                 formData,
                 { headers: { 'Content-Type': 'multipart/form-data' } }
             );
             setImage(res.data.filePath);
-            console.log('Image uploaded:', res.data.filePath);
+            setImageHash(res.data.fileHash); // Store the hash
+            console.log('Image uploaded:', { filePath: res.data.filePath, fileHash: res.data.fileHash });
         } catch (error) {
             const errorMsg = error.response?.data?.error || error.message;
             setError(`Error uploading image: ${errorMsg}`);
@@ -208,7 +211,7 @@ const AddPostForm = () => {
         }
     };
 
-    const handleVideoUpload = async (e, setVideo, categoryOverride = category) => {
+    const handleVideoUpload = async (e, setVideo, setVideoHash, categoryOverride = category) => {
         const file = e.target.files[0];
         setError('');
         if (!file) {
@@ -237,12 +240,13 @@ const AddPostForm = () => {
 
         try {
             const res = await axios.post(
-                'https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/upload/video',
+                'https://desei9yzrk.execute-api.ap-south-1.amazonaws.com/prod/upload/video',
                 formData,
                 { headers: { 'Content-Type': 'multipart/form-data' } }
             );
             setVideo(res.data.filePath);
-            console.log('Video uploaded:', res.data.filePath);
+            setVideoHash(res.data.fileHash); // Store the hash
+            console.log('Video uploaded:', { filePath: res.data.filePath, fileHash: res.data.fileHash });
         } catch (error) {
             const errorMsg = error.response?.data?.error || error.message;
             setError(`Error uploading video: ${errorMsg}`);
@@ -310,19 +314,19 @@ const AddPostForm = () => {
         setSubtitles(newSubtitles);
     };
 
-    const handleBulletPointChange = (subtitleIndex, pointIndex, field, value) => {
+    const handleBulletPointChange = (index, pointIndex, field, value) => {
         const newSubtitles = [...subtitles];
-        newSubtitles[subtitleIndex].bulletPoints[pointIndex][field] = value;
+        newSubtitles[index].bulletPoints[pointIndex][field] = value;
         setSubtitles(newSubtitles);
     };
 
     const addSubtitle = () => {
-        setSubtitles([...subtitles, { title: '', image: null, bulletPoints: [{ text: '', image: null, codeSnippet: '' }] }]);
+        setSubtitles([...subtitles, { title: '', image: null, imageHash: null, bulletPoints: [{ text: '', image: null, imageHash: null, codeSnippet: '' }] }]);
     };
 
     const addBulletPoint = (subtitleIndex) => {
         const newSubtitles = [...subtitles];
-        newSubtitles[subtitleIndex].bulletPoints.push({ text: '', image: null, codeSnippet: '' });
+        newSubtitles[subtitleIndex].bulletPoints.push({ text: '', image: null, imageHash: null, codeSnippet: '' });
         setSubtitles(newSubtitles);
     };
 
@@ -346,15 +350,17 @@ const AddPostForm = () => {
                 }))
             }));
             console.log('Submitting post with category:', category);
-            dispatch(addPost(title, content, category, sanitizedSubtitles, summary, titleImage, superTitles, video));
+            dispatch(addPost(title, content, category, sanitizedSubtitles, summary, titleImage, superTitles, video, titleImageHash, videoHash));
             setTitle('');
             setTitleImage(null);
+            setTitleImageHash(null); // Reset hash
             setTitleImagePreview(null);
             setContent('');
             setVideo(null);
+            setVideoHash(null); // Reset hash
             setVideoPreview(null);
-            setCategory(''); // Changed from 'VS Code'
-            setSubtitles([{ title: '', image: null, bulletPoints: [{ text: '', image: null, codeSnippet: '' }] }]);
+            setCategory('');
+            setSubtitles([{ title: '', image: null, imageHash: null, bulletPoints: [{ text: '', image: null, imageHash: null, codeSnippet: '' }] }]);
             setSummary('');
             setSuperTitles([{ superTitle: '', attributes: [{ attribute: '', items: [{ title: '', bulletPoints: [''] }] }] }]);
             setError('');
@@ -365,6 +371,7 @@ const AddPostForm = () => {
     };
 
     return (
+        // JSX remains unchanged except for input handlers
         <FormContainer>
             <FullWidthSection>
                 <h2>Add New Post</h2>
@@ -384,7 +391,7 @@ const AddPostForm = () => {
                                 <Input
                                     type="file"
                                     accept="image/jpeg,image/png,image/gif"
-                                    onChange={(e) => handleImageUpload(e, setTitleImage, category)}
+                                    onChange={(e) => handleImageUpload(e, setTitleImage, setTitleImageHash, category)}
                                 />
                                 {titleImagePreview && (
                                     <PreviewImage
@@ -399,7 +406,7 @@ const AddPostForm = () => {
                                 <Input
                                     type="file"
                                     accept="video/mp4,video/mpeg,video/webm"
-                                    onChange={(e) => handleVideoUpload(e, setVideo, category)}
+                                    onChange={(e) => handleVideoUpload(e, setVideo, setVideoHash, category)}
                                 />
                                 {videoPreview && (
                                     <PreviewVideo
@@ -510,9 +517,10 @@ const AddPostForm = () => {
                                     <Input
                                         type="file"
                                         accept="image/jpeg,image/png,image/gif"
-                                        onChange={(e) => handleImageUpload(e, (imagePath) => {
+                                        onChange={(e) => handleImageUpload(e, (imagePath, imageHash) => {
                                             const newSubtitles = [...subtitles];
                                             newSubtitles[index].image = imagePath;
+                                            newSubtitles[index].imageHash = imageHash;
                                             setSubtitles(newSubtitles);
                                         }, category)}
                                     />
@@ -532,9 +540,10 @@ const AddPostForm = () => {
                                             <Input
                                                 type="file"
                                                 accept="image/jpeg,image/png,image/gif"
-                                                onChange={(e) => handleImageUpload(e, (imagePath) => {
+                                                onChange={(e) => handleImageUpload(e, (imagePath, imageHash) => {
                                                     const newSubtitles = [...subtitles];
                                                     newSubtitles[index].bulletPoints[pointIndex].image = imagePath;
+                                                    newSubtitles[index].bulletPoints[pointIndex].imageHash = imageHash;
                                                     setSubtitles(newSubtitles);
                                                 }, category)}
                                             />
@@ -571,5 +580,4 @@ const AddPostForm = () => {
         </FormContainer>
     );
 };
-
 export default AddPostForm;
