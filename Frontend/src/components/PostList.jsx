@@ -120,6 +120,7 @@ const PostList = () => {
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   const posts = useSelector(state => state.postReducer.posts);
+  const searchResults = useSelector(state => state.searchResults.searchResults);
 
   useEffect(() => {
     dispatch(fetchPosts(page));
@@ -134,14 +135,17 @@ const PostList = () => {
     setLoadingMore(false);
   }, [posts]);
 
+  // Use searchResults if available, otherwise use posts
+  const displayedPosts = searchResults.length > 0 ? searchResults : posts;
+
   return (
     <Container>
       <Suspense fallback={<div>Loading...</div>}>
         <SearchBlog />
       </Suspense>
-      <Title>Latest Posts</Title>
+      <Title>{searchResults.length > 0 ? 'Search Results' : 'Latest Posts'}</Title>
       <PostListContainer>
-        {posts.slice(0, page * 5).map(post => (
+        {displayedPosts.slice(0, page * 5).map(post => (
           <PostContainer key={post.postId}>
             <PostTitle><Link to={`/post/${post.slug}`}>{post.title}</Link></PostTitle>
             <PostAuthor>Author: {post.author}</PostAuthor>
@@ -150,7 +154,7 @@ const PostList = () => {
         ))}
       </PostListContainer>
       {loadingMore && <LoadingSpinner>Loading...</LoadingSpinner>}
-      {!loadingMore && (
+      {!loadingMore && displayedPosts.length > page * 5 && (
         <LoadMoreButton onClick={loadMorePosts}>Load More</LoadMoreButton>
       )}
     </Container>
