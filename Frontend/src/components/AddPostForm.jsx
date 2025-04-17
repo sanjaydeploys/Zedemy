@@ -133,7 +133,7 @@ const AddPostForm = () => {
     const [videoHash, setVideoHash] = useState(null);
     const [videoPreview, setVideoPreview] = useState(null);
     const [error, setError] = useState('');
-    const { user } =  = useSelector(state => state.auth);
+    const { user } = useSelector(state => state.auth);
     const categories = [
         'VS Code', 'HTML', 'CSS', 'JavaScript', 'Node.js', 'React', 'Angular', 'Vue.js', 'Next.js', 'Nuxt.js',
         'Gatsby', 'Svelte', 'TypeScript', 'GraphQL', 'PHP', 'Python', 'Ruby', 'Java', 'C#', 'C++', 'Swift',
