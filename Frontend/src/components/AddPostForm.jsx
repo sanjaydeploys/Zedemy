@@ -300,7 +300,7 @@ const AddPostForm = () => {
                 // Store metadata in DynamoDB
                 await axios.post(
                     'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
-                    { fileKey: key, fileHash, fileType: 'videos', category: categoryOverride }
+  { fileKey: key, fileHash, fileType: 'videos', category: categoryOverride, userId: user.id }
                 );
 
                 // Verify S3 URL
