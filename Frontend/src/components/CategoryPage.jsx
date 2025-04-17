@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPosts } from '../actions/postActions';
 import { Link, useParams } from 'react-router-dom';
@@ -9,6 +9,7 @@ import rehypeRaw from 'rehype-raw';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import Draggable from 'react-draggable';
+import { Helmet } from 'react-helmet';
 import '../styles/CategoryPage.css';
 
 const ChatWindow = ({ id, category, filteredPosts, onClose, initialPosition }) => {
@@ -328,7 +329,6 @@ const CategoryPage = () => {
     const { category } = useParams();
     const dispatch = useDispatch();
     const posts = useSelector(state => state.postReducer.posts);
-
     const [chatWindows, setChatWindows] = useState([]);
 
     useEffect(() => {
@@ -367,9 +367,64 @@ const CategoryPage = () => {
         setChatWindows(prev => prev.filter(chat => chat.id !== id));
     };
 
+    // Capitalize category for display
+    const capitalizedCategory = category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
+    const metaTitle = `Learn ${capitalizedCategory} - Zedemy by Sanjay Patidar`;
+    const metaDescription = `Explore ${capitalizedCategory} courses on Zedemy, founded by Sanjay Patidar. Learn, code, and grow with our modern educational platform.`;
+    const canonicalUrl = `https://zedemy.vercel.app/category/${category.toLowerCase()}`;
+
     return (
         <animated.div style={fadeIn} className="category-page">
-            <h2 className="category-title">Category: {category}</h2>
+            <Helmet>
+                <title>{metaTitle}</title>
+                <meta name="description" content={metaDescription} />
+                <meta name="keywords" content={`${category.toLowerCase()}, zedemy, sanjay patidar, online learning, coding, education, courses`} />
+                <meta name="author" content="Sanjay Patidar" />
+                <meta name="robots" content="index, follow" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <link rel="canonical" href={canonicalUrl} />
+                <meta property="og:title" content={metaTitle} />
+                <meta property="og:description" content={metaDescription} />
+                <meta property="og:type" content="website" />
+                <meta property="og:url" content={canonicalUrl} />
+                <meta property="og:image" content="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
+                <meta property="og:site_name" content="Zedemy" />
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content={metaTitle} />
+                <meta name="twitter:description" content={metaDescription} />
+                <meta name="twitter:image" content="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
+                <link rel="icon" type="image/png" href="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
+                <script type="application/ld+json">
+                    {JSON.stringify({
+                        "@context": "https://schema.org",
+                        "@type": "CollectionPage",
+                        "name": `${capitalizedCategory} Category`,
+                        "description": metaDescription,
+                        "url": canonicalUrl,
+                        "publisher": {
+                            "@type": "Organization",
+                            "name": "Zedemy",
+                            "founder": {
+                                "@type": "Person",
+                                "name": "Sanjay Patidar"
+                            }
+                        },
+                        "mainEntity": {
+                            "@type": "ItemList",
+                            "itemListElement": filteredPosts.map((post, index) => ({
+                                "@type": "ListItem",
+                                "position": index + 1,
+                                "item": {
+                                    "@type": "CreativeWork",
+                                    "name": post.title,
+                                    "url": `https://zedemy.vercel.app/post/${post.slug}`
+                                }
+                            }))
+                        }
+                    })}
+                </script>
+            </Helmet>
+            <h2 className="category-title">Category: {capitalizedCategory}</h2>
             {filteredPosts.length === 0 ? (
                 <p className="no-posts">No posts found in this category.</p>
             ) : (
@@ -383,11 +438,9 @@ const CategoryPage = () => {
                     ))}
                 </ul>
             )}
-
             <button className="chat-toggle-btn" onClick={openNewChat}>
                 Open AI Help
             </button>
-
             {chatWindows.map(chat => (
                 <ChatWindow
                     key={chat.id}
