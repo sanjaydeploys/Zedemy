@@ -119,8 +119,8 @@ const PostList = () => {
   const dispatch = useDispatch();
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
-  const posts = useSelector(state => state.postReducer.posts);
-  const searchResults = useSelector(state => state.searchResults.searchResults);
+  const posts = useSelector(state => state.postReducer.posts || []);
+  const searchResults = useSelector(state => state.postReducer.searchResults || []);
 
   useEffect(() => {
     dispatch(fetchPosts(page));
