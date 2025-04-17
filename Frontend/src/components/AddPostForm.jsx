@@ -123,14 +123,14 @@ const AddPostForm = () => {
     const dispatch = useDispatch();
     const [title, setTitle] = useState('');
     const [titleImage, setTitleImage] = useState(null);
-    const [titleImageHash, setTitleImageHash] = useState(null); // New state for hash
+    const [titleImageHash, setTitleImageHash] = useState(null);
     const [titleImagePreview, setTitleImagePreview] = useState(null);
     const [content, setContent] = useState('');
     const [category, setCategory] = useState('');
-    const [subtitles, setSubtitles] = useState([{ title: '', image: null, imageHash: null, bulletPoints: [{ text: '', image: null, imageHash: null, codeSnippet: '' }] }]); // Added imageHash
+    const [subtitles, setSubtitles] = useState([{ title: '', image: null, imageHash: null, bulletPoints: [{ text: '', image: null, imageHash: null, codeSnippet: '' }] }]);
     const [summary, setSummary] = useState('');
     const [video, setVideo] = useState(null);
-    const [videoHash, setVideoHash] = useState(null); // New state for hash
+    const [videoHash, setVideoHash] = useState(null);
     const [videoPreview, setVideoPreview] = useState(null);
     const [error, setError] = useState('');
     const { user } = useSelector(state => state.auth);
@@ -162,64 +162,96 @@ const AddPostForm = () => {
         return null;
     };
 
-   const handleImageUpload = async (e, setImage, setImageHash, categoryOverride = category) => {
-  const file = e.target.files[0];
-  setError('');
-  if (!file) {
-    setError('No file selected');
-    return;
-  }
+    const generateFileHash = async (file) => {
+        const arrayBuffer = await file.arrayBuffer();
+        const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    };
 
-  const error = validateFile(file, 'image');
-  if (error) {
-    setError(error);
-    return;
-  }
+    const handleImageUpload = async (e, setImage, setImageHash, categoryOverride = category, retries = 3) => {
+        const file = e.target.files[0];
+        setError('');
+        if (!file) {
+            setError('No file selected');
+            return;
+        }
 
-  const previewUrl = URL.createObjectURL(file);
-  if (setImage === setTitleImage) {
-    setTitleImagePreview(previewUrl);
-  }
+        const error = validateFile(file, 'image');
+        if (error) {
+            setError(error);
+            return;
+        }
 
-  try {
-    // Get pre-signed URL
-    const res = await axios.post(
-      'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/get-presigned-url',
-      {
-        fileType: file.type,
-        folder: 'images',
-        category: categoryOverride
-      }
-    );
-    const { signedUrl, publicUrl, key } = res.data;
+        const previewUrl = URL.createObjectURL(file);
+        if (setImage === setTitleImage) {
+            setTitleImagePreview(previewUrl);
+        }
 
-    // Upload file to S3 using pre-signed URL
-    await axios.put(signedUrl, file, {
-      headers: { 'Content-Type': file.type }
-    });
+        let attempt = 1;
+        while (attempt <= retries) {
+            try {
+                console.log(`Uploading image (attempt ${attempt}):`, {
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                    category: categoryOverride
+                });
 
-    // Generate file hash
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const fileHash = crypto.createHash('sha256').update(buffer).digest('hex');
+                // Get pre-signed URL
+                const res = await axios.post(
+                    'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/get-presigned-url',
+                    {
+                        fileType: file.type,
+                        folder: 'images',
+                        category: categoryOverride
+                    }
+                );
+                const { signedUrl, publicUrl, key } = res.data;
 
-    // Store metadata in DynamoDB (optional, call backend endpoint if needed)
-    await axios.post(
-      'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
-      { fileKey: key, fileHash, fileType: 'images', category: categoryOverride }
-    );
+                // Upload file to S3
+                await axios.put(signedUrl, file, {
+                    headers: { 'Content-Type': file.type }
+                });
 
-    setImage(publicUrl);
-    setImageHash(fileHash);
-    console.log('Image uploaded:', { filePath: publicUrl, fileHash });
-  } catch (error) {
-    const errorMsg = error.response?.data?.error || error.message;
-    setError(`Error uploading image: ${errorMsg}`);
-    console.error('Error uploading image:', error);
-  }
-};
+                // Generate file hash
+                const fileHash = await generateFileHash(file);
 
-    const handleVideoUpload = async (e, setVideo, setVideoHash, categoryOverride = category) => {
+                // Store metadata in DynamoDB
+                await axios.post(
+                    'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
+                    { fileKey: key, fileHash, fileType: 'images', category: categoryOverride }
+                );
+
+                // Verify S3 URL
+                const response = await fetch(publicUrl);
+                if (!response.ok) {
+                    throw new Error(`S3 URL not accessible: ${response.status}`);
+                }
+
+                setImage(publicUrl);
+                setImageHash(fileHash);
+                console.log('Image uploaded:', { filePath: publicUrl, fileHash });
+                return;
+            } catch (error) {
+                console.error(`Image upload attempt ${attempt} failed:`, error);
+                if (attempt === retries) {
+                    const errorMsg = error.response?.data?.error || error.message;
+                    setError(`Error uploading image: ${errorMsg}`);
+                    console.error('Error uploading image:', {
+                        message: error.message,
+                        response: error.response?.data,
+                        status: error.response?.status
+                    });
+                    return;
+                }
+                attempt++;
+                await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            }
+        }
+    };
+
+    const handleVideoUpload = async (e, setVideo, setVideoHash, categoryOverride = category, retries = 3) => {
         const file = e.target.files[0];
         setError('');
         if (!file) {
@@ -236,33 +268,66 @@ const AddPostForm = () => {
         const previewUrl = URL.createObjectURL(file);
         setVideoPreview(previewUrl);
 
-        const formData = new FormData();
-        formData.append('video', file);
-        formData.append('category', categoryOverride);
-        console.log('Uploading video:', {
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            category: categoryOverride
-        });
+        let attempt = 1;
+        while (attempt <= retries) {
+            try {
+                console.log(`Uploading video (attempt ${attempt}):`, {
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                    category: categoryOverride
+                });
 
-        try {
-            const res = await axios.post(
-                'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/upload/video',
-                formData,
-                { headers: { 'Content-Type': 'multipart/form-data' } }
-            );
-            setVideo(res.data.filePath);
-            setVideoHash(res.data.fileHash); // Store the hash
-            console.log('Video uploaded:', { filePath: res.data.filePath, fileHash: res.data.fileHash });
-        } catch (error) {
-            const errorMsg = error.response?.data?.error || error.message;
-            setError(`Error uploading video: ${errorMsg}`);
-            console.error('Error uploading video:', {
-                message: error.message,
-                response: error.response?.data,
-                status: error.response?.status
-            });
+                // Get pre-signed URL
+                const res = await axios.post(
+                    'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/get-presigned-url',
+                    {
+                        fileType: file.type,
+                        folder: 'videos',
+                        category: categoryOverride
+                    }
+                );
+                const { signedUrl, publicUrl, key } = res.data;
+
+                // Upload file to S3
+                await axios.put(signedUrl, file, {
+                    headers: { 'Content-Type': file.type }
+                });
+
+                // Generate file hash
+                const fileHash = await generateFileHash(file);
+
+                // Store metadata in DynamoDB
+                await axios.post(
+                    'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
+                    { fileKey: key, fileHash, fileType: 'videos', category: categoryOverride }
+                );
+
+                // Verify S3 URL
+                const response = await fetch(publicUrl);
+                if (!response.ok) {
+                    throw new Error(`S3 URL not accessible: ${response.status}`);
+                }
+
+                setVideo(publicUrl);
+                setVideoHash(fileHash);
+                console.log('Video uploaded:', { filePath: publicUrl, fileHash });
+                return;
+            } catch (error) {
+                console.error(`Video upload attempt ${attempt} failed:`, error);
+                if (attempt === retries) {
+                    const errorMsg = error.response?.data?.error || error.message;
+                    setError(`Error uploading video: ${errorMsg}`);
+                    console.error('Error uploading video:', {
+                        message: error.message,
+                        response: error.response?.data,
+                        status: error.response?.status
+                    });
+                    return;
+                }
+                attempt++;
+                await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            }
         }
     };
 
@@ -309,7 +374,6 @@ const AddPostForm = () => {
                 dispatch(loadUser());
             }
         }
-        // Cleanup previews on unmount
         return () => {
             if (titleImagePreview) URL.revokeObjectURL(titleImagePreview);
             if (videoPreview) URL.revokeObjectURL(videoPreview);
@@ -361,11 +425,11 @@ const AddPostForm = () => {
             dispatch(addPost(title, content, category, sanitizedSubtitles, summary, titleImage, superTitles, video, titleImageHash, videoHash));
             setTitle('');
             setTitleImage(null);
-            setTitleImageHash(null); // Reset hash
+            setTitleImageHash(null);
             setTitleImagePreview(null);
             setContent('');
             setVideo(null);
-            setVideoHash(null); // Reset hash
+            setVideoHash(null);
             setVideoPreview(null);
             setCategory('');
             setSubtitles([{ title: '', image: null, imageHash: null, bulletPoints: [{ text: '', image: null, imageHash: null, codeSnippet: '' }] }]);
@@ -379,7 +443,6 @@ const AddPostForm = () => {
     };
 
     return (
-        // JSX remains unchanged except for input handlers
         <FormContainer>
             <FullWidthSection>
                 <h2>Add New Post</h2>
@@ -405,7 +468,10 @@ const AddPostForm = () => {
                                     <PreviewImage
                                         src={titleImagePreview}
                                         alt="Title preview"
-                                        onError={() => setError('Failed to preview title image')}
+                                        onError={(e) => {
+                                            console.error('Failed to load title image:', titleImagePreview);
+                                            setError('Failed to preview title image');
+                                        }}
                                     />
                                 )}
                             </FormGroup>
@@ -420,7 +486,10 @@ const AddPostForm = () => {
                                     <PreviewVideo
                                         src={videoPreview}
                                         controls
-                                        onError={() => setError('Failed to preview video')}
+                                        onError={(e) => {
+                                            console.error('Failed to load video:', videoPreview);
+                                            setError('Failed to preview video');
+                                        }}
                                     />
                                 )}
                             </FormGroup>
