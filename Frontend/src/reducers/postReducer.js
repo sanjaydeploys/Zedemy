@@ -56,8 +56,8 @@ const postReducer = (state = initialState, action) => {
                 posts: state.posts.filter(post => post.postId !== action.payload),
                 userPosts: state.userPosts.filter(post => post.postId !== action.payload)
             };
-        case SEARCH_POSTS_SUCCESS:
-            return { ...state, posts: action.payload };
+       case 'SEARCH_POSTS_SUCCESS':
+            return { ...state, searchResults: action.payload, error: null };
             case 'SEARCH_POSTS_FAILURE':
              return { ...state, searchResults: [], error: action.payload };
          case 'SEARCH_POSTS_CLEAR':
