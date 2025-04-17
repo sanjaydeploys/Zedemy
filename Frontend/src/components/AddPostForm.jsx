@@ -133,7 +133,7 @@ const AddPostForm = () => {
     const [videoHash, setVideoHash] = useState(null);
     const [videoPreview, setVideoPreview] = useState(null);
     const [error, setError] = useState('');
-    const { user } = useSelector(state => state.auth);
+    const { user } =  = useSelector(state => state.auth);
     const categories = [
         'VS Code', 'HTML', 'CSS', 'JavaScript', 'Node.js', 'React', 'Angular', 'Vue.js', 'Next.js', 'Nuxt.js',
         'Gatsby', 'Svelte', 'TypeScript', 'GraphQL', 'PHP', 'Python', 'Ruby', 'Java', 'C#', 'C++', 'Swift',
@@ -218,10 +218,10 @@ const AddPostForm = () => {
                 const fileHash = await generateFileHash(file);
 
                 // Store metadata in DynamoDB
-              await axios.post(
-  'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
-  { fileKey: key, fileHash, fileType: 'images', category: categoryOverride, userId: user.id }
-);
+                await axios.post(
+                    'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
+                    { fileKey: key, fileHash, fileType: 'images', category: categoryOverride, userId: user.id }
+                );
 
                 // Verify S3 URL
                 const response = await fetch(publicUrl);
@@ -300,7 +300,7 @@ const AddPostForm = () => {
                 // Store metadata in DynamoDB
                 await axios.post(
                     'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
-  { fileKey: key, fileHash, fileType: 'videos', category: categoryOverride, userId: user.id }
+                    { fileKey: key, fileHash, fileType: 'videos', category: categoryOverride, userId: user.id }
                 );
 
                 // Verify S3 URL
@@ -594,12 +594,18 @@ const AddPostForm = () => {
                                     <Input
                                         type="file"
                                         accept="image/jpeg,image/png,image/gif"
-                                        onChange={(e) => handleImageUpload(e, (imagePath, imageHash) => {
-                                            const newSubtitles = [...subtitles];
-                                            newSubtitles[index].image = imagePath;
-                                            newSubtitles[index].imageHash = imageHash;
-                                            setSubtitles(newSubtitles);
-                                        }, category)}
+                                        onChange={(e) => handleImageUpload(e, 
+                                            (url) => {
+                                                const newSubtitles = [...subtitles];
+                                                newSubtitles[index].image = url;
+                                                setSubtitles(newSubtitles);
+                                            }, 
+                                            (hash) => {
+                                                const newSubtitles = [...subtitles];
+                                                newSubtitles[index].imageHash = hash;
+                                                setSubtitles(newSubtitles);
+                                            }, 
+                                            category)}
                                     />
                                 </FormGroup>
                                 {subtitle.bulletPoints.map((point, pointIndex) => (
@@ -617,12 +623,18 @@ const AddPostForm = () => {
                                             <Input
                                                 type="file"
                                                 accept="image/jpeg,image/png,image/gif"
-                                                onChange={(e) => handleImageUpload(e, (imagePath, imageHash) => {
-                                                    const newSubtitles = [...subtitles];
-                                                    newSubtitles[index].bulletPoints[pointIndex].image = imagePath;
-                                                    newSubtitles[index].bulletPoints[pointIndex].imageHash = imageHash;
-                                                    setSubtitles(newSubtitles);
-                                                }, category)}
+                                                onChange={(e) => handleImageUpload(e, 
+                                                    (url) => {
+                                                        const newSubtitles = [...subtitles];
+                                                        newSubtitles[index].bulletPoints[pointIndex].image = url;
+                                                        setSubtitles(newSubtitles);
+                                                    }, 
+                                                    (hash) => {
+                                                        const newSubtitles = [...subtitles];
+                                                        newSubtitles[index].bulletPoints[pointIndex].imageHash = hash;
+                                                        setSubtitles(newSubtitles);
+                                                    }, 
+                                                    category)}
                                             />
                                         </FormGroup>
                                         <FormGroup>
@@ -657,4 +669,5 @@ const AddPostForm = () => {
         </FormContainer>
     );
 };
+
 export default AddPostForm;
