@@ -43,6 +43,8 @@ const initialState = {
     completedPosts: persistedState.postReducer?.completedPosts || [],
     post: persistedState.postReducer?.post || null,
     loading: persistedState.postReducer?.loading || false,
+    searchResults: persistedState.postReducer?.searchResults || [],
+    error: persistedState.postReducer?.error || null,
   },
   certificates: {
     certificates: persistedState.certificates?.certificates || [],
@@ -111,7 +113,15 @@ store.subscribe(
     const persistedData = {
       auth: { user: state.auth.user, token: state.auth.token, isAuthenticated: state.auth.isAuthenticated, loading: state.auth.loading },
       notifications: { followedCategories: state.notifications.followedCategories, notifications: state.notifications.notifications },
-      postReducer: { posts: state.postReducer.posts, userPosts: state.postReducer.userPosts, completedPosts: state.postReducer.completedPosts, post: state.postReducer.post, loading: state.postReducer.loading },
+      postReducer: { 
+        posts: state.postReducer.posts, 
+        userPosts: state.postReducer.userPosts, 
+        completedPosts: state.postReducer.completedPosts, 
+        post: state.postReducer.post, 
+        loading: state.postReducer.loading,
+        searchResults: state.postReducer.searchResults,
+        error: state.postReducer.error
+      },
       certificates: { certificates: state.certificates.certificates, error: state.certificates.error, loading: state.certificates.loading },
       settings: state.settings,
     };
