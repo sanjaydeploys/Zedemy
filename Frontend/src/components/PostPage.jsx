@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchPostBySlug, markPostAsCompleted, fetchCompletedPosts } from '../actions/postActions';
+import { fetchPostBySlug, fetchCompletedPosts } from '../actions/postActions';
 import { useParams } from 'react-router-dom';
 import Zoom from 'react-medium-image-zoom';
 import 'react-medium-image-zoom/dist/styles.css';
@@ -10,9 +10,7 @@ import styled from 'styled-components';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Helmet } from 'react-helmet';
 import { RingLoader } from 'react-spinners';
-import axios from 'axios';
 
 const Container = styled.div`
     display: flex;
@@ -22,7 +20,7 @@ const Container = styled.div`
 
 const Content = styled.div`
     flex: 1;
-    padding: 10px;
+    padding: 20px;
     overflow-y: auto;
     background-color: #f4f4f9;
     color: ${({ color }) => color};
@@ -210,12 +208,19 @@ const CopyButton = styled.button`
 `;
 
 const CompleteButton = styled.button`
-    margin-top: 20px;
-    padding: 10px 20px;
+    position: sticky;
+    bottom: 20px;
+    align-self: flex-end;
+    margin: 20px;
+    padding: 12px 24px;
     background-color: ${({ isCompleted }) => (isCompleted ? '#27ae60' : '#2c3e50')};
     color: #ecf0f1;
     border: none;
+    border-radius: 5px;
     cursor: ${({ isCompleted }) => (isCompleted ? 'not-allowed' : 'pointer')};
+    font-size: 1.1em;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.2s;
     &:hover {
         background-color: ${({ isCompleted }) => (isCompleted ? '#27ae60' : '#34495e')};
     }
@@ -226,70 +231,18 @@ const ImageError = styled.div`
     margin: 10px 0;
 `;
 
-const PostPage = () => {
+const PostPage = memo(() => {
     const { slug } = useParams();
     const dispatch = useDispatch();
     const post = useSelector((state) => state.postReducer.post);
-    const user = useSelector((state) => state.auth.user);
-    const completedPosts = useSelector( (state) => state.postReducer.completedPosts || []);
+    const completedPosts = useSelector((state) => state.postReducer.completedPosts || []);
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [imageErrors, setImageErrors] = useState({});
-    const [verifiedImages, setVerifiedImages] = useState({});
-    const [verifiedVideos, setVerifiedVideos] = useState({});
-    useEffect(() => {
-        const verifyMedia = async (url, hash, type) => {
-            if (!url || !hash) return true; // Skip if no hash
-            try {
-                const res = await axios.post('https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/verify/file', {
-                    fileUrl: url,
-                    expectedHash: hash
-                });
-                return res.data.isAuthentic;
-            } catch (error) {
-                console.error(`Failed to verify ${type}:`, error);
-                return false;
-            }
-        };
 
-        if (post) {
-            // Verify titleImage
-            if (post.titleImage && post.titleImageHash) {
-                verifyMedia(post.titleImage, post.titleImageHash, 'image').then(isAuthentic => {
-                    setVerifiedImages(prev => ({ ...prev, [post.titleImage]: isAuthentic }));
-                    if (!isAuthentic) toast.error('Title image authenticity verification failed');
-                });
-            }
-            // Verify titleVideo
-            if (post.titleVideo && post.titleVideoHash) {
-                verifyMedia(post.titleVideo, post.titleVideoHash, 'video').then(isAuthentic => {
-                    setVerifiedVideos(prev => ({ ...prev, [post.titleVideo]: isAuthentic }));
-                    if (!isAuthentic) toast.error('Title video authenticity verification failed');
-                });
-            }
-            // Verify subtitle images
-            post.subtitles.forEach((subtitle, index) => {
-                if (subtitle.image && subtitle.imageHash) {
-                    verifyMedia(subtitle.image, subtitle.imageHash, `subtitle[${index}].image`).then(isAuthentic => {
-                        setVerifiedImages(prev => ({ ...prev, [subtitle.image]: isAuthentic }));
-                        if (!isAuthentic) toast.error(`Subtitle ${index} image authenticity verification failed`);
-                    });
-                }
-                subtitle.bulletPoints.forEach((point, pointIndex) => {
-                    if (point.image && point.imageHash) {
-                        verifyMedia(point.image, point.imageHash, `subtitle[${index}].bulletPoints[${pointIndex}].image`).then(isAuthentic => {
-                            setVerifiedImages(prev => ({ ...prev, [point.image]: isAuthentic }));
-                            if (!isAuthentic) toast.error(`Bullet point ${pointIndex} image authenticity verification failed`);
-                        });
-                    }
-                });
-            });
-        }
-    }, [post]);
     useEffect(() => {
-        console.log('Post data:', post);
-        console.log('post.titleImage:', post?.titleImage);
-    }, [post]);
-
+        dispatch(fetchPostBySlug(slug));
+        dispatch(fetchCompletedPosts());
+    }, [dispatch, slug]);
 
     useEffect(() => {
         if (post && post.title) {
@@ -297,19 +250,12 @@ const PostPage = () => {
         }
     }, [post]);
 
-    useEffect(() => {
-        dispatch(fetchPostBySlug(slug));
-        dispatch(fetchCompletedPosts());
-    }, [dispatch, slug]);
-
     const handleMarkAsCompleted = async () => {
         if (!post) {
-            console.log('No post data available');
             toast.error('No post data available');
             return;
         }
 
-        console.log('Triggering mark as completed for postId:', post.postId);
         try {
             const response = await fetch(`https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/complete/${post.postId}`, {
                 method: 'PUT',
@@ -319,7 +265,6 @@ const PostPage = () => {
 
             if (!response.ok) {
                 if (response.status === 400 && data.msg === 'Post already marked as completed') {
-                    console.log('Post already marked as completed on backend:', post.postId);
                     toast.info('This post is already marked as completed');
                     const completedResponse = await fetch('https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed', {
                         headers: { 'x-auth-token': localStorage.getItem('token') }
@@ -331,10 +276,8 @@ const PostPage = () => {
                 throw new Error(data.msg || 'Failed to mark post as completed');
             }
 
-            console.log('Post marked as completed:', data);
             toast.success('Post marked as completed!');
             if (data.certificateUrl) {
-                console.log('Certificate issued:', data.certificateUrl);
                 toast.success(`Category completed! Certificate issued: ${data.certificateUrl}`, {
                     autoClose: 5000,
                     onClick: () => window.open(data.certificateUrl, '_blank')
@@ -347,7 +290,6 @@ const PostPage = () => {
             const updatedCompletedPosts = await completedResponse.json();
             dispatch({ type: 'FETCH_COMPLETED_POSTS_SUCCESS', payload: updatedCompletedPosts });
         } catch (error) {
-            console.error('[markPostAsCompleted] Error:', error.message);
             toast.error(`Failed to mark post as completed: ${error.message}`);
         }
     };
@@ -370,25 +312,10 @@ const PostPage = () => {
             closeOnClick: true,
             pauseOnHover: true,
             draggable: true,
-            progress: undefined,
         });
     };
 
     const handleImageError = (url) => {
-        console.error('Image load error:', url);
-        fetch(url, { method: 'GET', mode: 'cors' })
-            .then(res => {
-                console.log('Fetch response:', {
-                    status: res.status,
-                    headers: {
-                        contentType: res.headers.get('content-type'),
-                        cors: res.headers.get('access-control-allow-origin')
-                    }
-                });
-                return res.blob();
-            })
-            .then(blob => console.log('Blob:', { type: blob.type, size: blob.size }))
-            .catch(err => console.error('Fetch error:', { name: err.name, message: err.message }));
         setImageErrors(prev => ({ ...prev, [url]: true }));
     };
 
@@ -402,39 +329,25 @@ const PostPage = () => {
 
     return (
         <Container>
-            <Helmet>
-                <title>{post ? `${post.title} | HogwartsEdx` : 'Loading...'}</title>
-                <meta property="og:title" content={post.title} />
-                <meta property="og:description" content={post.content} />
-                <meta property="og:image" content={post.titleImage} />
-                <meta property="og:url" content={window.location.href} />
-                <meta name="twitter:card" content="summary_large_image" />
-                <meta name="twitter:title" content={post.title} />
-                <meta name="twitter:description" content={post.content} />
-                <meta name="twitter:image" content={post.titleImage} />
-                <link rel="icon" type="image/svg+xml" href={post.titleImage} />
-            </Helmet>
-
             <Content>
                 <ToggleButton onClick={() => setSidebarOpen(!isSidebarOpen)}>
                     {isSidebarOpen ? 'Close' : 'Menu'}
                 </ToggleButton>
                 <PostHeader>{post.title}</PostHeader>
-                {post.titleImage && verifiedImages[post.titleImage] !== false && (
+                {post.titleImage && (
                     <>
                         <img
                             src={post.titleImage}
                             alt={post.title}
                             style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'block' }}
                             onError={() => handleImageError(post.titleImage)}
-                            onLoad={() => console.log('Image loaded:', post.titleImage)}
                         />
                         {imageErrors[post.titleImage] && (
                             <ImageError>Failed to load image: {post.titleImage}</ImageError>
                         )}
                     </>
                 )}
-                {post.titleVideo && verifiedVideos[post.titleVideo] !== false && (
+                {post.titleVideo && (
                     <video controls style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}>
                         <source src={post.titleVideo} type="video/mp4" />
                         Your browser does not support the video tag.
@@ -467,10 +380,10 @@ const PostPage = () => {
                             </video>
                         )}
                         <ul>
-                        {subtitle.bulletPoints.map((point, pointIndex) => (
+                            {subtitle.bulletPoints.map((point, pointIndex) => (
                                 <li key={pointIndex} style={{ marginBottom: '10px' }}>
                                     {point.text}
-                                    {point.image && verifiedImages[point.image] !== false && (
+                                    {point.image && (
                                         <Zoom>
                                             <img
                                                 src={point.image}
@@ -483,7 +396,6 @@ const PostPage = () => {
                                             )}
                                         </Zoom>
                                     )}
-                                    
                                     {point.video && (
                                         <video controls style={{ width: '100%', maxWidth: '400px', margin: '10px 0' }}>
                                             <source src={point.video} type="video/mp4" />
@@ -599,6 +511,6 @@ const PostPage = () => {
             </SidebarContainer>
         </Container>
     );
-};
+});
 
 export default PostPage;
