@@ -83,8 +83,7 @@ const SearchBlog = () => {
     const dispatch = useDispatch();
     const [keyword, setKeyword] = useState('');
     const [searching, setSearching] = useState(false);
-    const searchState = useSelector((state) => state.searchResults || { searchResults: [], error: null });
-    const { searchResults, error } = searchState;
+    const { searchResults, error } = useSelector(state => state.postReducer || { searchResults: [], error: null });
 
     useEffect(() => {
         if (searchResults || error) {
