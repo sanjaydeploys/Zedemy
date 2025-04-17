@@ -73,17 +73,23 @@ const ClearSearch = styled.span`
     }
 `;
 
+const ErrorMessage = styled.p`
+    margin-top: 10px;
+    font-size: 14px;
+    color: #d32f2f;
+`;
+
 const SearchBlog = () => {
     const dispatch = useDispatch();
     const [keyword, setKeyword] = useState('');
     const [searching, setSearching] = useState(false);
-    const searchResults = useSelector((state) => state.searchResults);
+    const { searchResults, error } = useSelector((state) => state.searchResults);
 
     useEffect(() => {
-        if (searchResults && searchResults.length > 0) {
+        if (searchResults || error) {
             setSearching(false);
         }
-    }, [searchResults]);
+    }, [searchResults, error]);
 
     const handleSearch = () => {
         if (keyword.trim() !== '') {
@@ -101,6 +107,7 @@ const SearchBlog = () => {
     const clearSearch = () => {
         setKeyword('');
         setSearching(false);
+        dispatch({ type: 'SEARCH_POSTS_CLEAR' });
     };
 
     return (
@@ -118,6 +125,9 @@ const SearchBlog = () => {
             )}
             {!searching && searchResults && searchResults.length === 0 && (
                 <SearchCount>No results found</SearchCount>
+            )}
+            {!searching && error && (
+                <ErrorMessage>Error: {error}</ErrorMessage>
             )}
             {!searching && keyword !== '' && (
                 <ClearSearch onClick={clearSearch}>Clear Search</ClearSearch>
