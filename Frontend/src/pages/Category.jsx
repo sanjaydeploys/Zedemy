@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { followCategory, unfollowCategory, fetchFollowedCategories } from '../actions/notificationActions';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { Helmet } from 'react-helmet';
 import '../styles/Category.css';
 import {
     FaHtml5, FaCss3Alt, FaJs, FaNodeJs, FaReact, FaAngular, FaVuejs,
@@ -86,6 +87,67 @@ const Category = () => {
 
     return (
         <div className="category">
+            <Helmet>
+                <title>Explore Coding Categories & Follow Updates - Zedemy</title>
+                <meta
+                    name="description"
+                    content="Browse coding categories like HTML & JavaScript on Zedemy, founded by Sanjay Patidar. Follow categories to get email updates on new courses."
+                />
+                <meta
+                    name="keywords"
+                    content="coding courses, HTML, JavaScript, Python, React, Zedemy, Sanjay Patidar, online learning, follow categories, email notifications"
+                />
+                <meta name="author" content="Sanjay Patidar" />
+                <meta name="robots" content="index, follow" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <link rel="canonical" href="https://zedemy.vercel.app/category" />
+                <meta property="og:title" content="Explore Coding Categories & Follow Updates - Zedemy" />
+                <meta
+                    property="og:description"
+                    content="Browse coding categories like HTML & JavaScript on Zedemy, founded by Sanjay Patidar. Follow categories to get email updates on new courses."
+                />
+                <meta property="og:type" content="website" />
+                <meta property="og:url" content="https://zedemy.vercel.app/category" />
+                <meta property="og:image" content="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
+                <meta property="og:site_name" content="Zedemy" />
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content="Explore Coding Categories & Follow Updates - Zedemy" />
+                <meta
+                    name="twitter:description"
+                    content="Browse coding categories like HTML & JavaScript on Zedemy, founded by Sanjay Patidar. Follow categories to get email updates on new courses."
+                />
+                <meta name="twitter:image" content="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
+                <link rel="icon" type="image/png" href="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
+                <script type="application/ld+json">
+                    {JSON.stringify({
+                        "@context": "https://schema.org",
+                        "@type": "CollectionPage",
+                        "name": "Coding Categories",
+                        "description": "Browse coding categories like HTML & JavaScript on Zedemy, founded by Sanjay Patidar. Follow categories to get email updates on new courses.",
+                        "url": "https://zedemy.vercel.app/category",
+                        "publisher": {
+                            "@type": "Organization",
+                            "name": "Zedemy",
+                            "founder": {
+                                "@type": "Person",
+                                "name": "Sanjay Patidar"
+                            }
+                        },
+                        "mainEntity": {
+                            "@type": "ItemList",
+                            "itemListElement": categories.map((category, index) => ({
+                                "@type": "ListItem",
+                                "position": index + 1,
+                                "item": {
+                                    "@type": "Thing",
+                                    "name": category.name,
+                                    "url": `https://zedemy.vercel.app/category/${category.name.toLowerCase()}`
+                                }
+                            }))
+                        }
+                    })}
+                </script>
+            </Helmet>
             <h2>Categories</h2>
             <ul>
                 {categories.map((category, index) => {
