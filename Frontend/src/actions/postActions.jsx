@@ -35,10 +35,10 @@ export const fetchPostBySlug = (slug) => async dispatch => {
     }
 };
 
-export const searchPosts = (keyword) => async dispatch => {
-    console.log('[searchPosts] Searching posts with keyword:', keyword);
+export const searchPosts = (query) => async dispatch => {
+    console.log('[searchPosts] Searching posts with query:', query);
     try {
-        const res = await axios.get(`${API_BASE_URL}/search?keyword=${keyword}`);
+        const res = await axios.get(`${API_BASE_URL}/search?query=${encodeURIComponent(query)}`);
         console.log('[searchPosts] Search results:', res.data);
         dispatch({ type: SEARCH_POSTS_SUCCESS, payload: res.data });
     } catch (error) {
@@ -46,6 +46,8 @@ export const searchPosts = (keyword) => async dispatch => {
             message: error.message,
             response: error.response ? error.response.data : 'No response'
         });
+        dispatch({ type: SEARCH_POSTS_FAILURE, payload: error.response?.data?.message || 'Failed to search posts' });
+        toast.error('Failed to search posts.', { position: 'top-right', autoClose: 2000 });
     }
 };
 
