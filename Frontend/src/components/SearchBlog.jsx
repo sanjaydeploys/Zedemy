@@ -83,7 +83,8 @@ const SearchBlog = () => {
     const dispatch = useDispatch();
     const [keyword, setKeyword] = useState('');
     const [searching, setSearching] = useState(false);
-    const { searchResults, error } = useSelector((state) => state.searchResults);
+    const searchState = useSelector((state) => state.searchResults || { searchResults: [], error: null });
+    const { searchResults, error } = searchState;
 
     useEffect(() => {
         if (searchResults || error) {
