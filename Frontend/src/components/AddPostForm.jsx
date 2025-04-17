@@ -162,54 +162,62 @@ const AddPostForm = () => {
         return null;
     };
 
-    const handleImageUpload = async (e, setImage, setImageHash, categoryOverride = category) => {
-        const file = e.target.files[0];
-        setError('');
-        if (!file) {
-            setError('No file selected');
-            return;
-        }
+   const handleImageUpload = async (e, setImage, setImageHash, categoryOverride = category) => {
+  const file = e.target.files[0];
+  setError('');
+  if (!file) {
+    setError('No file selected');
+    return;
+  }
 
-        const error = validateFile(file, 'image');
-        if (error) {
-            setError(error);
-            return;
-        }
+  const error = validateFile(file, 'image');
+  if (error) {
+    setError(error);
+    return;
+  }
 
-        // Preview
-        const previewUrl = URL.createObjectURL(file);
-        if (setImage === setTitleImage) {
-            setTitleImagePreview(previewUrl);
-        }
+  const previewUrl = URL.createObjectURL(file);
+  if (setImage === setTitleImage) {
+    setTitleImagePreview(previewUrl);
+  }
 
-        const formData = new FormData();
-        formData.append('image', file);
-        formData.append('category', categoryOverride);
-        console.log('Uploading image:', {
-            name: file.name,
-            type: file.type,
-            size: file.size,
-            category: categoryOverride
-        });
-        try {
-            const res = await axios.post(
-                'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/upload/image',
-                formData,
-                { headers: { 'Content-Type': 'multipart/form-data' } }
-            );
-            setImage(res.data.filePath);
-            setImageHash(res.data.fileHash); // Store the hash
-            console.log('Image uploaded:', { filePath: res.data.filePath, fileHash: res.data.fileHash });
-        } catch (error) {
-            const errorMsg = error.response?.data?.error || error.message;
-            setError(`Error uploading image: ${errorMsg}`);
-            console.error('Error uploading image:', {
-                message: error.message,
-                response: error.response?.data,
-                status: error.response?.status
-            });
-        }
-    };
+  try {
+    // Get pre-signed URL
+    const res = await axios.post(
+      'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/get-presigned-url',
+      {
+        fileType: file.type,
+        folder: 'images',
+        category: categoryOverride
+      }
+    );
+    const { signedUrl, publicUrl, key } = res.data;
+
+    // Upload file to S3 using pre-signed URL
+    await axios.put(signedUrl, file, {
+      headers: { 'Content-Type': file.type }
+    });
+
+    // Generate file hash
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const fileHash = crypto.createHash('sha256').update(buffer).digest('hex');
+
+    // Store metadata in DynamoDB (optional, call backend endpoint if needed)
+    await axios.post(
+      'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
+      { fileKey: key, fileHash, fileType: 'images', category: categoryOverride }
+    );
+
+    setImage(publicUrl);
+    setImageHash(fileHash);
+    console.log('Image uploaded:', { filePath: publicUrl, fileHash });
+  } catch (error) {
+    const errorMsg = error.response?.data?.error || error.message;
+    setError(`Error uploading image: ${errorMsg}`);
+    console.error('Error uploading image:', error);
+  }
+};
 
     const handleVideoUpload = async (e, setVideo, setVideoHash, categoryOverride = category) => {
         const file = e.target.files[0];
