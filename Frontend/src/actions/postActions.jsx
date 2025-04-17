@@ -19,7 +19,7 @@ import {
 import { fetchCertificates } from './certificateActions';
 import { addNotification } from './notificationActions';
 
-const API_BASE_URL = 'https://desei9yzrk.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
+const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
 
 export const fetchPostBySlug = (slug) => async dispatch => {
     console.log('[fetchPostBySlug] Fetching post by slug:', slug);
@@ -125,7 +125,7 @@ export const addPost = (title, content, category, subtitles, summary, titleImage
         toast.success('Post added successfully!', { position: 'top-right', autoClose: 2000 });
 
         console.log('[addPost] Fetching users to notify for category:', category);
-        const usersToNotify = await axios.get(`https://desei9yzrk.execute-api.ap-south-1.amazonaws.com/prod/api/users/category/${category}`, {
+        const usersToNotify = await axios.get(`https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/users/category/${category}`, {
             headers: { 'x-auth-token': token }
         });
         console.log('[addPost] Users to notify:', usersToNotify.data);
