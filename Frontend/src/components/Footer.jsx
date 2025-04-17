@@ -116,7 +116,7 @@ const links = [
     { to: "/certificate-verification", text: "Certificate Verification" },
 
     { to: "/dashboard", text: "Dashboard" },
-    { to: "https://learnandshare.vercel.app/sitemap.xml", text: "Sitemap" },
+    { to: "https://zedemy.vercel.app/sitemap.xml", text: "Sitemap" },
 
 ];
 
