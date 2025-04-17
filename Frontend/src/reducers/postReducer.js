@@ -8,6 +8,8 @@ import {
     DELETE_POST_SUCCESS,
     SEARCH_POSTS_SUCCESS,
     FETCH_POST_SUCCESS,
+    SEARCH_POSTS_FAILURE,
+    SEARCH_POSTS_CLEAR,
     MARK_POST_COMPLETED_SUCCESS,
     FETCH_COMPLETED_POSTS_SUCCESS,
     FETCH_COMPLETED_POSTS_FAILURE
@@ -17,6 +19,7 @@ const initialState = {
     posts: [],
     userPosts: [],
     completedPosts: [],
+    searchResults: [],
     post: null,
     loading: false // Added for FETCH_USER_POSTS_REQUEST
 };
@@ -55,6 +58,10 @@ const postReducer = (state = initialState, action) => {
             };
         case SEARCH_POSTS_SUCCESS:
             return { ...state, posts: action.payload };
+            case 'SEARCH_POSTS_FAILURE':
+             return { ...state, searchResults: [], error: action.payload };
+         case 'SEARCH_POSTS_CLEAR':
+             return { ...state, searchResults: [], error: null };
         case FETCH_POST_SUCCESS:
             return { ...state, post: action.payload };
         case MARK_POST_COMPLETED_SUCCESS:
