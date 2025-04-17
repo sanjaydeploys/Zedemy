@@ -193,7 +193,7 @@ const AddPostForm = () => {
         });
         try {
             const res = await axios.post(
-                'https://desei9yzrk.execute-api.ap-south-1.amazonaws.com/prod/upload/image',
+                'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/upload/image',
                 formData,
                 { headers: { 'Content-Type': 'multipart/form-data' } }
             );
@@ -240,7 +240,7 @@ const AddPostForm = () => {
 
         try {
             const res = await axios.post(
-                'https://desei9yzrk.execute-api.ap-south-1.amazonaws.com/prod/upload/video',
+                'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/upload/video',
                 formData,
                 { headers: { 'Content-Type': 'multipart/form-data' } }
             );
