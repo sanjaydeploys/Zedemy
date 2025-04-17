@@ -240,7 +240,7 @@ const PostPage = () => {
         const verifyMedia = async (url, hash, type) => {
             if (!url || !hash) return true; // Skip if no hash
             try {
-                const res = await axios.post('https://desei9yzrk.execute-api.ap-south-1.amazonaws.com/prod/verify/file', {
+                const res = await axios.post('https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/verify/file', {
                     fileUrl: url,
                     expectedHash: hash
                 });
@@ -311,7 +311,7 @@ const PostPage = () => {
 
         console.log('Triggering mark as completed for postId:', post.postId);
         try {
-            const response = await fetch(`https://desei9yzrk.execute-api.ap-south-1.amazonaws.com/prod/api/posts/complete/${post.postId}`, {
+            const response = await fetch(`https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/complete/${post.postId}`, {
                 method: 'PUT',
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
@@ -321,7 +321,7 @@ const PostPage = () => {
                 if (response.status === 400 && data.msg === 'Post already marked as completed') {
                     console.log('Post already marked as completed on backend:', post.postId);
                     toast.info('This post is already marked as completed');
-                    const completedResponse = await fetch('https://desei9yzrk.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed', {
+                    const completedResponse = await fetch('https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed', {
                         headers: { 'x-auth-token': localStorage.getItem('token') }
                     });
                     const updatedCompletedPosts = await completedResponse.json();
@@ -341,7 +341,7 @@ const PostPage = () => {
                 });
             }
 
-            const completedResponse = await fetch('https://desei9yzrk.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed', {
+            const completedResponse = await fetch('https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed', {
                 headers: { 'x-auth-token': localStorage.getItem('token') }
             });
             const updatedCompletedPosts = await completedResponse.json();
