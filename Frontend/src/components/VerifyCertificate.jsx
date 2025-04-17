@@ -203,8 +203,53 @@ const VerifyCertificate = () => {
     return (
         <Container>
             <Helmet>
-                <title>Verify Your Certificates - LearnAndShare | Fast and Easy Certificate Verification and Download</title>
-                {/* ... rest of Helmet content ... */}
+                <title>Verify & Download Certificates - Zedemy</title>
+                <meta
+                    name="description"
+                    content="Verify and download certificates on Zedemy, founded by Sanjay Patidar. Search by name, ID, or date with our fast, secure platform."
+                />
+                <meta
+                    name="keywords"
+                    content="certificate verification, Zedemy, Sanjay Patidar, online courses, certificate download, verify certificate, education"
+                />
+                <meta name="author" content="Sanjay Patidar" />
+                <meta name="robots" content="index, follow" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <link rel="canonical" href="https://zedemy.vercel.app/certificate-verification" />
+                <meta property="og:title" content="Verify & Download Certificates - Zedemy" />
+                <meta
+                    property="og:description"
+                    content="Verify and download certificates on Zedemy, founded by Sanjay Patidar. Search by name, ID, or date with our fast, secure platform."
+                />
+                <meta property="og:type" content="website" />
+                <meta property="og:url" content="https://zedemy.vercel.app/certificate-verification" />
+                <meta property="og:image" content="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
+                <meta property="og:site_name" content="Zedemy" />
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content="Verify & Download Certificates - Zedemy" />
+                <meta
+                    name="twitter:description"
+                    content="Verify and download certificates on Zedemy, founded by Sanjay Patidar. Search by name, ID, or date with our fast, secure platform."
+                />
+                <meta name="twitter:image" content="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
+                <link rel="icon" type="image/png" href="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
+                <script type="application/ld+json">
+                    {JSON.stringify({
+                        "@context": "https://schema.org",
+                        "@type": "WebPage",
+                        "name": "Certificate Verification",
+                        "description": "Verify and download certificates on Zedemy, founded by Sanjay Patidar. Search by name, ID, or date with our fast, secure platform.",
+                        "url": "https://zedemy.vercel.app/certificate-verification",
+                        "publisher": {
+                            "@type": "Organization",
+                            "name": "Zedemy",
+                            "founder": {
+                                "@type": "Person",
+                                "name": "Sanjay Patidar"
+                            }
+                        }
+                    })}
+                </script>
             </Helmet>
             <Title>Certificate Verification</Title>
             {loading && (
