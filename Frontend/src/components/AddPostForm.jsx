@@ -218,10 +218,10 @@ const AddPostForm = () => {
                 const fileHash = await generateFileHash(file);
 
                 // Store metadata in DynamoDB
-                await axios.post(
-                    'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
-                    { fileKey: key, fileHash, fileType: 'images', category: categoryOverride }
-                );
+              await axios.post(
+  'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
+  { fileKey: key, fileHash, fileType: 'images', category: categoryOverride, userId: user.id }
+);
 
                 // Verify S3 URL
                 const response = await fetch(publicUrl);
