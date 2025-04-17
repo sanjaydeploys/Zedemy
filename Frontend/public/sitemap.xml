@@ -2,46 +2,67 @@
 
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
-  <!-- Navigation links LearnAndShare -->
+  <!-- Navigation links Zedemy -->
   <url>
-    <loc>https://learnandshare.vercel.app</loc>
-    <lastmod>2024-08-07</lastmod>
+    <loc>https://zedemy.vercel.app/</loc>
+    <lastmod>2025-04-17</lastmod>
   </url>
 
   <url>
-    <loc>https://learnandshare.vercel.app/category</loc>
-    <lastmod>2024-08-07</lastmod>
+    <loc>https://zedemy.vercel.app/category</loc>
+    <lastmod>2025-04-17</lastmod>
   </url>
 
   <url>
-    <loc>https://learnandshare.vercel.app/add-post</loc>
-    <lastmod>2024-08-07</lastmod>
+    <loc>https://zedemy.vercel.app/login</loc>
+    <lastmod>2025-04-17</lastmod>
   </url>
 
   <url>
-    <loc>https://learnandshare.vercel.app/login</loc>
-    <lastmod>2024-08-07</lastmod>
+    <loc>https://zedemy.vercel.app/register</loc>
+    <lastmod>2025-04-17</lastmod>
   </url>
 
   <url>
-    <loc>https://learnandshare.vercel.app/certificate-verification</loc>
-    <lastmod>2024-08-07</lastmod>
+    <loc>https://zedemy.vercel.app/forgot-password</loc>
+    <lastmod>2025-04-17</lastmod>
   </url>
 
   <url>
-    <loc>https://learnandshare.vercel.app/editor/</loc>
-    <lastmod>2024-08-07</lastmod>
-  </url>
-
-  <!-- VS Code Posts on HogwartsEdx -->
-  <url>
-    <loc>https://learnandshare.vercel.app/post/visual-studio-code-vs-code-or-introduction-or-overview-or-features-or-installation-guide-or-extensions</loc>
-    <lastmod>2024-08-07</lastmod>
+    <loc>https://zedemy.vercel.app/explore</loc>
+    <lastmod>2025-04-17</lastmod>
   </url>
 
   <url>
-    <loc>https://learnandshare.vercel.app/post/visual-studio-vs-visual-studio-code-whats-the-key-difference</loc>
-    <lastmod>2024-08-07</lastmod>
+    <loc>https://zedemy.vercel.app/about</loc>
+    <lastmod>2025-04-17</lastmod>
+  </url>
+
+  <url>
+    <loc>https://zedemy.vercel.app/notifications</loc>
+    <lastmod>2025-04-17</lastmod>
+  </url>
+
+  <url>
+    <loc>https://zedemy.vercel.app/certificate-verification</loc>
+    <lastmod>2025-04-17</lastmod>
+  </url>
+
+  <url>
+    <loc>https://zedemy.vercel.app/editor</loc>
+    <lastmod>2025-04-17</lastmod>
+  </url>
+
+  <!-- VS Code Posts on Zedemy -->
+  <url>
+    <loc>https://zedemy.vercel.app/post/visual-studio-code-explained-your-ultimate-guide-to-the-7ws-of-vs-code</loc>
+    <lastmod>2025-04-17</lastmod>
+  </url>
+
+  <!-- HTML Posts on Zedemy -->
+  <url>
+    <loc>https://zedemy.vercel.app/post/learn-html-ultimate-5ws-guide-to-web-development-for-beginners</loc>
+    <lastmod>2025-04-17</lastmod>
   </url>
 
 </urlset>
