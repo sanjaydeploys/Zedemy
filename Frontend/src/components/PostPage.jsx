@@ -22,12 +22,23 @@ const parseLinks = (text) => {
     return DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel'] });
 };
 
-// Function to strip HTML and sanitize for meta tags
-const stripHtml = (html) => {
-    if (!html) return '';
-    const tmp = document.createElement('DIV');
-    tmp.innerHTML = DOMPurify.sanitize(html);
-    return tmp.textContent || tmp.innerText || '';
+// Function to sanitize only code snippets
+const sanitizeCodeSnippet = (code) => {
+    return DOMPurify.sanitize(code, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+};
+
+// Function to truncate text for SEO description while preserving HTML
+const truncateText = (text, maxLength) => {
+    if (!text) return '';
+    if (text.length <= maxLength) return text;
+    let truncated = text.slice(0, maxLength);
+    const lastTagIndex = truncated.lastIndexOf('>');
+    if (lastTagIndex !== -1 && truncated.lastIndexOf('<') > lastTagIndex) {
+        truncated = truncated.slice(0, lastTagIndex + 1);
+    } else {
+        truncated = truncated + '...';
+    }
+    return truncated;
 };
 
 const Container = styled.div`
@@ -339,29 +350,29 @@ const PostPage = memo(() => {
         );
     }
 
-    // SEO-related data
-    const pageTitle = `${stripHtml(post.title)} | Zedemy`;
-    const pageDescription = post.summary ? stripHtml(post.summary).slice(0, 160) : (post.content ? stripHtml(post.content).slice(0, 160) : 'Learn more about this topic at HogwartsEdx.');
-    const pageKeywords = post.keywords || `${stripHtml(post.title)}, Zedemy, tutorial, education`;
-    const canonicalUrl = `https://zedemy.vercel.app/posts/${slug}`;
-    const ogImage = post.titleImage || 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
+    // SEO-related data (no sanitization except for parseLinks where needed)
+    const pageTitle = `${post.title} | HogwartsEdx`;
+    const pageDescription = post.summary ? truncateText(post.summary, 160) : (post.content ? truncateText(post.content, 160) : 'Learn more about this topic at HogwartsEdx.');
+    const pageKeywords = post.keywords || `${post.title}, HogwartsEdx, tutorial, education`;
+    const canonicalUrl = `https://hogwartsedx.com/posts/${slug}`;
+    const ogImage = post.titleImage || 'https://hogwartsedx.com/default-og-image.jpg';
 
     // Structured Data (JSON-LD)
     const structuredData = {
         '@context': 'https://schema.org',
         '@type': 'BlogPosting',
-        headline: stripHtml(post.title),
+        headline: post.title,
         description: pageDescription,
         author: {
             '@type': 'Person',
-            name: post.author || 'Zedemy Team'
+            name: post.author || 'HogwartsEdx Team'
         },
         publisher: {
             '@type': 'Organization',
-            name: 'Zedemy',
+            name: 'HogwartsEdx',
             logo: {
                 '@type': 'ImageObject',
-                url: 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png'
+                url: 'https://hogwartsedx.com/logo.png'
             }
         },
         datePublished: post.date,
@@ -380,7 +391,7 @@ const PostPage = memo(() => {
                 <title>{pageTitle}</title>
                 <meta name="description" content={pageDescription} />
                 <meta name="keywords" content={pageKeywords} />
-                <meta name="author" content={post.author || 'Zedemy Team'} />
+                <meta name="author" content={post.author || 'HogwartsEdx Team'} />
                 <meta name="robots" content="index, follow" />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 <link rel="canonical" href={canonicalUrl} />
@@ -391,7 +402,7 @@ const PostPage = memo(() => {
                 <meta property="og:image" content={ogImage} />
                 <meta property="og:url" content={canonicalUrl} />
                 <meta property="og:type" content="article" />
-                <meta property="og:site_name" content="Zedemy" />
+                <meta property="og:site_name" content="HogwartsEdx" />
 
                 {/* Twitter Card Tags */}
                 <meta name="twitter:card" content="summary_large_image" />
@@ -484,7 +495,7 @@ const PostPage = memo(() => {
                                                     <CopyButton>Copy</CopyButton>
                                                 </CopyToClipboard>
                                                 <SyntaxHighlighter language="javascript" style={vs}>
-                                                    {point.codeSnippet}
+                                                    {sanitizeCodeSnippet(point.codeSnippet)}
                                                 </SyntaxHighlighter>
                                             </CodeSnippetContainer>
                                         )}
