@@ -7,7 +7,7 @@ import DOMPurify from 'dompurify';
 import styled from 'styled-components';
 import { Tooltip } from '@material-ui/core';
 
-// Styled Components
+// Styled Components (unchanged)
 const FormContainer = styled.div`
     max-width: 1200px;
     margin: 20px auto;
@@ -140,6 +140,29 @@ const AddPostForm = () => {
         'Kotlin', 'Dart', 'Flutter', 'React Native'
     ];
     const [superTitles, setSuperTitles] = useState([{ superTitle: '', attributes: [{ attribute: '', items: [{ title: '', bulletPoints: [''] }] }] }]);
+
+    // Define allowed HTML tags and attributes for sanitization
+    const allowedHtmlTags = [
+        'div', 'a', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'ol', 'li', 'span',
+        'section', 'header', 'footer', 'article', 'aside', 'nav', 'main', 'figure', 'figcaption', 'br', 'para'
+    ];
+    const allowedHtmlAttributes = ['href', 'class', 'id', 'style'];
+
+    // Sanitization configuration for HTML content
+    const htmlSanitizeConfig = {
+        ALLOWED_TAGS: category === 'HTML' ? [...allowedHtmlTags, 'pre', 'code'] : allowedHtmlTags,
+        ALLOWED_ATTR: allowedHtmlAttributes,
+        // Allow data attributes for specific use cases
+        ALLOW_DATA_ATTR: true,
+        // Keep inline styles for formatting
+        ALLOWED_CSS_PROPERTIES: ['color', 'font-size', 'font-weight', 'text-align', 'margin', 'padding']
+    };
+
+    // Sanitization configuration for code snippets (strict)
+    const codeSanitizeConfig = {
+        ALLOWED_TAGS: [],
+        ALLOWED_ATTR: []
+    };
 
     const validateFile = (file, type) => {
         if (!file) return 'No file selected';
@@ -414,16 +437,61 @@ const AddPostForm = () => {
             return;
         }
         try {
-            // Only sanitize codeSnippet fields to prevent XSS in code blocks
+            // Sanitize fields that allow HTML
+            const sanitizedTitle = DOMPurify.sanitize(title, htmlSanitizeConfig);
+            const sanitizedContent = DOMPurify.sanitize(content, htmlSanitizeConfig);
+            const sanitizedSummary = DOMPurify.sanitize(summary, htmlSanitizeConfig);
+
+            // Sanitize subtitles
             const sanitizedSubtitles = subtitles.map(sub => ({
                 ...sub,
+                title: DOMPurify.sanitize(sub.title, htmlSanitizeConfig),
                 bulletPoints: sub.bulletPoints.map(point => ({
                     ...point,
-                    codeSnippet: DOMPurify.sanitize(point.codeSnippet, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] })
+                    text: DOMPurify.sanitize(point.text, htmlSanitizeConfig),
+                    codeSnippet: DOMPurify.sanitize(point.codeSnippet, codeSanitizeConfig)
                 }))
             }));
+
+            // Sanitize superTitles
+            const sanitizedSuperTitles = superTitles.map(superTitle => ({
+                ...superTitle,
+                superTitle: DOMPurify.sanitize(superTitle.superTitle, htmlSanitizeConfig),
+                attributes: superTitle.attributes.map(attr => ({
+                    ...attr,
+                    attribute: DOMPurify.sanitize(attr.attribute, htmlSanitizeConfig),
+                    items: attr.items.map(item => ({
+                        ...item,
+                        title: DOMPurify.sanitize(item.title, htmlSanitizeConfig),
+                        bulletPoints: item.bulletPoints.map(bp => DOMPurify.sanitize(bp, htmlSanitizeConfig))
+                    }))
+                }))
+            }));
+
             console.log('Submitting post with category:', category);
-            dispatch(addPost(title, content, category, sanitizedSubtitles, summary, titleImage, superTitles, video, titleImageHash, videoHash));
+            console.log('Sanitized data:', {
+                title: sanitizedTitle,
+                content: sanitizedContent,
+                summary: sanitizedSummary,
+                subtitles: sanitizedSubtitles,
+                superTitles: sanitizedSuperTitles
+            });
+
+            // Dispatch the post with sanitized data
+            dispatch(addPost(
+                sanitizedTitle,
+                sanitizedContent,
+                category,
+                sanitizedSubtitles,
+                sanitizedSummary,
+                titleImage,
+                sanitizedSuperTitles,
+                video,
+                titleImageHash,
+                videoHash
+            ));
+
+            // Reset form fields
             setTitle('');
             setTitleImage(null);
             setTitleImageHash(null);
