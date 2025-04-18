@@ -2,6 +2,7 @@ import React, { useState, useEffect, memo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPostBySlug, fetchCompletedPosts } from '../actions/postActions';
 import { useParams } from 'react-router-dom';
+import { Helmet, HelmetProvider } from 'react-helmet-async';
 import Zoom from 'react-medium-image-zoom';
 import 'react-medium-image-zoom/dist/styles.css';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -11,6 +12,23 @@ import { CopyToClipboard } from 'react-copy-to-clipboard';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { RingLoader } from 'react-spinners';
+import DOMPurify from 'dompurify';
+
+// Function to parse [text](url) links and convert to HTML
+const parseLinks = (text) => {
+    if (!text) return text;
+    const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+    const html = text.replace(linkRegex, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    return DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel'] });
+};
+
+// Function to strip HTML and sanitize for meta tags
+const stripHtml = (html) => {
+    if (!html) return '';
+    const tmp = document.createElement('DIV');
+    tmp.innerHTML = DOMPurify.sanitize(html);
+    return tmp.textContent || tmp.innerText || '';
+};
 
 const Container = styled.div`
     display: flex;
@@ -244,12 +262,6 @@ const PostPage = memo(() => {
         dispatch(fetchCompletedPosts());
     }, [dispatch, slug]);
 
-    useEffect(() => {
-        if (post && post.title) {
-            document.title = `${post.title} | HogwartsEdx`;
-        }
-    }, [post]);
-
     const handleMarkAsCompleted = async () => {
         if (!post) {
             toast.error('No post data available');
@@ -266,7 +278,7 @@ const PostPage = memo(() => {
             if (!response.ok) {
                 if (response.status === 400 && data.msg === 'Post already marked as completed') {
                     toast.info('This post is already marked as completed');
-                    const completedResponse = await fetch('https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed', {
+                    const completedResponse = await fetch('https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/pro/api/posts/completed', {
                         headers: { 'x-auth-token': localStorage.getItem('token') }
                     });
                     const updatedCompletedPosts = await completedResponse.json();
@@ -327,189 +339,254 @@ const PostPage = memo(() => {
         );
     }
 
-    return (
-        <Container>
-            <Content>
-                <ToggleButton onClick={() => setSidebarOpen(!isSidebarOpen)}>
-                    {isSidebarOpen ? 'Close' : 'Menu'}
-                </ToggleButton>
-                <PostHeader>{post.title}</PostHeader>
-                {post.titleImage && (
-                    <>
-                        <img
-                            src={post.titleImage}
-                            alt={post.title}
-                            style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'block' }}
-                            onError={() => handleImageError(post.titleImage)}
-                        />
-                        {imageErrors[post.titleImage] && (
-                            <ImageError>Failed to load image: {post.titleImage}</ImageError>
-                        )}
-                    </>
-                )}
-                {post.titleVideo && (
-                    <video controls style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}>
-                        <source src={post.titleVideo} type="video/mp4" />
-                        Your browser does not support the video tag.
-                    </video>
-                )}
-                <p>Date Published: {post.date}</p>
-                <p>Author: {post.author}</p>
-                <p>{post.content}</p>
+    // SEO-related data
+    const pageTitle = `${stripHtml(post.title)} | Zedemy`;
+    const pageDescription = post.summary ? stripHtml(post.summary).slice(0, 160) : (post.content ? stripHtml(post.content).slice(0, 160) : 'Learn more about this topic at HogwartsEdx.');
+    const pageKeywords = post.keywords || `${stripHtml(post.title)}, Zedemy, tutorial, education`;
+    const canonicalUrl = `https://zedemy.vercel.app/posts/${slug}`;
+    const ogImage = post.titleImage || 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
 
-                {post.subtitles.map((subtitle, index) => (
-                    <div key={index} id={`subtitle-${index}`}>
-                        <SubtitleHeader>{subtitle.title}</SubtitleHeader>
-                        {subtitle.image && (
-                            <Zoom>
-                                <img
-                                    src={subtitle.image}
-                                    alt={subtitle.title}
-                                    style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
-                                    onError={() => handleImageError(subtitle.image)}
-                                />
-                                {imageErrors[subtitle.image] && (
-                                    <ImageError>Failed to load image: {subtitle.image}</ImageError>
-                                )}
-                            </Zoom>
-                        )}
-                        {subtitle.video && (
-                            <video controls style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}>
-                                <source src={subtitle.video} />
-                                Your browser does not support the video tag.
-                            </video>
-                        )}
-                        <ul>
-                            {subtitle.bulletPoints.map((point, pointIndex) => (
-                                <li key={pointIndex} style={{ marginBottom: '10px' }}>
-                                    {point.text}
-                                    {point.image && (
-                                        <Zoom>
-                                            <img
-                                                src={point.image}
-                                                alt={point.text}
-                                                style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
-                                                onError={() => handleImageError(point.image)}
-                                            />
-                                            {imageErrors[point.image] && (
-                                                <ImageError>Failed to load image: {point.image}</ImageError>
-                                            )}
-                                        </Zoom>
+    // Structured Data (JSON-LD)
+    const structuredData = {
+        '@context': 'https://schema.org',
+        '@type': 'BlogPosting',
+        headline: stripHtml(post.title),
+        description: pageDescription,
+        author: {
+            '@type': 'Person',
+            name: post.author || 'Zedemy Team'
+        },
+        publisher: {
+            '@type': 'Organization',
+            name: 'Zedemy',
+            logo: {
+                '@type': 'ImageObject',
+                url: 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png'
+            }
+        },
+        datePublished: post.date,
+        image: ogImage,
+        url: canonicalUrl,
+        mainEntityOfPage: {
+            '@type': 'WebPage',
+            '@id': canonicalUrl
+        }
+    };
+
+    return (
+        <HelmetProvider>
+            <Helmet>
+                <html lang="en" />
+                <title>{pageTitle}</title>
+                <meta name="description" content={pageDescription} />
+                <meta name="keywords" content={pageKeywords} />
+                <meta name="author" content={post.author || 'Zedemy Team'} />
+                <meta name="robots" content="index, follow" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <link rel="canonical" href={canonicalUrl} />
+                
+                {/* Open Graph Tags */}
+                <meta property="og:title" content={pageTitle} />
+                <meta property="og:description" content={pageDescription} />
+                <meta property="og:image" content={ogImage} />
+                <meta property="og:url" content={canonicalUrl} />
+                <meta property="og:type" content="article" />
+                <meta property="og:site_name" content="Zedemy" />
+
+                {/* Twitter Card Tags */}
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content={pageTitle} />
+                <meta name="twitter:description" content={pageDescription} />
+                <meta name="twitter:image" content={ogImage} />
+
+                {/* Structured Data */}
+                <script type="application/ld+json">
+                    {JSON.stringify(structuredData)}
+                </script>
+            </Helmet>
+            <Container>
+                <Content>
+                    <ToggleButton onClick={() => setSidebarOpen(!isSidebarOpen)}>
+                        {isSidebarOpen ? 'Close' : 'Menu'}
+                    </ToggleButton>
+                    <PostHeader dangerouslySetInnerHTML={{ __html: parseLinks(post.title) }} />
+                    {post.titleImage && (
+                        <>
+                            <img
+                                src={post.titleImage}
+                                alt={post.title}
+                                style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'block' }}
+                                onError={() => handleImageError(post.titleImage)}
+                            />
+                            {imageErrors[post.titleImage] && (
+                                <ImageError>Failed to load image: {post.titleImage}</ImageError>
+                            )}
+                        </>
+                    )}
+                    {post.titleVideo && (
+                        <video controls style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}>
+                            <source src={post.titleVideo} type="video/mp4" />
+                            Your browser does not support the video tag.
+                        </video>
+                    )}
+                    <p>Date Published: {post.date}</p>
+                    <p>Author: {post.author}</p>
+                    <p dangerouslySetInnerHTML={{ __html: parseLinks(post.content) }} />
+
+                    {post.subtitles.map((subtitle, index) => (
+                        <div key={index} id={`subtitle-${index}`}>
+                            <SubtitleHeader dangerouslySetInnerHTML={{ __html: parseLinks(subtitle.title) }} />
+                            {subtitle.image && (
+                                <Zoom>
+                                    <img
+                                        src={subtitle.image}
+                                        alt={subtitle.title}
+                                        style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
+                                        onError={() => handleImageError(subtitle.image)}
+                                    />
+                                    {imageErrors[subtitle.image] && (
+                                        <ImageError>Failed to load image: {subtitle.image}</ImageError>
                                     )}
-                                    {point.video && (
-                                        <video controls style={{ width: '100%', maxWidth: '400px', margin: '10px 0' }}>
-                                            <source src={point.video} type="video/mp4" />
-                                            Your browser does not support the video tag.
-                                        </video>
-                                    )}
-                                    {point.codeSnippet && (
-                                        <CodeSnippetContainer>
-                                            <CopyToClipboard text={point.codeSnippet} onCopy={handleCopyCode}>
-                                                <CopyButton>Copy</CopyButton>
-                                            </CopyToClipboard>
-                                            <SyntaxHighlighter language="javascript" style={vs}>
-                                                {point.codeSnippet}
-                                            </SyntaxHighlighter>
-                                        </CodeSnippetContainer>
-                                    )}
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                ))}
-                {post.superTitles &&
-                    post.superTitles.length > 0 &&
-                    post.superTitles.some(superTitle =>
-                        superTitle.superTitle.trim() !== '' &&
-                        superTitle.attributes &&
-                        superTitle.attributes.length > 0 &&
-                        superTitle.attributes.some(attr =>
-                            attr.attribute.trim() !== '' &&
-                            attr.items &&
-                            attr.items.length > 0 &&
-                            attr.items.some(item =>
-                                item.title.trim() !== '' &&
-                                item.bulletPoints &&
-                                item.bulletPoints.length > 0 &&
-                                item.bulletPoints.some(point => point.trim() !== '')
+                                </Zoom>
+                            )}
+                            {subtitle.video && (
+                                <video controls style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}>
+                                    <source src={subtitle.video} />
+                                    Your browser does not support the video tag.
+                                </video>
+                            )}
+                            <ul>
+                                {subtitle.bulletPoints.map((point, pointIndex) => (
+                                    <li key={pointIndex} style={{ marginBottom: '10px' }}>
+                                        <span dangerouslySetInnerHTML={{ __html: parseLinks(point.text) }} />
+                                        {point.image && (
+                                            <Zoom>
+                                                <img
+                                                    src={point.image}
+                                                    alt={point.text}
+                                                    style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
+                                                    onError={() => handleImageError(point.image)}
+                                                />
+                                                {imageErrors[point.image] && (
+                                                    <ImageError>Failed to load image: {point.image}</ImageError>
+                                                )}
+                                            </Zoom>
+                                        )}
+                                        {point.video && (
+                                            <video controls style={{ width: '100%', maxWidth: '400px', margin: '10px 0' }}>
+                                                <source src={point.video} type="video/mp4" />
+                                                Your browser does not support the video tag.
+                                            </video>
+                                        )}
+                                        {point.codeSnippet && (
+                                            <CodeSnippetContainer>
+                                                <CopyToClipboard text={point.codeSnippet} onCopy={handleCopyCode}>
+                                                    <CopyButton>Copy</CopyButton>
+                                                </CopyToClipboard>
+                                                <SyntaxHighlighter language="javascript" style={vs}>
+                                                    {point.codeSnippet}
+                                                </SyntaxHighlighter>
+                                            </CodeSnippetContainer>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ))}
+                    {post.superTitles &&
+                        post.superTitles.length > 0 &&
+                        post.superTitles.some(superTitle =>
+                            superTitle.superTitle.trim() !== '' &&
+                            superTitle.attributes &&
+                            superTitle.attributes.length > 0 &&
+                            superTitle.attributes.some(attr =>
+                                attr.attribute.trim() !== '' &&
+                                attr.items &&
+                                attr.items.length > 0 &&
+                                attr.items.some(item =>
+                                    item.title.trim() !== '' &&
+                                    item.bulletPoints &&
+                                    item.bulletPoints.length > 0 &&
+                                    item.bulletPoints.some(point => point.trim() !== '')
+                                )
                             )
-                        )
-                    ) && (
-                        <ComparisonTableContainer>
-                            <SubtitleHeader>Comparison</SubtitleHeader>
-                            <ResponsiveContent>
-                                <ResponsiveTable>
-                                    <thead>
-                                        <tr>
-                                            <TableHeader>Attribute</TableHeader>
-                                            {post.superTitles.map((superTitle, index) => (
-                                                superTitle.superTitle.trim() !== '' && superTitle.attributes && superTitle.attributes.length > 0 && (
-                                                    <ResponsiveHeader key={index}>{superTitle.superTitle}</ResponsiveHeader>
+                        ) && (
+                            <ComparisonTableContainer>
+                                <SubtitleHeader>Comparison</SubtitleHeader>
+                                <ResponsiveContent>
+                                    <ResponsiveTable>
+                                        <thead>
+                                            <tr>
+                                                <TableHeader>Attribute</TableHeader>
+                                                {post.superTitles.map((superTitle, index) => (
+                                                    superTitle.superTitle.trim() !== '' && superTitle.attributes && superTitle.attributes.length > 0 && (
+                                                        <ResponsiveHeader key={index} dangerouslySetInnerHTML={{ __html: parseLinks(superTitle.superTitle) }} />
+                                                    )
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {post.superTitles[0].attributes.map((attr, attrIndex) => (
+                                                attr.attribute.trim() !== '' && attr.items && attr.items.length > 0 && attr.items.some(item => item.title.trim() !== '' || (item.bulletPoints && item.bulletPoints.length > 0 && item.bulletPoints.some(point => point.trim() !== ''))) && (
+                                                    <tr key={attrIndex}>
+                                                        <TableCell dangerouslySetInnerHTML={{ __html: parseLinks(attr.attribute) }} />
+                                                        {post.superTitles.map((superTitle, superIndex) => (
+                                                            superTitle.attributes[attrIndex] && superTitle.attributes[attrIndex].items && superTitle.attributes[attrIndex].items.length > 0 && (
+                                                                <ResponsiveCell key={superIndex}>
+                                                                    {superTitle.attributes[attrIndex].items.map((item, itemIndex) => (
+                                                                        (item.title.trim() !== '' || (item.bulletPoints && item.bulletPoints.length > 0 && item.bulletPoints.some(point => point.trim() !== ''))) && (
+                                                                            <div key={itemIndex}>
+                                                                                <strong dangerouslySetInnerHTML={{ __html: parseLinks(item.title) }} />
+                                                                                <ul>
+                                                                                    {item.bulletPoints.map((point, pointIndex) => (
+                                                                                        point.trim() !== '' && <li key={pointIndex} dangerouslySetInnerHTML={{ __html: parseLinks(point) }} />
+                                                                                    ))}
+                                                                                </ul>
+                                                                            </div>
+                                                                        )
+                                                                    ))}
+                                                                </ResponsiveCell>
+                                                            )
+                                                        ))}
+                                                    </tr>
                                                 )
                                             ))}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {post.superTitles[0].attributes.map((attr, attrIndex) => (
-                                            attr.attribute.trim() !== '' && attr.items && attr.items.length > 0 && attr.items.some(item => item.title.trim() !== '' || (item.bulletPoints && item.bulletPoints.length > 0 && item.bulletPoints.some(point => point.trim() !== ''))) && (
-                                                <tr key={attrIndex}>
-                                                    <TableCell>{attr.attribute}</TableCell>
-                                                    {post.superTitles.map((superTitle, superIndex) => (
-                                                        superTitle.attributes[attrIndex] && superTitle.attributes[attrIndex].items && superTitle.attributes[attrIndex].items.length > 0 && (
-                                                            <ResponsiveCell key={superIndex}>
-                                                                {superTitle.attributes[attrIndex].items.map((item, itemIndex) => (
-                                                                    (item.title.trim() !== '' || (item.bulletPoints && item.bulletPoints.length > 0 && item.bulletPoints.some(point => point.trim() !== ''))) && (
-                                                                        <div key={itemIndex}>
-                                                                            <strong>{item.title}</strong>
-                                                                            <ul>
-                                                                                {item.bulletPoints.map((point, pointIndex) => (
-                                                                                    point.trim() !== '' && <li key={pointIndex}>{point}</li>
-                                                                                ))}
-                                                                            </ul>
-                                                                        </div>
-                                                                    )
-                                                                ))}
-                                                            </ResponsiveCell>
-                                                        )
-                                                    ))}
-                                                </tr>
-                                            )
-                                        ))}
-                                    </tbody>
-                                </ResponsiveTable>
-                            </ResponsiveContent>
-                        </ComparisonTableContainer>
-                    )}
-                {post.summary && (
-                    <SummaryContainer id="summary">
-                        <SubtitleHeader>Summary</SubtitleHeader>
-                        <p>{post.summary}</p>
-                    </SummaryContainer>
-                )}
-                <CompleteButton
-                    onClick={handleMarkAsCompleted}
-                    disabled={isCompleted}
-                    isCompleted={isCompleted}
-                >
-                    {isCompleted ? 'Completed' : 'Mark as Completed'}
-                </CompleteButton>
-            </Content>
-            <SidebarContainer isOpen={isSidebarOpen}>
-                <SidebarHeader>Contents</SidebarHeader>
-                <SubtitlesList>
-                    {post.subtitles.map((subtitle, index) => (
-                        <SubtitleItem key={index}>
-                            <Button onClick={() => scrollToSection(`subtitle-${index}`)}>{subtitle.title}</Button>
-                        </SubtitleItem>
-                    ))}
+                                        </tbody>
+                                    </ResponsiveTable>
+                                </ResponsiveContent>
+                            </ComparisonTableContainer>
+                        )}
                     {post.summary && (
-                        <SubtitleItem>
-                            <Button onClick={() => scrollToSection('summary')}>Summary</Button>
-                        </SubtitleItem>
+                        <SummaryContainer id="summary">
+                            <SubtitleHeader>Summary</SubtitleHeader>
+                            <p dangerouslySetInnerHTML={{ __html: parseLinks(post.summary) }} />
+                        </SummaryContainer>
                     )}
-                </SubtitlesList>
-            </SidebarContainer>
-        </Container>
+                    <CompleteButton
+                        onClick={handleMarkAsCompleted}
+                        disabled={isCompleted}
+                        isCompleted={isCompleted}
+                    >
+                        {isCompleted ? 'Completed' : 'Mark as Completed'}
+                    </CompleteButton>
+                </Content>
+                <SidebarContainer isOpen={isSidebarOpen}>
+                    <SidebarHeader>Contents</SidebarHeader>
+                    <SubtitlesList>
+                        {post.subtitles.map((subtitle, index) => (
+                            <SubtitleItem key={index}>
+                                <Button onClick={() => scrollToSection(`subtitle-${index}`)} dangerouslySetInnerHTML={{ __html: parseLinks(subtitle.title) }} />
+                            </SubtitleItem>
+                        ))}
+                        {post.summary && (
+                            <SubtitleItem>
+                                <Button onClick={() => scrollToSection('summary')}>Summary</Button>
+                            </SubtitleItem>
+                        )}
+                    </SubtitlesList>
+                </SidebarContainer>
+            </Container>
+        </HelmetProvider>
     );
 });
 
