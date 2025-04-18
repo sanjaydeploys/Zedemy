@@ -28,37 +28,42 @@ const parseLinks = (text, category) => {
     const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
 
     // Regular expression for HTML tags (opening, closing, or self-closing)
-    const tagRegex = /<\/?[a-zA-Z][a-zA-Z0-9]*(?:\s+[^>]*)?>/g;
+    const tagRegex = /<\/?[a-zA-Z0-9]+(?:\s+[^>]*?)?>/g;
 
     let result = '';
     let lastIndex = 0;
 
-    // Process text to identify HTML tags and preserve them
+    // Process text and tags
     const matches = text.matchAll(tagRegex);
     for (const match of matches) {
         const tag = match[0];
         const index = match.index;
 
         // Add text before the tag, processing Markdown links
-        const beforeText = text.slice(lastIndex, index);
-        result += beforeText.replace(linkRegex, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+        if (index > lastIndex) {
+            const textSegment = text.slice(lastIndex, index);
+            result += textSegment.replace(linkRegex, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+        }
 
-        // Check if the tag is valid and allowed
-        const tagNameMatch = tag.match(/^<\/?([a-zA-Z][a-zA-Z0-9]*)/);
+        // Check if the tag is valid and in allowedTags
+        const tagNameMatch = tag.match(/^<\/?([a-zA-Z0-9]+)/);
         if (tagNameMatch && allowedTags.includes(tagNameMatch[1].toLowerCase())) {
             // Preserve valid HTML tag for rendering
             result += tag;
         } else {
-            // Encode invalid or non-allowed tags as literal text
-            result += tag.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            // Treat invalid or non-allowed tags as literal text, escaping for display
+            const escapedTag = tag.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            result += `<span>${escapedTag}</span>`;
         }
 
         lastIndex = index + tag.length;
     }
 
     // Add remaining text, processing Markdown links
-    const remainingText = text.slice(lastIndex);
-    result += remainingText.replace(linkRegex, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    if (lastIndex < text.length) {
+        const textSegment = text.slice(lastIndex);
+        result += textSegment.replace(linkRegex, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    }
 
     return result;
 };
