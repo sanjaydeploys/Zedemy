@@ -1,3 +1,4 @@
 User-agent: *
 Disallow:
 
+Sitemap: https://zedemy.vercel.app/sitemap.xml
