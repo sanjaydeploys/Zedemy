@@ -14,39 +14,63 @@ import 'react-toastify/dist/ReactToastify.css';
 import { RingLoader } from 'react-spinners';
 import DOMPurify from 'dompurify';
 
-// Function to parse [text](url) links while preserving existing HTML
+// Function to parse [text](url) links while preserving raw HTML tags
 const parseLinks = (text, category) => {
     if (!text) return text;
-    // Convert Markdown-style [text](url) links to HTML <a> tags, but only outside of existing HTML tags
+
+    // Define allowed HTML tags to reduce XSS risks
+    const allowedTags = [
+        'a', 'p', 'div', 'span', 'strong', 'em', 'b', 'i', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        'ul', 'ol', 'li', 'br', 'hr', 'section', 'article', 'header', 'footer', 'main'
+    ];
+
+    // Regular expression for Markdown-style [text](url) links
     const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+
+    // Split text into segments to preserve HTML tags
     let result = '';
     let lastIndex = 0;
     let inTag = false;
+    let currentTag = '';
 
-    for (let match of text.matchAll(linkRegex)) {
-        const [fullMatch, linkText, url] = match;
-        const index = match.index;
-
-        // Append text before the match
-        for (let i = lastIndex; i < index; i++) {
-            if (text[i] === '<') inTag = true;
-            else if (text[i] === '>') inTag = false;
-            result += text[i];
+    for (let i = 0; i < text.length; i++) {
+        if (text[i] === '<' && !inTag) {
+            inTag = true;
+            currentTag = '';
+            result += text.slice(lastIndex, i);
+            lastIndex = i;
+        } else if (text[i] === '>' && inTag) {
+            inTag = false;
+            currentTag += '>';
+            const tagContent = text.slice(lastIndex, i + 1);
+            // Validate if it's a recognized HTML tag
+            const tagNameMatch = tagContent.match(/^<\/?([a-zA-Z1-6]+)/);
+            if (tagNameMatch && allowedTags.includes(tagNameMatch[1].toLowerCase())) {
+                result += tagContent; // Preserve valid HTML tag
+            } else {
+                // Escape potentially dangerous tags
+                result += tagContent.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            }
+            lastIndex = i + 1;
+        } else if (inTag) {
+            currentTag += text[i];
         }
-
-        // If not inside an HTML tag, replace the Markdown link
-        if (!inTag) {
-            result += `<a href="${url}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
-        } else {
-            result += fullMatch; // Preserve the original Markdown if inside a tag
-        }
-
-        lastIndex = index + fullMatch.length;
     }
 
-    // Append remaining text
+    // Append any remaining non-tag text
     result += text.slice(lastIndex);
-    return result;
+
+    // Process Markdown links in non-HTML segments
+    return result.replace(linkRegex, (match, linkText, url, index) => {
+        // Check if the match is inside an HTML tag
+        let isInTag = false;
+        for (let i = 0; i < result.length; i++) {
+            if (result[i] === '<') isInTag = true;
+            else if (result[i] === '>') isInTag = false;
+            if (i === index && isInTag) return match; // Preserve original if inside tag
+        }
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
+    });
 };
 
 // Function to sanitize only code snippets
