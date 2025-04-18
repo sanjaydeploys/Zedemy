@@ -28,56 +28,37 @@ const parseLinks = (text, category) => {
     const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
 
     // Regular expression for HTML tags (opening, closing, or self-closing)
-    const tagRegex = /<\/?[a-zA-Z0-9]+(?:\s+[^>]*?)?>/g;
+    const tagRegex = /<\/?[a-zA-Z][a-zA-Z0-9]*(?:\s+[^>]*)?>/g;
 
     let result = '';
     let lastIndex = 0;
-    let inTag = false;
 
-    // First, preserve all HTML tags (valid or invalid) to prevent Markdown link processing inside them
+    // Process text to identify HTML tags and preserve them
     const matches = text.matchAll(tagRegex);
-    let segments = [];
-    let currentPos = 0;
-
     for (const match of matches) {
         const tag = match[0];
         const index = match.index;
 
-        // Add text before the tag
-        if (index > currentPos) {
-            segments.push({ type: 'text', content: text.slice(currentPos, index) });
-        }
+        // Add text before the tag, processing Markdown links
+        const beforeText = text.slice(lastIndex, index);
+        result += beforeText.replace(linkRegex, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
 
-        // Add the tag itself
-        segments.push({ type: 'tag', content: tag });
-        currentPos = index + tag.length;
-    }
-
-    // Add any remaining text
-    if (currentPos < text.length) {
-        segments.push({ type: 'text', content: text.slice(currentPos) });
-    }
-
-    // Process each segment
-    segments.forEach(segment => {
-        if (segment.type === 'tag') {
-            // Check if the tag is valid and in allowedTags
-            const tagNameMatch = segment.content.match(/^<\/?([a-zA-Z0-9]+)/);
-            if (tagNameMatch && allowedTags.includes(tagNameMatch[1].toLowerCase())) {
-                // Preserve valid HTML tag for rendering
-                result += segment.content;
-            } else {
-                // Treat invalid or non-allowed tags as literal text (e.g., </>, </p> if not in allowedTags)
-                result += segment.content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            }
+        // Check if the tag is valid and allowed
+        const tagNameMatch = tag.match(/^<\/?([a-zA-Z][a-zA-Z0-9]*)/);
+        if (tagNameMatch && allowedTags.includes(tagNameMatch[1].toLowerCase())) {
+            // Preserve valid HTML tag for rendering
+            result += tag;
         } else {
-            // Process Markdown links in non-tag text
-            result += segment.content.replace(linkRegex, (match, linkText, url) => {
-                // Convert Markdown link to HTML <a> tag
-                return `<a href="${url}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
-            });
+            // Encode invalid or non-allowed tags as literal text
+            result += tag.replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
-    });
+
+        lastIndex = index + tag.length;
+    }
+
+    // Add remaining text, processing Markdown links
+    const remainingText = text.slice(lastIndex);
+    result += remainingText.replace(linkRegex, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
 
     return result;
 };
