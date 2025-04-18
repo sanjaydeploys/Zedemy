@@ -5,20 +5,20 @@
   <!-- Navigation links Zedemy -->
   <url>
     <loc>https://zedemy.vercel.app/</loc>
-    <lastmod>2025-04-17</lastmod>
+<lastmod>2025-04-18T11:10:44+01:00</lastmod>
     <priority>1.0</priority>
   </url>
 
   <url>
     <loc>https://zedemy.vercel.app/category</loc>
-    <lastmod>2025-04-17</lastmod>
+<lastmod>2025-04-18T11:10:44+01:00</lastmod>
         <priority>1.0</priority>
 
   </url>
 
   <url>
     <loc>https://zedemy.vercel.app/login</loc>
-    <lastmod>2025-04-17</lastmod>
+<lastmod>2025-04-18T11:10:44+01:00</lastmod>
         <priority>1.0</priority>
 
   </url>
@@ -30,42 +30,42 @@
 
   <url>
     <loc>https://zedemy.vercel.app/forgot-password</loc>
-    <lastmod>2025-04-17</lastmod>
+<lastmod>2025-04-18T11:10:44+01:00</lastmod>
         <priority>1.0</priority>
 
   </url>
 
   <url>
     <loc>https://zedemy.vercel.app/explore</loc>
-    <lastmod>2025-04-17</lastmod>
+<lastmod>2025-04-18T11:10:44+01:00</lastmod>
         <priority>1.0</priority>
 
   </url>
 
   <url>
     <loc>https://zedemy.vercel.app/about</loc>
-    <lastmod>2025-04-17</lastmod>
+<lastmod>2025-04-18T11:10:44+01:00</lastmod>
         <priority>1.0</priority>
 
   </url>
 
   <url>
     <loc>https://zedemy.vercel.app/notifications</loc>
-    <lastmod>2025-04-17</lastmod>
+<lastmod>2025-04-18T11:10:44+01:00</lastmod>
         <priority>1.0</priority>
 
   </url>
 
   <url>
     <loc>https://zedemy.vercel.app/certificate-verification</loc>
-    <lastmod>2025-04-17</lastmod>
+<lastmod>2025-04-18T11:10:44+01:00</lastmod>
         <priority>1.0</priority>
 
   </url>
 
   <url>
     <loc>https://zedemy.vercel.app/editor</loc>
-    <lastmod>2025-04-17</lastmod>
+<lastmod>2025-04-18T11:10:44+01:00</lastmod>
         <priority>1.0</priority>
 
   </url>
@@ -73,7 +73,7 @@
   <!-- VS Code Posts on Zedemy -->
   <url>
     <loc>https://zedemy.vercel.app/post/visual-studio-code-explained-your-ultimate-guide-to-the-7ws-of-vs-code</loc>
-    <lastmod>2025-04-17</lastmod>
+<lastmod>2025-04-18T11:10:44+01:00</lastmod>
         <priority>1.0</priority>
 
   </url>
@@ -81,7 +81,7 @@
   <!-- HTML Posts on Zedemy -->
   <url>
     <loc>https://zedemy.vercel.app/post/learn-html-ultimate-5ws-guide-to-web-development-for-beginners</loc>
-    <lastmod>2025-04-17</lastmod>
+<lastmod>2025-04-18T11:10:44+01:00</lastmod>
         <priority>1.0</priority>
 
   </url>
