@@ -14,142 +14,21 @@ import 'react-toastify/dist/ReactToastify.css';
 import { RingLoader } from 'react-spinners';
 import DOMPurify from 'dompurify';
 
-// Function to parse [text](url) links and handle HTML tags
-const parseLinks = (text, category, isTitle = false) => {
+// Function to parse [text](url) links, leaving all other content as-is
+const parseLinks = (text, category) => {
     if (!text) return text;
 
-    // Define allowed HTML tags for rendering as functional HTML
-    const allowedTags = [
-        'a', 'p', 'div', 'span', 'strong', 'em', 'b', 'i', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-        'ul', 'ol', 'li', 'br', 'hr', 'section', 'article', 'header', 'footer', 'main'
-    ];
+    // Regular expression for Markdown-style [text](url) links (http or https)
+    const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
 
-    // Regular expressions
-    const tagRegex = /<(\/)?[a-zA-Z0-9]+(?:\s+[^>]*?)?>/g; // Matches HTML tags
-    const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g; // Matches [text](url)
+    // Escape < and > to prevent HTML rendering
+    let escapedText = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-    let result = '';
-    let lastIndex = 0;
-    const tagStack = []; // Track opening/closing tags
-    const tagPositions = []; // Store tag positions and types
+    // Replace Markdown links with <a> tags
+    escapedText = escapedText.replace(linkRegex, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
 
-    // Collect all tags and their positions
-    for (const match of text.matchAll(tagRegex)) {
-        const tag = match[0];
-        const index = match.index;
-        const tagNameMatch = tag.match(/^<(\/)?([a-zA-Z0-9]+)/);
-        const isClosingTag = tagNameMatch[1] === '/';
-        const tagName = tagNameMatch[2].toLowerCase();
-        tagPositions.push({ tag, index, tagName, isClosingTag });
-    }
-
-    // Process text, tags, and links
-    for (let i = 0; i <= tagPositions.length; i++) {
-        const currentTag = tagPositions[i];
-        const nextTag = tagPositions[i + 1];
-        const endIndex = currentTag ? currentTag.index : text.length;
-
-        // Process text segment before the current tag (or remaining text)
-        if (endIndex > lastIndex) {
-            let textSegment = text.slice(lastIndex, endIndex);
-            // Apply Markdown links to non-tag text
-            textSegment = textSegment.replace(linkRegex, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-            result += textSegment;
-        }
-
-        if (!currentTag) break; // No more tags
-
-        const { tag, index, tagName, isClosingTag } = currentTag;
-
-        // Always treat tags in titles as text
-        if (isTitle) {
-            const escapedTag = DOMPurify.sanitize(tag, { ALLOWED_TAGS: [] })
-                .replace(/</g, '<')
-                .replace(/>/g, '>');
-            result += `<code style="font-family: monospace;">${escapedTag}</code>`;
-            lastIndex = index + tag.length;
-            continue;
-        }
-
-        // Check context for descriptive tags
-        let treatAsText = false;
-        const beforeChar = index > 0 ? text[index - 1] : '';
-        const afterChar = index + tag.length < text.length ? text[index + tag.length] : '';
-        if (
-            (beforeChar === ':' || beforeChar === ',' || beforeChar === ' ' || beforeChar === '') &&
-            (afterChar === ',' || afterChar === ' ' || afterChar === '' || afterChar === ':')
-        ) {
-            treatAsText = true; // Descriptive context
-        }
-        // Check for ranges like "<h1>-<h6>"
-        const nextChars = text.slice(index + tag.length, index + tag.length + 5);
-        if (nextChars.startsWith('-<')) {
-            treatAsText = true;
-        }
-        // Standalone tag (no content until next tag or end)
-        if (!isClosingTag && !nextTag && allowedTags.includes(tagName)) {
-            treatAsText = true;
-        }
-
-        // Validate HTML structure
-        if (!treatAsText && allowedTags.includes(tagName)) {
-            if (isClosingTag) {
-                if (tagStack.length > 0 && tagStack[tagStack.length - 1].tagName === tagName) {
-                    tagStack.pop(); // Valid closing tag
-                } else {
-                    treatAsText = true; // Unmatched closing tag
-                }
-            } else {
-                tagStack.push({ tag, tagName }); // Track opening tag
-            }
-        } else {
-            treatAsText = true; // Non-allowed or malformed tags
-        }
-
-        // Handle orphaned opening tags as text if no matching closing tag
-        if (!isClosingTag && allowedTags.includes(tagName) && !treatAsText) {
-            const hasClosingTag = tagPositions.some(
-                (t, j) => j > i && t.isClosingTag && t.tagName === tagName
-            );
-            if (!hasClosingTag) {
-                treatAsText = true;
-            }
-        }
-
-        if (treatAsText) {
-            const escapedTag = DOMPurify.sanitize(tag, { ALLOWED_TAGS: [] })
-                .replace(/</g, '<')
-                .replace(/>/g, '>');
-            result += `<code style="font-family: monospace;">${escapedTag}</code>`;
-        } else {
-            result += tag; // Preserve as HTML
-        }
-
-        lastIndex = index + tag.length;
-    }
-
-    // Check for unclosed tags
-    if (tagStack.length > 0) {
-        // Reprocess the result to convert unclosed tags to text
-        let finalResult = '';
-        lastIndex = 0;
-        for (const { tag, index } of tagPositions) {
-            finalResult += result.slice(lastIndex, index);
-            const tagNameMatch = tag.match(/^<(\/)?([a-zA-Z0-9]+)/);
-            const tagName = tagNameMatch[2].toLowerCase();
-            if (tagStack.some(t => t.tagName === tagName)) {
-                const escapedTag = DOMPurify.sanitize(tag, { ALLOWED_TAGS: [] })
-                    .replace(/</g, '<')
-                    .replace(/>/g, '>');
-                finalResult += `<code style="font-family: monospace;">${escapedTag}</code>`;
-            } else {
-                finalResult += tag;
-            }
-            lastIndex = index + tag.length;
-        }
-        finalResult += result.slice(lastIndex);
-        result = finalResult;
-    }
+    // Unescape < and > to display HTML tags literally
+    const result = escapedText.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
 
     return result;
 };
@@ -556,7 +435,7 @@ const PostPage = memo(() => {
                     <ToggleButton onClick={() => setSidebarOpen(!isSidebarOpen)}>
                         {isSidebarOpen ? 'Close' : 'Menu'}
                     </ToggleButton>
-                    <PostHeader dangerouslySetInnerHTML={{ __html: parseLinks(post.title, post.category, true) }} />
+                    <PostHeader dangerouslySetInnerHTML={{ __html: parseLinks(post.title, post.category) }} />
                     {post.titleImage && (
                         <>
                             <img
