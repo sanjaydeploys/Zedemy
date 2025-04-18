@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addPost } from '../actions/postActions';
@@ -141,27 +142,15 @@ const AddPostForm = () => {
     ];
     const [superTitles, setSuperTitles] = useState([{ superTitle: '', attributes: [{ attribute: '', items: [{ title: '', bulletPoints: [''] }] }] }]);
 
-    // Define allowed HTML tags and attributes for sanitization
-    const allowedHtmlTags = [
-        'div', 'a', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'ol', 'li', 'span',
-        'section', 'header', 'footer', 'article', 'aside', 'nav', 'main', 'figure', 'figcaption', 'br', 'para'
-    ];
-    const allowedHtmlAttributes = ['href', 'class', 'id', 'style'];
-
-    // Sanitization configuration for HTML content
-    const htmlSanitizeConfig = {
-        ALLOWED_TAGS: category === 'HTML' ? [...allowedHtmlTags, 'pre', 'code'] : allowedHtmlTags,
-        ALLOWED_ATTR: allowedHtmlAttributes,
-        // Allow data attributes for specific use cases
-        ALLOW_DATA_ATTR: true,
-        // Keep inline styles for formatting
-        ALLOWED_CSS_PROPERTIES: ['color', 'font-size', 'font-weight', 'text-align', 'margin', 'padding']
-    };
-
     // Sanitization configuration for code snippets (strict)
     const codeSanitizeConfig = {
         ALLOWED_TAGS: [],
         ALLOWED_ATTR: []
+    };
+
+    // Function to sanitize only code snippets
+    const sanitizeCodeSnippet = (code) => {
+        return DOMPurify.sanitize(code, codeSanitizeConfig);
     };
 
     const validateFile = (file, type) => {
@@ -437,55 +426,50 @@ const AddPostForm = () => {
             return;
         }
         try {
-            // Sanitize fields that allow HTML
-            const sanitizedTitle = DOMPurify.sanitize(title, htmlSanitizeConfig);
-            const sanitizedContent = DOMPurify.sanitize(content, htmlSanitizeConfig);
-            const sanitizedSummary = DOMPurify.sanitize(summary, htmlSanitizeConfig);
-
-            // Sanitize subtitles
-            const sanitizedSubtitles = subtitles.map(sub => ({
+            // Sanitize only code snippets in subtitles
+            const processedSubtitles = subtitles.map(sub => ({
                 ...sub,
-                title: DOMPurify.sanitize(sub.title, htmlSanitizeConfig),
+                title: sub.title, // No sanitization
                 bulletPoints: sub.bulletPoints.map(point => ({
                     ...point,
-                    text: DOMPurify.sanitize(point.text, htmlSanitizeConfig),
-                    codeSnippet: DOMPurify.sanitize(point.codeSnippet, codeSanitizeConfig)
+                    text: point.text, // No sanitization
+                    codeSnippet: sanitizeCodeSnippet(point.codeSnippet) // Sanitize only codeSnippet
                 }))
             }));
 
-            // Sanitize superTitles
-            const sanitizedSuperTitles = superTitles.map(superTitle => ({
+            // No sanitization for superTitles
+            const processedSuperTitles = superTitles.map(superTitle => ({
                 ...superTitle,
-                superTitle: DOMPurify.sanitize(superTitle.superTitle, htmlSanitizeConfig),
+                superTitle: superTitle.superTitle,
                 attributes: superTitle.attributes.map(attr => ({
                     ...attr,
-                    attribute: DOMPurify.sanitize(attr.attribute, htmlSanitizeConfig),
+                    attribute: attr.attribute,
                     items: attr.items.map(item => ({
                         ...item,
-                        title: DOMPurify.sanitize(item.title, htmlSanitizeConfig),
-                        bulletPoints: item.bulletPoints.map(bp => DOMPurify.sanitize(bp, htmlSanitizeConfig))
+                        title: item.title,
+                        bulletPoints: item.bulletPoints
                     }))
                 }))
             }));
 
             console.log('Submitting post with category:', category);
-            console.log('Sanitized data:', {
-                title: sanitizedTitle,
-                content: sanitizedContent,
-                summary: sanitizedSummary,
-                subtitles: sanitizedSubtitles,
-                superTitles: sanitizedSuperTitles
+            console.log('Processed data:', {
+                title,
+                content,
+                summary,
+                subtitles: processedSubtitles,
+                superTitles: processedSuperTitles
             });
 
-            // Dispatch the post with sanitized data
+            // Dispatch the post with processed data
             dispatch(addPost(
-                sanitizedTitle,
-                sanitizedContent,
+                title,
+                content,
                 category,
-                sanitizedSubtitles,
-                sanitizedSummary,
+                processedSubtitles,
+                summary,
                 titleImage,
-                sanitizedSuperTitles,
+                processedSuperTitles,
                 video,
                 titleImageHash,
                 videoHash
