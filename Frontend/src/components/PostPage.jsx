@@ -12,21 +12,52 @@ import { CopyToClipboard } from 'react-copy-to-clipboard';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { RingLoader } from 'react-spinners';
+import DOMPurify from 'dompurify';
 
-// Function to parse [text](url) links and convert to HTML without sanitization
+// Function to parse [text](url) links while preserving existing HTML
 const parseLinks = (text, category) => {
     if (!text) return text;
-    // Convert Markdown-style [text](url) links to HTML <a> tags
+    // Convert Markdown-style [text](url) links to HTML <a> tags, but only outside of existing HTML tags
     const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
-    return text.replace(linkRegex, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+    let result = '';
+    let lastIndex = 0;
+    let inTag = false;
+
+    for (let match of text.matchAll(linkRegex)) {
+        const [fullMatch, linkText, url] = match;
+        const index = match.index;
+
+        // Append text before the match
+        for (let i = lastIndex; i < index; i++) {
+            if (text[i] === '<') inTag = true;
+            else if (text[i] === '>') inTag = false;
+            result += text[i];
+        }
+
+        // If not inside an HTML tag, replace the Markdown link
+        if (!inTag) {
+            result += `<a href="${url}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
+        } else {
+            result += fullMatch; // Preserve the original Markdown if inside a tag
+        }
+
+        lastIndex = index + fullMatch.length;
+    }
+
+    // Append remaining text
+    result += text.slice(lastIndex);
+    return result;
 };
 
-// Function to sanitize only code snippets (unchanged)
+// Function to sanitize only code snippets
 const sanitizeCodeSnippet = (code) => {
-    return code; // No sanitization for code snippets as per request
+    return DOMPurify.sanitize(code, {
+        ALLOWED_TAGS: [],
+        ALLOWED_ATTR: []
+    });
 };
 
-// Function to truncate text for SEO description while preserving HTML (unchanged)
+// Function to truncate text for SEO description while preserving HTML
 const truncateText = (text, maxLength) => {
     if (!text) return '';
     if (text.length <= maxLength) return text;
@@ -391,7 +422,7 @@ const PostPage = memo(() => {
                 <title>{pageTitle}</title>
                 <meta name="description" content={pageDescription} />
                 <meta name="keywords" content={pageKeywords} />
-                <meta name="author" content={post.author || 'HogwartsEdx Team'} />
+                <meta name="author" content={post.author || 'Zedemy Team'} />
                 <meta name="robots" content="index, follow" />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
                 <link rel="canonical" href={canonicalUrl} />
@@ -402,7 +433,7 @@ const PostPage = memo(() => {
                 <meta property="og:image" content={ogImage} />
                 <meta property="og:url" content={canonicalUrl} />
                 <meta property="og:type" content="article" />
-                <meta property="og:site_name" content="HogwartsEdx" />
+                <meta property="og:site_name" content="Zedemy" />
 
                 {/* Twitter Card Tags */}
                 <meta name="twitter:card" content="summary_large_image" />
