@@ -14,7 +14,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { RingLoader } from 'react-spinners';
 import DOMPurify from 'dompurify';
 
-// Function to parse [text](url) links while preserving HTML tags and literal tag text
+// Function to parse [text](url) links and handle HTML tags
 const parseLinks = (text, category) => {
     if (!text) return text;
 
@@ -27,8 +27,8 @@ const parseLinks = (text, category) => {
     // Regular expression for Markdown-style [text](url) links
     const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
 
-    // Regular expression for HTML tags (opening, closing, or self-closing)
-    const tagRegex = /<\/?[a-zA-Z0-9]+(?:\s+[^>]*?)?>/g;
+    // Regular expression for valid HTML tags (opening, closing, self-closing)
+    const tagRegex = /<(\/)?[a-zA-Z0-9]+(?:\s+[^>]*?)?>/g;
 
     let result = '';
     let lastIndex = 0;
@@ -39,27 +39,53 @@ const parseLinks = (text, category) => {
         const tag = match[0];
         const index = match.index;
 
-        // Add text before the tag, processing Markdown links
+        // Process text before the tag, applying Markdown links
         if (index > lastIndex) {
             const textSegment = text.slice(lastIndex, index);
             result += textSegment.replace(linkRegex, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
         }
 
-        // Check if the tag is valid and in allowedTags
-        const tagNameMatch = tag.match(/^<\/?([a-zA-Z0-9]+)/);
-        if (tagNameMatch && allowedTags.includes(tagNameMatch[1].toLowerCase())) {
+        // Extract tag name
+        const tagNameMatch = tag.match(/^<(\/)?([a-zA-Z0-9]+)/);
+        const isClosingTag = match[1] === '/';
+        const tagName = tagNameMatch ? tagNameMatch[2].toLowerCase() : null;
+
+        // Check context to determine if tag should be rendered as HTML or text
+        let treatAsText = false;
+        if (tagName && allowedTags.includes(tagName)) {
+            // Check surrounding characters to detect descriptive context (e.g., "<p>, <a>")
+            const beforeChar = index > 0 ? text[index - 1] : '';
+            const afterChar = index + tag.length < text.length ? text[index + tag.length] : '';
+            if (
+                (beforeChar === ':' || beforeChar === ',' || beforeChar === ' ') &&
+                (afterChar === ',' || afterChar === ' ' || afterChar === '' || afterChar === ':')
+            ) {
+                treatAsText = true; // Descriptive context, treat as text
+            }
+            // Check if part of a range like "<h1>-<h6>"
+            const nextChars = text.slice(index + tag.length, index + tag.length + 5);
+            if (nextChars.startsWith('-<')) {
+                treatAsText = true;
+            }
+        } else {
+            treatAsText = true; // Non-allowed tags or malformed tags are always text
+        }
+
+        if (treatAsText) {
+            // Escape tag as text and wrap in <code> for display
+            const escapedTag = DOMPurify.sanitize(tag, { ALLOWED_TAGS: [] })
+                .replace(/</g, '<')
+                .replace(/>/g, '>');
+            result += `<code style="font-family: monospace;">${escapedTag}</code>`;
+        } else {
             // Preserve valid HTML tag for rendering
             result += tag;
-        } else {
-            // Treat invalid or non-allowed tags as literal text, escaping for display
-            const escapedTag = tag.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            result += `<span>${escapedTag}</span>`;
         }
 
         lastIndex = index + tag.length;
     }
 
-    // Add remaining text, processing Markdown links
+    // Process remaining text
     if (lastIndex < text.length) {
         const textSegment = text.slice(lastIndex);
         result += textSegment.replace(linkRegex, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
