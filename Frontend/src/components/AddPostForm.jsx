@@ -414,11 +414,12 @@ const AddPostForm = () => {
             return;
         }
         try {
+            // Only sanitize codeSnippet fields to prevent XSS in code blocks
             const sanitizedSubtitles = subtitles.map(sub => ({
                 ...sub,
                 bulletPoints: sub.bulletPoints.map(point => ({
                     ...point,
-                    codeSnippet: DOMPurify.sanitize(point.codeSnippet)
+                    codeSnippet: DOMPurify.sanitize(point.codeSnippet, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] })
                 }))
             }));
             console.log('Submitting post with category:', category);
@@ -462,7 +463,7 @@ const AddPostForm = () => {
                             </Select>
                         </FormGroup>
                         <FormGroup>
-                            <Tooltip title="Enter the title of your post. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/)">
+                            <Tooltip title="Enter the title of your post. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <header> are allowed.">
                                 <Label>Title</Label>
                             </Tooltip>
                             <Input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
@@ -506,15 +507,12 @@ const AddPostForm = () => {
                             </FormGroup>
                         </FormGrid>
                         <FormGroup>
-                            <Tooltip title="Enter the main content of your post. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/)">
+                            <Tooltip title="Enter the main content of your post. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <section> are allowed.">
                                 <Label>Content</Label>
                             </Tooltip>
                             <TextArea rows="10" value={content} onChange={(e) => setContent(e.target.value)} required />
                         </FormGroup>
-                     
                     </Section>
-
-                 
 
                     <Section>
                         <SectionTitle>Subtitles</SectionTitle>
@@ -522,7 +520,7 @@ const AddPostForm = () => {
                             <div key={index}>
                                 <FormGroup>
                                     <Label>Subtitle</Label>
-                                    <Tooltip title="Enter the subtitle. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/)">
+                                    <Tooltip title="Enter the subtitle. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <h2> are allowed.">
                                         <Input
                                             type="text"
                                             value={subtitle.title}
@@ -553,7 +551,7 @@ const AddPostForm = () => {
                                     <div key={pointIndex}>
                                         <FormGroup>
                                             <Label>Bullet Point</Label>
-                                            <Tooltip title="Enter the bullet point text. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/)">
+                                            <Tooltip title="Enter the bullet point text. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <strong> are allowed.">
                                                 <Input
                                                     type="text"
                                                     value={point.text}
@@ -582,11 +580,13 @@ const AddPostForm = () => {
                                         </FormGroup>
                                         <FormGroup>
                                             <Label>Code Snippet</Label>
-                                            <TextArea
-                                                rows="4"
-                                                value={point.codeSnippet}
-                                                onChange={(e) => handleBulletPointChange(index, pointIndex, 'codeSnippet', e.target.value)}
-                                            />
+                                            <Tooltip title="Enter a code snippet. This will be sanitized to prevent XSS attacks.">
+                                                <TextArea
+                                                    rows="4"
+                                                    value={point.codeSnippet}
+                                                    onChange={(e) => handleBulletPointChange(index, pointIndex, 'codeSnippet', e.target.value)}
+                                                />
+                                            </Tooltip>
                                         </FormGroup>
                                     </div>
                                 ))}
@@ -601,7 +601,7 @@ const AddPostForm = () => {
                             <div key={superTitleIndex}>
                                 <FormGroup>
                                     <Label>Super Title</Label>
-                                    <Tooltip title="Enter the super title. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/)">
+                                    <Tooltip title="Enter the super title. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <h3> are allowed.">
                                         <Input
                                             type="text"
                                             value={superTitle.superTitle}
@@ -613,7 +613,7 @@ const AddPostForm = () => {
                                     <div key={attributeIndex}>
                                         <FormGroup>
                                             <Label>Attribute</Label>
-                                            <Tooltip title="Enter the attribute. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/)">
+                                            <Tooltip title="Enter the attribute. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <strong> are allowed.">
                                                 <Input
                                                     type="text"
                                                     value={attribute.attribute}
@@ -625,7 +625,7 @@ const AddPostForm = () => {
                                             <div key={itemIndex}>
                                                 <FormGroup>
                                                     <Label>Item Title</Label>
-                                                    <Tooltip title="Enter the item title. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/)">
+                                                    <Tooltip title="Enter the item title. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <strong> are allowed.">
                                                         <Input
                                                             type="text"
                                                             value={item.title}
@@ -636,7 +636,7 @@ const AddPostForm = () => {
                                                 {item.bulletPoints.map((bulletPoint, bpIndex) => (
                                                     <FormGroup key={bpIndex}>
                                                         <Label>Bullet Point</Label>
-                                                        <Tooltip title="Enter the bullet point. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/)">
+                                                        <Tooltip title="Enter the bullet point. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <li> are allowed.">
                                                             <Input
                                                                 type="text"
                                                                 value={bulletPoint}
@@ -669,7 +669,7 @@ const AddPostForm = () => {
                     <Section>
                         <SectionTitle>Summary</SectionTitle>
                         <FormGroup>
-                            <Tooltip title="Enter a brief summary of your post. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/)">
+                            <Tooltip title="Enter a brief summary of your post. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <p> are allowed.">
                                 <Label>Summary</Label>
                             </Tooltip>
                             <TextArea rows="5" value={summary} onChange={(e) => setSummary(e.target.value)} />
