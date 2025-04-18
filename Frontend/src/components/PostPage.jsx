@@ -12,35 +12,18 @@ import { CopyToClipboard } from 'react-copy-to-clipboard';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { RingLoader } from 'react-spinners';
-import DOMPurify from 'dompurify';
 
-// Sanitization configuration for HTML content (same as AddPostForm.jsx)
-const allowedHtmlTags = [
-    'div', 'a', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'ol', 'li', 'span',
-    'section', 'header', 'footer', 'article', 'aside', 'nav', 'main', 'figure', 'figcaption', 'br', 'para'
-];
-const allowedHtmlAttributes = ['href', 'class', 'id', 'style'];
-
-const htmlSanitizeConfig = (category) => ({
-    ALLOWED_TAGS: category === 'HTML' ? [...allowedHtmlTags, 'pre', 'code'] : allowedHtmlTags,
-    ALLOWED_ATTR: [...allowedHtmlAttributes, 'target', 'rel'], // Add 'target' and 'rel' for links
-    ALLOW_DATA_ATTR: true,
-    ALLOWED_CSS_PROPERTIES: ['color', 'font-size', 'font-weight', 'text-align', 'margin', 'padding']
-});
-
-// Function to parse [text](url) links and convert to HTML with proper sanitization
+// Function to parse [text](url) links and convert to HTML without sanitization
 const parseLinks = (text, category) => {
     if (!text) return text;
     // Convert Markdown-style [text](url) links to HTML <a> tags
     const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
-    const html = text.replace(linkRegex, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-    // Sanitize the resulting HTML with the same config as AddPostForm.jsx
-    return DOMPurify.sanitize(html, htmlSanitizeConfig(category));
+    return text.replace(linkRegex, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
 };
 
 // Function to sanitize only code snippets (unchanged)
 const sanitizeCodeSnippet = (code) => {
-    return DOMPurify.sanitize(code, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+    return code; // No sanitization for code snippets as per request
 };
 
 // Function to truncate text for SEO description while preserving HTML (unchanged)
@@ -367,12 +350,12 @@ const PostPage = memo(() => {
         );
     }
 
-    // SEO-related data (no sanitization except for parseLinks where needed)
-    const pageTitle = `${post.title} | HogwartsEdx`;
-    const pageDescription = post.summary ? truncateText(post.summary, 160) : (post.content ? truncateText(post.content, 160) : 'Learn more about this topic at HogwartsEdx.');
-    const pageKeywords = post.keywords || `${post.title}, HogwartsEdx, tutorial, education`;
-    const canonicalUrl = `https://hogwartsedx.com/posts/${slug}`;
-    const ogImage = post.titleImage || 'https://hogwartsedx.com/default-og-image.jpg';
+    // SEO-related data
+    const pageTitle = `${post.title} | Zedemy`;
+    const pageDescription = post.summary ? truncateText(post.summary, 160) : (post.content ? truncateText(post.content, 160) : 'Learn more about this topic at Zedemy.');
+    const pageKeywords = post.keywords || `${post.title}, Zedemy, tutorial, education`;
+    const canonicalUrl = `https://zedemy.vercel.app/posts/${slug}`;
+    const ogImage = post.titleImage || 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
 
     // Structured Data (JSON-LD)
     const structuredData = {
@@ -382,14 +365,14 @@ const PostPage = memo(() => {
         description: pageDescription,
         author: {
             '@type': 'Person',
-            name: post.author || 'HogwartsEdx Team'
+            name: post.author || 'Zedemy Team'
         },
         publisher: {
             '@type': 'Organization',
-            name: 'HogwartsEdx',
+            name: 'Zedemy',
             logo: {
                 '@type': 'ImageObject',
-                url: 'https://hogwartsedx.com/logo.png'
+                url: 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png'
             }
         },
         datePublished: post.date,
