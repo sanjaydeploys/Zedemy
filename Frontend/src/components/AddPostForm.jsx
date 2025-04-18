@@ -451,7 +451,18 @@ const AddPostForm = () => {
                     <Section>
                         <SectionTitle>Post Details</SectionTitle>
                         <FormGroup>
-                            <Tooltip title="Enter the title of your post">
+                            <Tooltip title="Select the category for your post">
+                                <Label>Category</Label>
+                            </Tooltip>
+                            <Select value={category} onChange={(e) => setCategory(e.target.value)}>
+                                <option value="">Select Category</option>
+                                {categories.map((cat) => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
+                            </Select>
+                        </FormGroup>
+                        <FormGroup>
+                            <Tooltip title="Enter the title of your post. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/)">
                                 <Label>Title</Label>
                             </Tooltip>
                             <Input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
@@ -495,87 +506,15 @@ const AddPostForm = () => {
                             </FormGroup>
                         </FormGrid>
                         <FormGroup>
-                            <Tooltip title="Enter the main content of your post">
+                            <Tooltip title="Enter the main content of your post. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/)">
                                 <Label>Content</Label>
                             </Tooltip>
                             <TextArea rows="10" value={content} onChange={(e) => setContent(e.target.value)} required />
                         </FormGroup>
-                        <FormGroup>
-                            <Tooltip title="Select the category for your post">
-                                <Label>Category</Label>
-                            </Tooltip>
-                            <Select value={category} onChange={(e) => setCategory(e.target.value)}>
-                                <option value="">Select Category</option>
-                                {categories.map((cat) => (
-                                    <option key={cat} value={cat}>{cat}</option>
-                                ))}
-                            </Select>
-                        </FormGroup>
+                     
                     </Section>
 
-                    <Section>
-                        <SectionTitle>Comparison Section</SectionTitle>
-                        {superTitles.map((superTitle, superTitleIndex) => (
-                            <div key={superTitleIndex}>
-                                <FormGroup>
-                                    <Label>Super Title</Label>
-                                    <Input
-                                        type="text"
-                                        value={superTitle.superTitle}
-                                        onChange={(e) => handleSuperTitleChange(superTitleIndex, 'superTitle', e.target.value)}
-                                    />
-                                </FormGroup>
-                                {superTitle.attributes.map((attribute, attributeIndex) => (
-                                    <div key={attributeIndex}>
-                                        <FormGroup>
-                                            <Label>Attribute</Label>
-                                            <Input
-                                                type="text"
-                                                value={attribute.attribute}
-                                                onChange={(e) => handleAttributeChange(superTitleIndex, attributeIndex, 'attribute', e.target.value)}
-                                            />
-                                        </FormGroup>
-                                        {attribute.items.map((item, itemIndex) => (
-                                            <div key={itemIndex}>
-                                                <FormGroup>
-                                                    <Label>Item Title</Label>
-                                                    <Input
-                                                        type="text"
-                                                        value={item.title}
-                                                        onChange={(e) => handleItemChange(superTitleIndex, attributeIndex, itemIndex, 'title', e.target.value)}
-                                                    />
-                                                </FormGroup>
-                                                {item.bulletPoints.map((bulletPoint, bpIndex) => (
-                                                    <FormGroup key={bpIndex}>
-                                                        <Label>Bullet Point</Label>
-                                                        <Input
-                                                            type="text"
-                                                            value={bulletPoint}
-                                                            onChange={(e) => {
-                                                                const newSuperTitles = [...superTitles];
-                                                                newSuperTitles[superTitleIndex].attributes[attributeIndex].items[itemIndex].bulletPoints[bpIndex] = e.target.value;
-                                                                setSuperTitles(newSuperTitles);
-                                                            }}
-                                                        />
-                                                    </FormGroup>
-                                                ))}
-                                                <IconButton type="button" onClick={() => {
-                                                    const newSuperTitles = [...superTitles];
-                                                    newSuperTitles[superTitleIndex].attributes[attributeIndex].items[itemIndex].bulletPoints.push('');
-                                                    setSuperTitles(newSuperTitles);
-                                                }}>
-                                                    Add Bullet Point
-                                                </IconButton>
-                                            </div>
-                                        ))}
-                                        <IconButton type="button" onClick={() => addItem(superTitleIndex, attributeIndex)}>Add Item</IconButton>
-                                    </div>
-                                ))}
-                                <IconButton type="button" onClick={() => addAttribute(superTitleIndex)}>Add Attribute</IconButton>
-                            </div>
-                        ))}
-                        <IconButton type="button" onClick={addSuperTitle}>Add Super Title</IconButton>
-                    </Section>
+                 
 
                     <Section>
                         <SectionTitle>Subtitles</SectionTitle>
@@ -583,11 +522,13 @@ const AddPostForm = () => {
                             <div key={index}>
                                 <FormGroup>
                                     <Label>Subtitle</Label>
-                                    <Input
-                                        type="text"
-                                        value={subtitle.title}
-                                        onChange={(e) => handleSubtitleChange(index, 'title', e.target.value)}
-                                    />
+                                    <Tooltip title="Enter the subtitle. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/)">
+                                        <Input
+                                            type="text"
+                                            value={subtitle.title}
+                                            onChange={(e) => handleSubtitleChange(index, 'title', e.target.value)}
+                                        />
+                                    </Tooltip>
                                 </FormGroup>
                                 <FormGroup>
                                     <Label>Subtitle Image</Label>
@@ -612,11 +553,13 @@ const AddPostForm = () => {
                                     <div key={pointIndex}>
                                         <FormGroup>
                                             <Label>Bullet Point</Label>
-                                            <Input
-                                                type="text"
-                                                value={point.text}
-                                                onChange={(e) => handleBulletPointChange(index, pointIndex, 'text', e.target.value)}
-                                            />
+                                            <Tooltip title="Enter the bullet point text. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/)">
+                                                <Input
+                                                    type="text"
+                                                    value={point.text}
+                                                    onChange={(e) => handleBulletPointChange(index, pointIndex, 'text', e.target.value)}
+                                                />
+                                            </Tooltip>
                                         </FormGroup>
                                         <FormGroup>
                                             <Label>Bullet Point Image</Label>
@@ -652,11 +595,81 @@ const AddPostForm = () => {
                         ))}
                         <IconButton type="button" onClick={addSubtitle}>Add Subtitle</IconButton>
                     </Section>
-
+                    <Section>
+                        <SectionTitle>Comparison Section</SectionTitle>
+                        {superTitles.map((superTitle, superTitleIndex) => (
+                            <div key={superTitleIndex}>
+                                <FormGroup>
+                                    <Label>Super Title</Label>
+                                    <Tooltip title="Enter the super title. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/)">
+                                        <Input
+                                            type="text"
+                                            value={superTitle.superTitle}
+                                            onChange={(e) => handleSuperTitleChange(superTitleIndex, 'superTitle', e.target.value)}
+                                        />
+                                    </Tooltip>
+                                </FormGroup>
+                                {superTitle.attributes.map((attribute, attributeIndex) => (
+                                    <div key={attributeIndex}>
+                                        <FormGroup>
+                                            <Label>Attribute</Label>
+                                            <Tooltip title="Enter the attribute. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/)">
+                                                <Input
+                                                    type="text"
+                                                    value={attribute.attribute}
+                                                    onChange={(e) => handleAttributeChange(superTitleIndex, attributeIndex, 'attribute', e.target.value)}
+                                                />
+                                            </Tooltip>
+                                        </FormGroup>
+                                        {attribute.items.map((item, itemIndex) => (
+                                            <div key={itemIndex}>
+                                                <FormGroup>
+                                                    <Label>Item Title</Label>
+                                                    <Tooltip title="Enter the item title. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/)">
+                                                        <Input
+                                                            type="text"
+                                                            value={item.title}
+                                                            onChange={(e) => handleItemChange(superTitleIndex, attributeIndex, itemIndex, 'title', e.target.value)}
+                                                        />
+                                                    </Tooltip>
+                                                </FormGroup>
+                                                {item.bulletPoints.map((bulletPoint, bpIndex) => (
+                                                    <FormGroup key={bpIndex}>
+                                                        <Label>Bullet Point</Label>
+                                                        <Tooltip title="Enter the bullet point. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/)">
+                                                            <Input
+                                                                type="text"
+                                                                value={bulletPoint}
+                                                                onChange={(e) => {
+                                                                    const newSuperTitles = [...superTitles];
+                                                                    newSuperTitles[superTitleIndex].attributes[attributeIndex].items[itemIndex].bulletPoints[bpIndex] = e.target.value;
+                                                                    setSuperTitles(newSuperTitles);
+                                                                }}
+                                                            />
+                                                        </Tooltip>
+                                                    </FormGroup>
+                                                ))}
+                                                <IconButton type="button" onClick={() => {
+                                                    const newSuperTitles = [...superTitles];
+                                                    newSuperTitles[superTitleIndex].attributes[attributeIndex].items[itemIndex].bulletPoints.push('');
+                                                    setSuperTitles(newSuperTitles);
+                                                }}>
+                                                    Add Bullet Point
+                                                </IconButton>
+                                            </div>
+                                        ))}
+                                        <IconButton type="button" onClick={() => addItem(superTitleIndex, attributeIndex)}>Add Item</IconButton>
+                                    </div>
+                                ))}
+                                <IconButton type="button" onClick={() => addAttribute(superTitleIndex)}>Add Attribute</IconButton>
+                            </div>
+                        ))}
+                        <IconButton type="button" onClick={addSuperTitle}>Add Super Title</IconButton>
+                    </Section>
                     <Section>
                         <SectionTitle>Summary</SectionTitle>
                         <FormGroup>
-                            <Tooltip title="Enter a brief summary of your post">
+                            <Tooltip title="Enter a brief summary of your post. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/)">
                                 <Label>Summary</Label>
                             </Tooltip>
                             <TextArea rows="5" value={summary} onChange={(e) => setSummary(e.target.value)} />
