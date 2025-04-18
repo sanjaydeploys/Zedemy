@@ -14,23 +14,66 @@ import 'react-toastify/dist/ReactToastify.css';
 import { RingLoader } from 'react-spinners';
 import DOMPurify from 'dompurify';
 
-// Function to parse [text](url) links, leaving all other content as-is
+// Function to parse [text](url) links, returning React elements
 const parseLinks = (text, category) => {
+    if (!text) return [text];
+
+    // Regular expression for Markdown-style [text](url) links (http or https)
+    const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+
+    const elements = [];
+    let lastIndex = 0;
+    let match;
+
+    // Process text, splitting into plain text and links
+    while ((match = linkRegex.exec(text)) !== null) {
+        const [fullMatch, linkText, url] = match;
+        const startIndex = match.index;
+        const endIndex = startIndex + fullMatch.length;
+
+        // Add plain text before the link
+        if (startIndex > lastIndex) {
+            elements.push(text.slice(lastIndex, startIndex));
+        }
+
+        // Add the link as a React element
+        elements.push(
+            <a
+                key={startIndex}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#007bff', textDecoration: 'underline' }}
+            >
+                {linkText}
+            </a>
+        );
+
+        lastIndex = endIndex;
+    }
+
+    // Add remaining text after the last link
+    if (lastIndex < text.length) {
+        elements.push(text.slice(lastIndex));
+    }
+
+    // If no links, return the original text as a single element
+    if (elements.length === 0) {
+        elements.push(text);
+    }
+
+    return elements;
+};
+
+// Function to parse text for dangerouslySetInnerHTML (used in superTitles and sidebar)
+const parseLinksForHtml = (text, category) => {
     if (!text) return text;
 
     // Regular expression for Markdown-style [text](url) links (http or https)
     const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
 
-    // Escape < and > to prevent HTML rendering
-    let escapedText = text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
     // Replace Markdown links with <a> tags
-    escapedText = escapedText.replace(linkRegex, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-
-    // Unescape < and > to display HTML tags literally
-    const result = escapedText.replace(/&lt;/g, '<').replace(/&gt;/g, '>');
-
-    return result;
+    return text.replace(linkRegex, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #007bff; text-decoration: underline;">$1</a>');
 };
 
 // Function to sanitize only code snippets
@@ -41,7 +84,7 @@ const sanitizeCodeSnippet = (code) => {
     });
 };
 
-// Function to truncate text for SEO description while preserving HTML
+// Function to truncate text for SEO description while preserving content
 const truncateText = (text, maxLength) => {
     if (!text) return '';
     if (text.length <= maxLength) return text;
@@ -435,7 +478,7 @@ const PostPage = memo(() => {
                     <ToggleButton onClick={() => setSidebarOpen(!isSidebarOpen)}>
                         {isSidebarOpen ? 'Close' : 'Menu'}
                     </ToggleButton>
-                    <PostHeader dangerouslySetInnerHTML={{ __html: parseLinks(post.title, post.category) }} />
+                    <PostHeader>{parseLinks(post.title, post.category)}</PostHeader>
                     {post.titleImage && (
                         <>
                             <img
@@ -457,11 +500,11 @@ const PostPage = memo(() => {
                     )}
                     <p>Date Published: {post.date}</p>
                     <p>Author: {post.author}</p>
-                    <p dangerouslySetInnerHTML={{ __html: parseLinks(post.content, post.category) }} />
+                    <p>{parseLinks(post.content, post.category)}</p>
 
                     {post.subtitles.map((subtitle, index) => (
                         <div key={index} id={`subtitle-${index}`}>
-                            <SubtitleHeader dangerouslySetInnerHTML={{ __html: parseLinks(subtitle.title, post.category) }} />
+                            <SubtitleHeader>{parseLinks(subtitle.title, post.category)}</SubtitleHeader>
                             {subtitle.image && (
                                 <Zoom>
                                     <img
@@ -484,7 +527,7 @@ const PostPage = memo(() => {
                             <ul>
                                 {subtitle.bulletPoints.map((point, pointIndex) => (
                                     <li key={pointIndex} style={{ marginBottom: '10px' }}>
-                                        <span dangerouslySetInnerHTML={{ __html: parseLinks(point.text, post.category) }} />
+                                        <span>{parseLinks(point.text, post.category)}</span>
                                         {point.image && (
                                             <Zoom>
                                                 <img
@@ -546,7 +589,7 @@ const PostPage = memo(() => {
                                                 <TableHeader>Attribute</TableHeader>
                                                 {post.superTitles.map((superTitle, index) => (
                                                     superTitle.superTitle.trim() !== '' && superTitle.attributes && superTitle.attributes.length > 0 && (
-                                                        <ResponsiveHeader key={index} dangerouslySetInnerHTML={{ __html: parseLinks(superTitle.superTitle, post.category) }} />
+                                                        <ResponsiveHeader key={index} dangerouslySetInnerHTML={{ __html: parseLinksForHtml(superTitle.superTitle, post.category) }} />
                                                     )
                                                 ))}
                                             </tr>
@@ -555,17 +598,17 @@ const PostPage = memo(() => {
                                             {post.superTitles[0].attributes.map((attr, attrIndex) => (
                                                 attr.attribute.trim() !== '' && attr.items && attr.items.length > 0 && attr.items.some(item => item.title.trim() !== '' || (item.bulletPoints && item.bulletPoints.length > 0 && item.bulletPoints.some(point => point.trim() !== ''))) && (
                                                     <tr key={attrIndex}>
-                                                        <TableCell dangerouslySetInnerHTML={{ __html: parseLinks(attr.attribute, post.category) }} />
+                                                        <TableCell dangerouslySetInnerHTML={{ __html: parseLinksForHtml(attr.attribute, post.category) }} />
                                                         {post.superTitles.map((superTitle, superIndex) => (
                                                             superTitle.attributes[attrIndex] && superTitle.attributes[attrIndex].items && superTitle.attributes[attrIndex].items.length > 0 && (
                                                                 <ResponsiveCell key={superIndex}>
                                                                     {superTitle.attributes[attrIndex].items.map((item, itemIndex) => (
                                                                         (item.title.trim() !== '' || (item.bulletPoints && item.bulletPoints.length > 0 && item.bulletPoints.some(point => point.trim() !== ''))) && (
                                                                             <div key={itemIndex}>
-                                                                                <strong dangerouslySetInnerHTML={{ __html: parseLinks(item.title, post.category) }} />
+                                                                                <strong dangerouslySetInnerHTML={{ __html: parseLinksForHtml(item.title, post.category) }} />
                                                                                 <ul>
                                                                                     {item.bulletPoints.map((point, pointIndex) => (
-                                                                                        point.trim() !== '' && <li key={pointIndex} dangerouslySetInnerHTML={{ __html: parseLinks(point, post.category) }} />
+                                                                                        point.trim() !== '' && <li key={pointIndex} dangerouslySetInnerHTML={{ __html: parseLinksForHtml(point, post.category) }} />
                                                                                     ))}
                                                                                 </ul>
                                                                             </div>
@@ -585,7 +628,7 @@ const PostPage = memo(() => {
                     {post.summary && (
                         <SummaryContainer id="summary">
                             <SubtitleHeader>Summary</SubtitleHeader>
-                            <p dangerouslySetInnerHTML={{ __html: parseLinks(post.summary, post.category) }} />
+                            <p>{parseLinks(post.summary, post.category)}</p>
                         </SummaryContainer>
                     )}
                     <CompleteButton
@@ -601,7 +644,7 @@ const PostPage = memo(() => {
                     <SubtitlesList>
                         {post.subtitles.map((subtitle, index) => (
                             <SubtitleItem key={index}>
-                                <Button onClick={() => scrollToSection(`subtitle-${index}`)} dangerouslySetInnerHTML={{ __html: parseLinks(subtitle.title, post.category) }} />
+                                <Button dangerouslySetInnerHTML={{ __html: parseLinksForHtml(subtitle.title, post.category) }} onClick={() => scrollToSection(`subtitle-${index}`)} />
                             </SubtitleItem>
                         ))}
                         {post.summary && (
