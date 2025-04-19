@@ -128,7 +128,13 @@ const AddPostForm = () => {
     const [titleImagePreview, setTitleImagePreview] = useState(null);
     const [content, setContent] = useState('');
     const [category, setCategory] = useState('');
-    const [subtitles, setSubtitles] = useState([{ title: '', image: null, imageHash: null, isFAQ: false, bulletPoints: [{ text: '', image: null, imageHash: null, codeSnippet: '' }] }]);
+    const [subtitles, setSubtitles] = useState([{ 
+        title: '', 
+        image: null, 
+        imageHash: null, 
+        isFAQ: false, 
+        bulletPoints: [{ text: '', image: null, imageHash: null, video: null, videoHash: null, codeSnippet: '' }] 
+    }]);
     const [summary, setSummary] = useState('');
     const [video, setVideo] = useState(null);
     const [videoHash, setVideoHash] = useState(null);
@@ -278,7 +284,9 @@ const AddPostForm = () => {
         }
 
         const previewUrl = URL.createObjectURL(file);
-        setVideoPreview(previewUrl);
+        if (setVideo === setVideo) {
+            setVideoPreview(previewUrl);
+        }
 
         let attempt = 1;
         while (attempt <= retries) {
@@ -405,12 +413,18 @@ const AddPostForm = () => {
     };
 
     const addSubtitle = () => {
-        setSubtitles([...subtitles, { title: '', image: null, imageHash: null, bulletPoints: [{ text: '', image: null, imageHash: null, codeSnippet: '' }] }]);
+        setSubtitles([...subtitles, { 
+            title: '', 
+            image: null, 
+            imageHash: null, 
+            isFAQ: false, 
+            bulletPoints: [{ text: '', image: null, imageHash: null, video: null, videoHash: null, codeSnippet: '' }] 
+        }]);
     };
 
     const addBulletPoint = (subtitleIndex) => {
         const newSubtitles = [...subtitles];
-        newSubtitles[subtitleIndex].bulletPoints.push({ text: '', image: null, imageHash: null, codeSnippet: '' });
+        newSubtitles[subtitleIndex].bulletPoints.push({ text: '', image: null, imageHash: null, video: null, videoHash: null, codeSnippet: '' });
         setSubtitles(newSubtitles);
     };
 
@@ -432,9 +446,9 @@ const AddPostForm = () => {
                 title: sub.title,
                 isFAQ: sub.isFAQ,
                 bulletPoints: sub.bulletPoints.map(point => ({
-                  ...point,
-                  text: point.text,
-                  codeSnippet: sanitizeCodeSnippet(point.codeSnippet)
+                    ...point,
+                    text: point.text,
+                    codeSnippet: sanitizeCodeSnippet(point.codeSnippet)
                 })) 
             }));
 
@@ -486,7 +500,13 @@ const AddPostForm = () => {
             setVideoHash(null);
             setVideoPreview(null);
             setCategory('');
-            setSubtitles([{ title: '', image: null, imageHash: null,isFAQ: false, bulletPoints: [{ text: '', image: null, imageHash: null, codeSnippet: '' }] }]);
+            setSubtitles([{ 
+                title: '', 
+                image: null, 
+                imageHash: null, 
+                isFAQ: false, 
+                bulletPoints: [{ text: '', image: null, imageHash: null, video: null, videoHash: null, codeSnippet: '' }] 
+            }]);
             setSummary('');
             setSuperTitles([{ superTitle: '', attributes: [{ attribute: '', items: [{ title: '', bulletPoints: [''] }] }] }]);
             setError('');
@@ -568,96 +588,125 @@ const AddPostForm = () => {
                     </Section>
 
                     <Section>
-            <SectionTitle>Subtitles</SectionTitle>
-            {subtitles.map((subtitle, index) => (
-              <div key={index}>
-                <FormGroup>
-                  <Label>Subtitle</Label>
-                  <Tooltip title="Enter the subtitle. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <h2> are allowed.">
-                    <Input
-                      type="text"
-                      value={subtitle.title}
-                      onChange={(e) => handleSubtitleChange(index, 'title', e.target.value)}
-                    />
-                  </Tooltip>
-                </FormGroup>
-                <FormGroup>
-                  <Label>
-                    <input
-                      type="checkbox"
-                      checked={subtitle.isFAQ}
-                      onChange={(e) => handleSubtitleChange(index, 'isFAQ', e.target.checked)}
-                    />
-                    Mark as FAQ
-                  </Label>
-                </FormGroup>
-                <FormGroup>
-                  <Label>Subtitle Image</Label>
-                  <Input
-                    type="file"
-                    accept="image/jpeg,image/png,image/gif"
-                    onChange={(e) => handleImageUpload(e, 
-                      (url) => {
-                        const newSubtitles = [...subtitles];
-                        newSubtitles[index].image = url;
-                        setSubtitles(newSubtitles);
-                      }, 
-                      (hash) => {
-                        const newSubtitles = [...subtitles];
-                        newSubtitles[index].imageHash = hash;
-                        setSubtitles(newSubtitles);
-                      }, 
-                      category)}
-                  />
-                </FormGroup>
-                {subtitle.bulletPoints.map((point, pointIndex) => (
-                  <div key={pointIndex}>
-                    <FormGroup>
-                      <Label>Bullet Point</Label>
-                      <Tooltip title="Enter the bullet point text. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <strong> are allowed.">
-                        <Input
-                          type="text"
-                          value={point.text}
-                          onChange={(e) => handleBulletPointChange(index, pointIndex, 'text', e.target.value)}
-                        />
-                      </Tooltip>
-                    </FormGroup>
-                    <FormGroup>
-                      <Label>Bullet Point Image</Label>
-                      <Input
-                        type="file"
-                        accept="image/jpeg,image/png,image/gif"
-                        onChange={(e) => handleImageUpload(e, 
-                          (url) => {
-                            const newSubtitles = [...subtitles];
-                            newSubtitles[index].bulletPoints[pointIndex].image = url;
-                            setSubtitles(newSubtitles);
-                          }, 
-                          (hash) => {
-                            const newSubtitles = [...subtitles];
-                            newSubtitles[index].bulletPoints[pointIndex].imageHash = hash;
-                            setSubtitles(newSubtitles);
-                          }, 
-                          category)}
-                      />
-                    </FormGroup>
-                    <FormGroup>
-                      <Label>Code Snippet</Label>
-                      <Tooltip title="Enter a code snippet. This will be sanitized to prevent XSS attacks.">
-                        <TextArea
-                          rows="4"
-                          value={point.codeSnippet}
-                          onChange={(e) => handleBulletPointChange(index, pointIndex, 'codeSnippet', e.target.value)}
-                        />
-                      </Tooltip>
-                    </FormGroup>
-                  </div>
-                ))}
-                <IconButton type="button" onClick={() => addBulletPoint(index)}>Add Bullet Point</IconButton>
-              </div>
-            ))}
-            <IconButton type="button" onClick={addSubtitle}>Add Subtitle</IconButton>
-          </Section>
+                        <SectionTitle>Subtitles</SectionTitle>
+                        {subtitles.map((subtitle, index) => (
+                            <div key={index}>
+                                <FormGroup>
+                                    <Label>Subtitle</Label>
+                                    <Tooltip title="Enter the subtitle. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <h2> are allowed.">
+                                        <Input
+                                            type="text"
+                                            value={subtitle.title}
+                                            onChange={(e) => handleSubtitleChange(index, 'title', e.target.value)}
+                                        />
+                                    </Tooltip>
+                                </FormGroup>
+                                <FormGroup>
+                                    <Label>
+                                        <input
+                                            type="checkbox"
+                                            checked={subtitle.isFAQ}
+                                            onChange={(e) => handleSubtitleChange(index, 'isFAQ', e.target.checked)}
+                                        />
+                                        Mark as FAQ
+                                    </Label>
+                                </FormGroup>
+                                <FormGroup>
+                                    <Label>Subtitle Image</Label>
+                                    <Input
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/gif"
+                                        onChange={(e) => handleImageUpload(e, 
+                                            (url) => {
+                                                const newSubtitles = [...subtitles];
+                                                newSubtitles[index].image = url;
+                                                setSubtitles(newSubtitles);
+                                            }, 
+                                            (hash) => {
+                                                const newSubtitles = [...subtitles];
+                                                newSubtitles[index].imageHash = hash;
+                                                setSubtitles(newSubtitles);
+                                            }, 
+                                            category)}
+                                    />
+                                </FormGroup>
+                                {subtitle.bulletPoints.map((point, pointIndex) => (
+                                    <div key={pointIndex}>
+                                        <FormGroup>
+                                            <Label>Bullet Point</Label>
+                                            <Tooltip title="Enter the bullet point text. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <strong> are allowed.">
+                                                <Input
+                                                    type="text"
+                                                    value={point.text}
+                                                    onChange={(e) => handleBulletPointChange(index, pointIndex, 'text', e.target.value)}
+                                                />
+                                            </Tooltip>
+                                        </FormGroup>
+                                        <FormGroup>
+                                            <Label>Bullet Point Image</Label>
+                                            <Input
+                                                type="file"
+                                                accept="image/jpeg,image/png,image/gif"
+                                                onChange={(e) => handleImageUpload(e, 
+                                                    (url) => {
+                                                        const newSubtitles = [...subtitles];
+                                                        newSubtitles[index].bulletPoints[pointIndex].image = url;
+                                                        setSubtitles(newSubtitles);
+                                                    }, 
+                                                    (hash) => {
+                                                        const newSubtitles = [...subtitles];
+                                                        newSubtitles[index].bulletPoints[pointIndex].imageHash = hash;
+                                                        setSubtitles(newSubtitles);
+                                                    }, 
+                                                    category)}
+                                            />
+                                        </FormGroup>
+                                        <FormGroup>
+                                            <Label>Bullet Point Video</Label>
+                                            <Input
+                                                type="file"
+                                                accept="video/mp4,video/mpeg,video/webm"
+                                                onChange={(e) => handleVideoUpload(e, 
+                                                    (url) => {
+                                                        const newSubtitles = [...subtitles];
+                                                        newSubtitles[index].bulletPoints[pointIndex].video = url;
+                                                        setSubtitles(newSubtitles);
+                                                    }, 
+                                                    (hash) => {
+                                                        const newSubtitles = [...subtitles];
+                                                        newSubtitles[index].bulletPoints[pointIndex].videoHash = hash;
+                                                        setSubtitles(newSubtitles);
+                                                    }, 
+                                                    category)}
+                                            />
+                                            {point.video && (
+                                                <PreviewVideo
+                                                    src={point.video}
+                                                    controls
+                                                    onError={(e) => {
+                                                        console.error('Failed to load bullet point video:', point.video);
+                                                        setError('Failed to preview bullet point video');
+                                                    }}
+                                                />
+                                            )}
+                                        </FormGroup>
+                                        <FormGroup>
+                                            <Label>Code Snippet</Label>
+                                            <Tooltip title="Enter a code snippet. This will be sanitized to prevent XSS attacks.">
+                                                <TextArea
+                                                    rows="4"
+                                                    value={point.codeSnippet}
+                                                    onChange={(e) => handleBulletPointChange(index, pointIndex, 'codeSnippet', e.target.value)}
+                                                />
+                                            </Tooltip>
+                                        </FormGroup>
+                                    </div>
+                                ))}
+                                <IconButton type="button" onClick={() => addBulletPoint(index)}>Add Bullet Point</IconButton>
+                            </div>
+                        ))}
+                        <IconButton type="button" onClick={addSubtitle}>Add Subtitle</IconButton>
+                    </Section>
                     <Section>
                         <SectionTitle>Comparison Section</SectionTitle>
                         {superTitles.map((superTitle, superTitleIndex) => (
