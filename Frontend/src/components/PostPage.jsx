@@ -14,12 +14,13 @@ import 'react-toastify/dist/ReactToastify.css';
 import { RingLoader } from 'react-spinners';
 import DOMPurify from 'dompurify';
 import LazyLoad from 'react-lazyload';
+
 // Function to parse [text](url) links, returning React elements
 const parseLinks = (text, category) => {
     if (!text) return [text];
 
-    // Regular expression for Markdown-style [text](url) links (http or https)
-    const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+    // Regular expression for Markdown-style [text](url) links (http, https, or vscode)
+    const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+)\)/g;
 
     const elements = [];
     let lastIndex = 0;
@@ -41,8 +42,8 @@ const parseLinks = (text, category) => {
             <a
                 key={startIndex}
                 href={url}
-                target="_blank"
-                rel="noopener noreferrer"
+                target={url.startsWith('vscode://') ? '_self' : '_blank'}
+                rel={url.startsWith('vscode://') ? undefined : 'noopener noreferrer'}
                 style={{ color: '#007bff', textDecoration: 'underline' }}
             >
                 {linkText}
@@ -69,12 +70,17 @@ const parseLinks = (text, category) => {
 const parseLinksForHtml = (text, category) => {
     if (!text) return text;
 
-    // Regular expression for Markdown-style [text](url) links (http or https)
-    const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+    // Regular expression for Markdown-style [text](url) links (http, https, or vscode)
+    const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+)\)/g;
 
     // Replace Markdown links with <a> tags
-    return text.replace(linkRegex, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #007bff; text-decoration: underline;">$1</a>');
+    return text.replace(linkRegex, (match, linkText, url) => {
+        const target = url.startsWith('vscode://') ? '_self' : '_blank';
+        const rel = url.startsWith('vscode://') ? '' : ' rel="noopener noreferrer"';
+        return `<a href="${url}" target="${target}"${rel} style="color: #007bff; text-decoration: underline;">${linkText}</a>`;
+    });
 };
+
 // Calculate read time
 const calculateReadTime = (post) => {
     if (!post) return 0;
@@ -85,7 +91,8 @@ const calculateReadTime = (post) => {
       post.subtitles.map(s => (s.title || '') + s.bulletPoints.map(b => b.text || '').join('')).join('')
     ).split(/\s+/).filter(word => word.length > 0).length;
     return Math.ceil(wordCount / 200);
-  };
+};
+
 // Function to sanitize only code snippets
 const sanitizeCodeSnippet = (code) => {
     return DOMPurify.sanitize(code, {
@@ -418,90 +425,89 @@ const PostPage = memo(() => {
         );
     }
 
- // SEO-related data
- const pageTitle = `${post.title} | Zedemy`;
- const pageDescription = post.summary ? truncateText(post.summary, 160) : (post.content ? truncateText(post.content, 160) : 'Learn more about this topic at Zedemy.');
- const pageKeywords = post.keywords || `${post.title}, Zedemy, tutorial, education`;
- const canonicalUrl = `https://zedemy.vercel.app/post/${slug}`;
-        console.log('[PostPage] Canonical URL:', canonicalUrl);
+    // SEO-related data
+    const pageTitle = `${post.title} | Zedemy`;
+    const pageDescription = post.summary ? truncateText(post.summary, 160) : (post.content ? truncateText(post.content, 160) : 'Learn more about this topic at Zedemy.');
+    const pageKeywords = post.keywords || `${post.title}, Zedemy, tutorial, education`;
+    const canonicalUrl = `https://zedemy.vercel.app/post/${slug}`;
+    console.log('[PostPage] Canonical URL:', canonicalUrl);
 
- const ogImage = post.titleImage || 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
- const readTime = calculateReadTime(post);
+    const ogImage = post.titleImage || 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
+    const readTime = calculateReadTime(post);
 
- // Structured Data with FAQ
- const faqData = post.subtitles
- .filter(subtitle => subtitle.isFAQ)
- .map(subtitle => ({
-   '@type': 'Question',
-   name: subtitle.title,
-   acceptedAnswer: {
-     '@type': 'Answer',
-     text: subtitle.bulletPoints.map(point => point.text).join(' ')
-   }
- }));
-  console.log('[PostPage] Subtitles with isFAQ:', post.subtitles.map(sub => ({ title: sub.title, isFAQ: sub.isFAQ })));
+    // Structured Data with FAQ
+    const faqData = post.subtitles
+        .filter(subtitle => subtitle.isFAQ)
+        .map(subtitle => ({
+            '@type': 'Question',
+            name: subtitle.title,
+            acceptedAnswer: {
+                '@type': 'Answer',
+                text: subtitle.bulletPoints.map(point => point.text).join(' ')
+            }
+        }));
+    console.log('[PostPage] Subtitles with isFAQ:', post.subtitles.map(sub => ({ title: sub.title, isFAQ: sub.isFAQ })));
     console.log('[PostPage] Generated FAQ Data:', faqData);
 
-  const structuredData = [
-    {
-      '@context': 'https://schema.org',
-      '@type': 'BlogPosting',
-      headline: post.title,
-      description: pageDescription,
-      author: {
-        '@type': 'Person',
-        name: post.author || 'Zedemy Team'
-      },
-      publisher: {
-        '@type': 'Organization',
-        name: 'Zedemy',
-        logo: {
-          '@type': 'ImageObject',
-          url: 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png'
-        }
-      },
-      datePublished: post.date,
-      image: ogImage,
-      url: canonicalUrl,
-      mainEntityOfPage: {
-        '@type': 'WebPage',
-        '@id': canonicalUrl
-      },
-      timeRequired: `PT${readTime}M`
-    },
-    ...(faqData.length > 0 ? [{
-      '@context': 'https://schema.org',
-      '@type': 'FAQPage',
-      mainEntity: faqData
-    }] : [])
-  ];
-
+    const structuredData = [
+        {
+            '@context': 'https://schema.org',
+            '@type': 'BlogPosting',
+            headline: post.title,
+            description: pageDescription,
+            author: {
+                '@type': 'Person',
+                name: post.author || 'Zedemy Team'
+            },
+            publisher: {
+                '@type': 'Organization',
+                name: 'Zedemy',
+                logo: {
+                    '@type': 'ImageObject',
+                    url: 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png'
+                }
+            },
+            datePublished: post.date,
+            image: ogImage,
+            url: canonicalUrl,
+            mainEntityOfPage: {
+                '@type': 'WebPage',
+                '@id': canonicalUrl
+            },
+            timeRequired: `PT${readTime}M`
+        },
+        ...(faqData.length > 0 ? [{
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: faqData
+        }] : [])
+    ];
 
     return (
         <HelmetProvider>
-           <Helmet>
-        <html lang="en" />
-        <title>{pageTitle}</title>
-        <meta name="description" content={pageDescription} />
-        <meta name="keywords" content={pageKeywords} />
-        <meta name="author" content={post.author || 'Zedemy Team'} />
-        <meta name="robots" content="index, follow" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="canonical" href={canonicalUrl} />
-        <meta property="og:title" content={pageTitle} />
-        <meta property="og:description" content={pageDescription} />
-        <meta property="og:image" content={ogImage} />
-        <meta property="og:url" content={canonicalUrl} />
-        <meta property="og:type" content="article" />
-        <meta property="og:site_name" content="Zedemy" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={pageTitle} />
-        <meta name="twitter:description" content={pageDescription} />
-        <meta name="twitter:image" content={ogImage} />
-        <script type="application/ld+json">
-          {JSON.stringify(structuredData)}
-        </script>
-      </Helmet>
+            <Helmet>
+                <html lang="en" />
+                <title>{pageTitle}</title>
+                <meta name="description" content={pageDescription} />
+                <meta name="keywords" content={pageKeywords} />
+                <meta name="author" content={post.author || 'Zedemy Team'} />
+                <meta name="robots" content="index, follow" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                <link rel="canonical" href={canonicalUrl} />
+                <meta property="og:title" content={pageTitle} />
+                <meta property="og:description" content={pageDescription} />
+                <meta property="og:image" content={ogImage} />
+                <meta property="og:url" content={canonicalUrl} />
+                <meta property="og:type" content="article" />
+                <meta property="og:site_name" content="Zedemy" />
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content={pageTitle} />
+                <meta name="twitter:description" content={pageDescription} />
+                <meta name="twitter:image" content={ogImage} />
+                <script type="application/ld+json">
+                    {JSON.stringify(structuredData)}
+                </script>
+            </Helmet>
 
             <Container>
                 <Content>
@@ -510,22 +516,22 @@ const PostPage = memo(() => {
                     </ToggleButton>
                     <PostHeader>{parseLinks(post.title, post.category)}</PostHeader>
                     <div style={{ marginBottom: '10px', color: '#666' }}>
-            Estimated read time: {readTime} min
-          </div>
-          
+                        Estimated read time: {readTime} min
+                    </div>
+
                     {post.titleImage && (
-  <LazyLoad height={200} offset={100}>
-    <img
-      src={post.titleImage}
-      alt={post.title}
-      style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'block' }}
-      onError={() => handleImageError(post.titleImage)}
-    />
-    {imageErrors[post.titleImage] && (
-      <ImageError>Failed to load image: {post.titleImage}</ImageError>
-    )}
-  </LazyLoad>
-)}
+                        <LazyLoad height={200} offset={100}>
+                            <img
+                                src={post.titleImage}
+                                alt={post.title}
+                                style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'block' }}
+                                onError={() => handleImageError(post.titleImage)}
+                            />
+                            {imageErrors[post.titleImage] && (
+                                <ImageError>Failed to load image: {post.titleImage}</ImageError>
+                            )}
+                        </LazyLoad>
+                    )}
                     {post.titleVideo && (
                         <video controls style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }} loading="lazy">
                             <source src={post.titleVideo} type="video/mp4" />
