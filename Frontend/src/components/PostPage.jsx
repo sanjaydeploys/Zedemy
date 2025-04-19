@@ -437,6 +437,8 @@ const PostPage = memo(() => {
      text: subtitle.bulletPoints.map(point => point.text).join(' ')
    }
  }));
+  console.log('[PostPage] Subtitles with isFAQ:', post.subtitles.map(sub => ({ title: sub.title, isFAQ: sub.isFAQ })));
+    console.log('[PostPage] Generated FAQ Data:', faqData);
 
   const structuredData = [
     {
