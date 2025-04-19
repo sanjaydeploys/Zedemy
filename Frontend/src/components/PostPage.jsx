@@ -422,7 +422,7 @@ const PostPage = memo(() => {
  const pageTitle = `${post.title} | Zedemy`;
  const pageDescription = post.summary ? truncateText(post.summary, 160) : (post.content ? truncateText(post.content, 160) : 'Learn more about this topic at Zedemy.');
  const pageKeywords = post.keywords || `${post.title}, Zedemy, tutorial, education`;
- const canonicalUrl = `https://zedemy.vercel.app/posts/${slug}`;
+ const canonicalUrl = `https://zedemy.vercel.app/post/${slug}`;
         console.log('[PostPage] Canonical URL:', canonicalUrl);
 
  const ogImage = post.titleImage || 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
