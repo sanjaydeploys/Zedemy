@@ -75,7 +75,17 @@ const parseLinksForHtml = (text, category) => {
     // Replace Markdown links with <a> tags
     return text.replace(linkRegex, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #007bff; text-decoration: underline;">$1</a>');
 };
-
+// Calculate read time
+const calculateReadTime = (post) => {
+    if (!post) return 0;
+    const wordCount = (
+      (post.title || '') +
+      (post.content || '') +
+      (post.summary || '') +
+      post.subtitles.map(s => (s.title || '') + s.bulletPoints.map(b => b.text || '').join('')).join('')
+    ).split(/\s+/).filter(word => word.length > 0).length;
+    return Math.ceil(wordCount / 200);
+  };
 // Function to sanitize only code snippets
 const sanitizeCodeSnippet = (code) => {
     return DOMPurify.sanitize(code, {
@@ -408,92 +418,112 @@ const PostPage = memo(() => {
         );
     }
 
-    // SEO-related data
-    const pageTitle = `${post.title} | Zedemy`;
-    const pageDescription = post.summary ? truncateText(post.summary, 160) : (post.content ? truncateText(post.content, 160) : 'Learn more about this topic at Zedemy.');
-    const pageKeywords = post.keywords || `${post.title}, Zedemy, tutorial, education`;
-    const canonicalUrl = `https://zedemy.vercel.app/posts/${slug}`;
-    const ogImage = post.titleImage || 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
+ // SEO-related data
+ const pageTitle = `${post.title} | Zedemy`;
+ const pageDescription = post.summary ? truncateText(post.summary, 160) : (post.content ? truncateText(post.content, 160) : 'Learn more about this topic at Zedemy.');
+ const pageKeywords = post.keywords || `${post.title}, Zedemy, tutorial, education`;
+ const canonicalUrl = `https://zedemy.vercel.app/posts/${slug}`;
+ const ogImage = post.titleImage || 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
+ const readTime = calculateReadTime(post);
 
-    // Structured Data (JSON-LD)
-    const structuredData = {
-        '@context': 'https://schema.org',
-        '@type': 'BlogPosting',
-        headline: post.title,
-        description: pageDescription,
-        author: {
-            '@type': 'Person',
-            name: post.author || 'Zedemy Team'
-        },
-        publisher: {
-            '@type': 'Organization',
-            name: 'Zedemy',
-            logo: {
-                '@type': 'ImageObject',
-                url: 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png'
-            }
-        },
-        datePublished: post.date,
-        image: ogImage,
-        url: canonicalUrl,
-        mainEntityOfPage: {
-            '@type': 'WebPage',
-            '@id': canonicalUrl
+ // Structured Data with FAQ
+ const faqData = post.subtitles
+ .filter(subtitle => subtitle.isFAQ)
+ .map(subtitle => ({
+   '@type': 'Question',
+   name: subtitle.title,
+   acceptedAnswer: {
+     '@type': 'Answer',
+     text: subtitle.bulletPoints.map(point => point.text).join(' ')
+   }
+ }));
+
+  const structuredData = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BlogPosting',
+      headline: post.title,
+      description: pageDescription,
+      author: {
+        '@type': 'Person',
+        name: post.author || 'Zedemy Team'
+      },
+      publisher: {
+        '@type': 'Organization',
+        name: 'Zedemy',
+        logo: {
+          '@type': 'ImageObject',
+          url: 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png'
         }
-    };
+      },
+      datePublished: post.date,
+      image: ogImage,
+      url: canonicalUrl,
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': canonicalUrl
+      },
+      timeRequired: `PT${readTime}M`
+    },
+    ...(faqData.length > 0 ? [{
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqData
+    }] : [])
+  ];
+
 
     return (
         <HelmetProvider>
-            <Helmet>
-                <html lang="en" />
-                <title>{pageTitle}</title>
-                <meta name="description" content={pageDescription} />
-                <meta name="keywords" content={pageKeywords} />
-                <meta name="author" content={post.author || 'Zedemy Team'} />
-                <meta name="robots" content="index, follow" />
-                <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <link rel="canonical" href={canonicalUrl} />
-                
-                {/* Open Graph Tags */}
-                <meta property="og:title" content={pageTitle} />
-                <meta property="og:description" content={pageDescription} />
-                <meta property="og:image" content={ogImage} />
-                <meta property="og:url" content={canonicalUrl} />
-                <meta property="og:type" content="article" />
-                <meta property="og:site_name" content="Zedemy" />
+           <Helmet>
+        <html lang="en" />
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta name="keywords" content={pageKeywords} />
+        <meta name="author" content={post.author || 'Zedemy Team'} />
+        <meta name="robots" content="index, follow" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="canonical" href={canonicalUrl} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:image" content={ogImage} />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:type" content="article" />
+        <meta property="og:site_name" content="Zedemy" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        <meta name="twitter:image" content={ogImage} />
+        <script type="application/ld+json">
+          {JSON.stringify(structuredData)}
+        </script>
+      </Helmet>
 
-                {/* Twitter Card Tags */}
-                <meta name="twitter:card" content="summary_large_image" />
-                <meta name="twitter:title" content={pageTitle} />
-                <meta name="twitter:description" content={pageDescription} />
-                <meta name="twitter:image" content={ogImage} />
-
-                {/* Structured Data */}
-                <script type="application/ld+json">
-                    {JSON.stringify(structuredData)}
-                </script>
-            </Helmet>
             <Container>
                 <Content>
                     <ToggleButton onClick={() => setSidebarOpen(!isSidebarOpen)}>
                         {isSidebarOpen ? 'Close' : 'Menu'}
                     </ToggleButton>
                     <PostHeader>{parseLinks(post.title, post.category)}</PostHeader>
+                    <div style={{ marginBottom: '10px', color: '#666' }}>
+            Estimated read time: {readTime} min
+          </div>
+          
                     {post.titleImage && (
-                        <>
-                            <img
-                                src={post.titleImage}
-                                alt={post.title}
-                                style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'block' }}
-                                onError={() => handleImageError(post.titleImage)}
-                            />
-                            {imageErrors[post.titleImage] && (
-                                <ImageError>Failed to load image: {post.titleImage}</ImageError>
-                            )}
-                        </>
-                    )}
+  <LazyLoad height={200} offset={100}>
+    <img
+      src={post.titleImage}
+      alt={post.title}
+      style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'block' }}
+      onError={() => handleImageError(post.titleImage)}
+    />
+    {imageErrors[post.titleImage] && (
+      <ImageError>Failed to load image: {post.titleImage}</ImageError>
+    )}
+  </LazyLoad>
+)}
                     {post.titleVideo && (
-                        <video controls style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}>
+                        <video controls style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }} loading="lazy">
                             <source src={post.titleVideo} type="video/mp4" />
                             Your browser does not support the video tag.
                         </video>
@@ -510,6 +540,7 @@ const PostPage = memo(() => {
                                     <img
                                         src={subtitle.image}
                                         alt={subtitle.title}
+                                        loading="lazy"
                                         style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
                                         onError={() => handleImageError(subtitle.image)}
                                     />
@@ -519,7 +550,7 @@ const PostPage = memo(() => {
                                 </Zoom>
                             )}
                             {subtitle.video && (
-                                <video controls style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}>
+                                <video controls style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }} loading="lazy">
                                     <source src={subtitle.video} />
                                     Your browser does not support the video tag.
                                 </video>
@@ -533,6 +564,7 @@ const PostPage = memo(() => {
                                                 <img
                                                     src={point.image}
                                                     alt={point.text}
+                                                    loading="lazy"
                                                     style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
                                                     onError={() => handleImageError(point.image)}
                                                 />
@@ -542,7 +574,7 @@ const PostPage = memo(() => {
                                             </Zoom>
                                         )}
                                         {point.video && (
-                                            <video controls style={{ width: '100%', maxWidth: '400px', margin: '10px 0' }}>
+                                            <video controls style={{ width: '100%', maxWidth: '400px', margin: '10px 0' }} loading="lazy">
                                                 <source src={point.video} type="video/mp4" />
                                                 Your browser does not support the video tag.
                                             </video>
