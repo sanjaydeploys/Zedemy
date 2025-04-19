@@ -13,7 +13,7 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { RingLoader } from 'react-spinners';
 import DOMPurify from 'dompurify';
-
+import LazyLoad from 'react-lazyload';
 // Function to parse [text](url) links, returning React elements
 const parseLinks = (text, category) => {
     if (!text) return [text];
