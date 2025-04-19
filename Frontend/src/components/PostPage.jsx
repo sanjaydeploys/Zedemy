@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPostBySlug, fetchCompletedPosts } from '../actions/postActions';
 import { useParams } from 'react-router-dom';
@@ -115,7 +115,7 @@ const truncateText = (text, maxLength) => {
     return truncated;
 };
 
-// Styled Components (unchanged)
+// Styled Components
 const Container = styled.div`
     display: flex;
     flex-direction: row;
@@ -140,7 +140,7 @@ const LoadingOverlay = styled.div`
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: rgba(255, 255, 255, 0.7);
+    background-color: rgba(92, 6, 6, 0.7);
     z-index: 9999;
 `;
 
@@ -200,7 +200,7 @@ const ResponsiveCell = styled.td`
 
 const SidebarContainer = styled.div`
     width: 250px;
-    background-color: #2c3e50;
+    background-color:rgba(15, 1, 1, 0.82);
     color: #ecf0f1;
     position: sticky;
     top: 0;
@@ -221,7 +221,7 @@ const SidebarContainer = styled.div`
 const SidebarHeader = styled.div`
     padding: 2px;
     font-size: 1.2em;
-    background-color: #34495e;
+    background-color:rgb(4, 18, 33);
     text-align: center;
 `;
 
@@ -235,10 +235,11 @@ const SubtitlesList = styled.ul`
 
 const SubtitleItem = styled.li`
     padding: 10px 20px;
-    border-bottom: 1px solid #34495e;
+    border-bottom: 1px solidrgb(228, 231, 235);
     cursor: pointer;
+    background-color: ${({ isActive }) => (isActive ? '#34495e' : 'transparent')};
     &:hover {
-        background-color: #34495e;
+        background-color:rgb(59, 118, 20);
     }
 `;
 
@@ -342,11 +343,59 @@ const PostPage = memo(() => {
     const completedPosts = useSelector((state) => state.postReducer.completedPosts || []);
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [imageErrors, setImageErrors] = useState({});
+    const [activeSection, setActiveSection] = useState(null);
+    const subtitlesListRef = useRef(null);
 
     useEffect(() => {
         dispatch(fetchPostBySlug(slug));
         dispatch(fetchCompletedPosts());
     }, [dispatch, slug]);
+
+    useEffect(() => {
+        if (!post) return;
+
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.5, // Trigger when 50% of the section is visible
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    const sectionId = entry.target.id;
+                    setActiveSection(sectionId);
+
+                    // Scroll the corresponding sidebar item into view
+                    const subtitleIndex = sectionId.startsWith('subtitle-')
+                        ? parseInt(sectionId.replace('subtitle-', ''), 10)
+                        : sectionId === 'summary'
+                        ? 'summary'
+                        : null;
+
+                    if (subtitleIndex !== null && subtitlesListRef.current) {
+                        const sidebarItem = subtitlesListRef.current.querySelector(
+                            `[data-section="${sectionId}"]`
+                        );
+                        if (sidebarItem) {
+                            sidebarItem.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'nearest',
+                            });
+                        }
+                    }
+                }
+            });
+        }, observerOptions);
+
+        // Observe all subtitle sections and the summary
+        const sections = document.querySelectorAll('[id^="subtitle-"], #summary');
+        sections.forEach((section) => observer.observe(section));
+
+        return () => {
+            sections.forEach((section) => observer.unobserve(section));
+        };
+    }, [post]);
 
     const handleMarkAsCompleted = async () => {
         if (!post) {
@@ -398,6 +447,7 @@ const PostPage = memo(() => {
         const section = document.getElementById(id);
         if (section) {
             section.scrollIntoView({ behavior: 'smooth' });
+            setActiveSection(id);
             if (isSidebarOpen) setSidebarOpen(false);
         }
     };
@@ -639,7 +689,7 @@ const PostPage = memo(() => {
                                         <tbody>
                                             {post.superTitles[0].attributes.map((attr, attrIndex) => (
                                                 attr.attribute.trim() !== '' && attr.items && attr.items.length > 0 && attr.items.some(item => item.title.trim() !== '' || (item.bulletPoints && item.bulletPoints.length > 0 && item.bulletPoints.some(point => point.trim() !== ''))) && (
-                                                    <tr key={attrIndex}>
+                                                    <tr key={attr  = attrIndex}>
                                                         <TableCell dangerouslySetInnerHTML={{ __html: parseLinksForHtml(attr.attribute, post.category) }} />
                                                         {post.superTitles.map((superTitle, superIndex) => (
                                                             superTitle.attributes[attrIndex] && superTitle.attributes[attrIndex].items && superTitle.attributes[attrIndex].items.length > 0 && (
@@ -683,15 +733,27 @@ const PostPage = memo(() => {
                 </Content>
                 <SidebarContainer isOpen={isSidebarOpen}>
                     <SidebarHeader>Contents</SidebarHeader>
-                    <SubtitlesList>
+                    <SubtitlesList ref={subtitlesListRef}>
                         {post.subtitles.map((subtitle, index) => (
-                            <SubtitleItem key={index}>
-                                <Button dangerouslySetInnerHTML={{ __html: parseLinksForHtml(subtitle.title, post.category) }} onClick={() => scrollToSection(`subtitle-${index}`)} />
+                            <SubtitleItem
+                                key={index}
+                                isActive={activeSection === `subtitle-${index}`}
+                                data-section={`subtitle-${index}`}
+                            >
+                                <Button
+                                    dangerouslySetInnerHTML={{ __html: parseLinksForHtml(subtitle.title, post.category) }}
+                                    onClick={() => scrollToSection(`subtitle-${index}`)}
+                                />
                             </SubtitleItem>
                         ))}
                         {post.summary && (
-                            <SubtitleItem>
-                                <Button onClick={() => scrollToSection('summary')}>Summary</Button>
+                            <SubtitleItem
+                                isActive={activeSection === 'summary'}
+                                data-section="summary"
+                            >
+                                <Button onClick={() => scrollToSection('summary')}>
+                                    Summary
+                                </Button>
                             </SubtitleItem>
                         )}
                     </SubtitlesList>
