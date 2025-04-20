@@ -8,7 +8,7 @@ const ForgotPassword = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post('https://learnandshare-api-27dec.onrender.com/api/auth/forgot-password', { email });
+            const response = await axios.post('https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/auth/forgot-password', { email });
             setMessage(response.data.message);
         } catch (error) {
             setMessage(error.response.data.message);
