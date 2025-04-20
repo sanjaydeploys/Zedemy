@@ -10,7 +10,7 @@ const ResetPassword = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post(`https://iu96y5asjc.execute-api.ap-south-1.amazonaws.com/prod/api/auth/reset-password/${token}`, { password });
+            const response = await axios.post(`https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/auth/reset-password/${token}`, { password });
             setMessage(response.data.message);
         } catch (error) {
             setMessage(error.response.data.message);
