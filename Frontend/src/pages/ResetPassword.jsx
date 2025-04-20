@@ -4,29 +4,30 @@ import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import styled from 'styled-components';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
 
 // Styled Components
 const Container = styled.div`
-  max-width: 400px;
-  margin: 48px auto;
-  padding: 24px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 450px;
+  margin: 60px auto;
+  padding: 32px;
+  background: linear-gradient(145deg, #ffffff, #f8f9fa);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
 `;
 
 const Title = styled.h2`
-  font-size: 1.5rem;
-  font-weight: bold;
+  font-size: 1.75rem;
+  font-weight: 700;
   text-align: center;
-  color: #2d1b5e;
-  margin-bottom: 24px;
+  color: #1e1b4b;
+  margin-bottom: 32px;
 `;
 
 const Form = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 `;
 
 const InputContainer = styled.div`
@@ -36,22 +37,26 @@ const InputContainer = styled.div`
 
 const Input = styled.input`
   width: 100%;
-  padding: 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  padding: 14px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
   font-size: 1rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: all 0.3s ease;
   
   &:focus {
     outline: none;
     border-color: #4b0082;
-    box-shadow: 0 0 0 3px rgba(75, 0, 130, 0.1);
+    box-shadow: 0 0 0 4px rgba(75, 0, 130, 0.1);
+  }
+  
+  &::placeholder {
+    color: #9ca3af;
   }
 `;
 
 const ToggleButton = styled.button`
   position: absolute;
-  right: 12px;
+  right: 16px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
@@ -59,54 +64,69 @@ const ToggleButton = styled.button`
   cursor: pointer;
   padding: 4px;
   color: #6b7280;
+  font-size: 1.25rem;
   
   &:hover {
-    color: #374151;
+    color: #1f2937;
   }
 `;
 
 const StrengthContainer = styled.div`
-  margin-top: 8px;
+  margin-top: 12px;
 `;
 
 const StrengthText = styled.div`
-  font-size: 0.875rem;
-  color: #4b5563;
+  font-size: 0.9rem;
+  color: #374151;
+  font-weight: 500;
 `;
 
 const StrengthBar = styled.div`
-  height: 6px;
-  border-radius: 3px;
+  height: 8px;
+  border-radius: 4px;
   background: ${(props) => {
     switch (props.strength) {
       case 'Strong':
-        return '#22c55e';
+        return '#10b981';
       case 'Medium':
-        return '#eab308';
+        return '#f59e0b';
       case 'Weak':
         return '#ef4444';
       default:
-        return '#e5e7eb';
+        return '#d1d5db';
     }
   }};
-  transition: background-color 0.3s;
+  transition: background-color 0.4s ease;
 `;
 
 const SubmitButton = styled.button`
   width: 100%;
-  padding: 12px;
-  background: #4b0082;
+  padding: 14px;
+  background: linear-gradient(90deg, #4b0082, #6b21a8);
   color: white;
   border: none;
-  border-radius: 6px;
-  font-size: 1rem;
-  font-weight: 500;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.3s ease;
   
   &:hover {
-    background: #5a0b9c;
+    background: linear-gradient(90deg, #5b21b6, #7c3aed);
+    transform: translateY(-2px);
   }
+  
+  &:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+  }
+`;
+
+const ErrorText = styled.p`
+  color: #dc2626;
+  font-size: 0.875rem;
+  text-align: center;
+  margin-top: 12px;
 `;
 
 const ResetPassword = () => {
@@ -116,6 +136,7 @@ const ResetPassword = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [passwordStrength, setPasswordStrength] = useState('');
+    const [error, setError] = useState('');
 
     const validatePassword = (value) => {
         const minLength = value.length >= 8;
@@ -136,14 +157,17 @@ const ResetPassword = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
-        if (!validatePassword(password)) {
-            toast.error('Password is too weak. Please use at least 8 characters with uppercase, lowercase, numbers, and special characters.');
+        setError('');
+
+        if (password !== confirmPassword) {
+            toast.error('Passwords do not match!');
+            setError('Passwords do not match');
             return;
         }
 
-        if (password !== confirmPassword) {
-            toast.error('Passwords do not match.');
+        if (!validatePassword(password)) {
+            toast.error('Password is too weak. Use at least 8 characters with uppercase, lowercase, numbers, and special characters.');
+            setError('Password is too weak');
             return;
         }
 
@@ -161,6 +185,7 @@ const ResetPassword = () => {
                                error.response?.data?.errors?.[0]?.msg || 
                                'Failed to reset password. Please try again.';
             toast.error(errorMessage);
+            setError(errorMessage);
         }
     };
 
@@ -176,6 +201,7 @@ const ResetPassword = () => {
                         onChange={(e) => {
                             setPassword(e.target.value);
                             validatePassword(e.target.value);
+                            setError('');
                         }}
                         required
                     />
@@ -183,16 +209,7 @@ const ResetPassword = () => {
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                     >
-                        {showPassword ? (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                            </svg>
-                        ) : (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                        )}
+                        {showPassword ? <FiEyeOff /> : <FiEye />}
                     </ToggleButton>
                 </InputContainer>
                 {password && (
@@ -206,26 +223,21 @@ const ResetPassword = () => {
                         type={showConfirmPassword ? 'text' : 'password'}
                         placeholder="Confirm new password"
                         value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        onChange={(e) => {
+                            setConfirmPassword(e.target.value);
+                            setError('');
+                        }}
                         required
                     />
                     <ToggleButton
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     >
-                        {showConfirmPassword ? (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                            </svg>
-                        ) : (
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                            </svg>
-                        )}
+                        {showConfirmPassword ? <FiEyeOff /> : <FiEye />}
                     </ToggleButton>
                 </InputContainer>
-                <SubmitButton type="submit">
+                {error && <ErrorText>{error}</ErrorText>}
+                <SubmitButton type="submit" disabled={!password || !confirmPassword}>
                     Reset Password
                 </SubmitButton>
             </Form>
@@ -239,7 +251,7 @@ const ResetPassword = () => {
                 pauseOnFocusLoss
                 draggable
                 pauseOnHover
-                theme="light"
+                theme="colored"
             />
         </Container>
     );
