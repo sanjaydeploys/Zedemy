@@ -3,6 +3,111 @@ import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import styled from 'styled-components';
+
+// Styled Components
+const Container = styled.div`
+  max-width: 400px;
+  margin: 48px auto;
+  padding: 24px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+`;
+
+const Title = styled.h2`
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-align: center;
+  color: #2d1b5e;
+  margin-bottom: 24px;
+`;
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const InputContainer = styled.div`
+  position: relative;
+  width: 100%;
+`;
+
+const Input = styled.input`
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  
+  &:focus {
+    outline: none;
+    border-color: #4b0082;
+    box-shadow: 0 0 0 3px rgba(75, 0, 130, 0.1);
+  }
+`;
+
+const ToggleButton = styled.button`
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #6b7280;
+  
+  &:hover {
+    color: #374151;
+  }
+`;
+
+const StrengthContainer = styled.div`
+  margin-top: 8px;
+`;
+
+const StrengthText = styled.div`
+  font-size: 0.875rem;
+  color: #4b5563;
+`;
+
+const StrengthBar = styled.div`
+  height: 6px;
+  border-radius: 3px;
+  background: ${(props) => {
+    switch (props.strength) {
+      case 'Strong':
+        return '#22c55e';
+      case 'Medium':
+        return '#eab308';
+      case 'Weak':
+        return '#ef4444';
+      default:
+        return '#e5e7eb';
+    }
+  }};
+  transition: background-color 0.3s;
+`;
+
+const SubmitButton = styled.button`
+  width: 100%;
+  padding: 12px;
+  background: #4b0082;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  
+  &:hover {
+    background: #5a0b9c;
+  }
+`;
 
 const ResetPassword = () => {
     const { token } = useParams();
@@ -52,21 +157,12 @@ const ResetPassword = () => {
         }
     };
 
-    const getStrengthColor = () => {
-        switch (passwordStrength) {
-            case 'Strong': return 'bg-green-500';
-            case 'Medium': return 'bg-yellow-500';
-            case 'Weak': return 'bg-red-500';
-            default: return 'bg-gray-200';
-        }
-    };
-
     return (
-        <div className="max-w-md mx-auto mt-12 p-6 bg-white rounded-lg shadow-lg">
-            <h2 className="text-2xl font-bold text-center text-indigo-900 mb-6">Reset Password</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="relative">
-                    <input
+        <Container>
+            <Title>Reset Password</Title>
+            <Form onSubmit={handleSubmit}>
+                <InputContainer>
+                    <Input
                         type={showPassword ? 'text' : 'password'}
                         placeholder="Enter new password"
                         value={password}
@@ -75,12 +171,10 @@ const ResetPassword = () => {
                             validatePassword(e.target.value);
                         }}
                         required
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     />
-                    <button
+                    <ToggleButton
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                     >
                         {showPassword ? (
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,21 +186,18 @@ const ResetPassword = () => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
                         )}
-                    </button>
-                </div>
+                    </ToggleButton>
+                </InputContainer>
                 {password && (
-                    <div className="mt-2">
-                        <div className="text-sm text-gray-600">Password Strength: {passwordStrength}</div>
-                        <div className={`h-2 rounded-full ${getStrengthColor()} transition-all duration-300`} />
-                    </div>
+                    <StrengthContainer>
+                        <StrengthText>Password Strength: {passwordStrength}</StrengthText>
+                        <StrengthBar strength={passwordStrength} />
+                    </StrengthContainer>
                 )}
-                <button
-                    type="submit"
-                    className="w-full p-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200"
-                >
+                <SubmitButton type="submit">
                     Reset Password
-                </button>
-            </form>
+                </SubmitButton>
+            </Form>
             <ToastContainer 
                 position="top-right"
                 autoClose={3000}
@@ -119,7 +210,7 @@ const ResetPassword = () => {
                 pauseOnHover
                 theme="light"
             />
-        </div>
+        </Container>
     );
 };
 
