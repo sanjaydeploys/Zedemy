@@ -109,11 +109,13 @@ const ForgotPassword = () => {
                 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/auth/forgot-password',
                 { email }
             );
-            toast.success(response.data.message);
+            toast.success('You have received a password reset link on your email. Please check your spam folder if not found.');
             setEmail(''); // Clear input on success
         } catch (error) {
             const errorMessage = error.response?.data?.message || 'Failed to send reset link. Please try again.';
-            setError(errorMessage);
+            setError(errorMessage.includes('not found') 
+                ? `${errorMessage} Please check your spam folder if not found.`
+                : errorMessage);
             toast.error(errorMessage);
         } finally {
             setIsLoading(false);
