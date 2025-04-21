@@ -313,41 +313,159 @@ const Home = () => {
     window.open('https://sanjaybasket.s3.ap-south-1.amazonaws.com/certificates/Sanjay_Patidar_VS%20Code_2025-04-06_3f4fb268-3f6a-46d3-9b4f-109a2574ecbb.pdf', '_blank');
     // Note: Update URL with a stable link or implement a dynamic fetch
   };
+
+ const faqData = [
+    {
+      '@type': 'Question',
+      name: 'What is Zedemy?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Zedemy is a serverless learning platform for tech education, offering course uploads, certificate verification, and in-browser coding.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Who founded Zedemy?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Zedemy was founded by Sanjay Patidar, a Software Development Engineer specializing in full-stack and AI-driven solutions.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What can I do on Zedemy?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'On Zedemy, you can upload courses, verify certificates, code in-browser, customize themes, and engage with a tech learning community.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'How does Zedemy verify certificates?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Zedemy uses a secure system to verify course completion certificates, ensuring authenticity for learners and employers.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What is Zedemy’s in-browser code editor?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Zedemy’s in-browser code editor lets users write, test, and share code in languages like JavaScript and Python, no setup required.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Can I upload courses on Zedemy?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes, creators can upload courses on Zedemy, sharing knowledge in tech fields like web development, AI, and cloud computing.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'How does Zedemy support personalized learning?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Zedemy offers customizable themes, settings, and dynamic content to tailor the learning experience to individual preferences.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'What technologies power Zedemy?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Zedemy is built with React.js, Node.js, AWS Lambda, and MongoDB, ensuring scalability and a seamless user experience.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'How can I join the Zedemy community?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Join Zedemy at zedemy.vercel.app to learn, share courses, and connect with tech enthusiasts and educators.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Why choose Zedemy for tech education?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Zedemy combines course creation, coding, and certificate verification in a serverless platform, ideal for tech learners and creators.',
+      },
+    },
+  ];
+
+  const structuredData = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: 'Zedemy | Serverless Learning Platform by Sanjay Patidar',
+      description: 'Zedemy, founded by Sanjay Patidar, is a serverless platform for tech education with courses, certificate verification, and coding.',
+      url: 'https://zedemy.vercel.app/',
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': 'https://zedemy.vercel.app/',
+      },
+      author: {
+        '@type': 'Person',
+        name: 'Sanjay Patidar',
+      },
+      publisher: {
+        '@type': 'Person',
+        name: 'Sanjay Patidar',
+      },
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: faqData,
+    },
+  ];
+
+  
   return (
     <>
           <Helmet>
     
-    <title>Zedemy | Learn, Share & Build – Courses, Certificates, Code Editor & More | Sanjay Patidar</title>
-    <meta name="description" content="Zedemy is a modern educational platform empowering learners and creators to share knowledge, verify certificates, upload courses, and code in-browser. Customize your experience with personalized settings, themes, and dynamic content.	" />
-
-
-<link rel="icon" type="image/svg+xml" href="src/assets/zedemy-logo.png" />
-
-<meta property="og:title" content="Zedemy | Learn, Share & Build – Courses, Certificates, Code Editor & More | Sanjay Patidar" />
-<meta property="og:description" content="Zedemy, online learning, course platform, educational website, share knowledge, upload courses, certificate verification, React learning app, code editor, build projects, student platform, modern LMS, coding platform, tech education, developer learning hub"/> 
-<meta property="og:type" content="website" />
-<meta property="og:url" content="https://learnandshare.vercel.app/" />
-<meta property="og:image" content="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
-<meta property="og:image:alt" content="LearningLog" />
-<meta property="og:site_name" content="Zedemy | Learn, Share & Build – Courses, Certificates, Code Editor & More | Sanjay Patidar" />
-<link rel="canonical" href="https://learnandshare.vercel.app/" />
-
-<meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="Zedemy | Learn, Share & Build – Courses, Certificates, Code Editor & More | Sanjay Patidar" />
-<meta name="twitter:description" content="
-Zedemy, online learning, course platform, educational website, share knowledge, upload courses, certificate verification, React learning app, code editor, build projects, student platform, modern LMS, coding platform, tech education, developer learning hub" />
-<meta name="twitter:image" content="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
-
-
-<meta name="twitter:site" content="@Zedemy" />
-<meta name="twitter:creator" content="@Zedemy" />
-
-<meta name="keywords" content="Zedemy, online learning, course platform, educational website, share knowledge, upload courses, certificate verification, React learning app, code editor, build projects, student platform, modern LMS, coding platform, tech education, developer learning hub " />
-<meta name="author" content="Sanjay Patidar" />      
-
-
-</Helmet>	
-    <HomeContainer>
+   <Helmet>
+      <html lang="en" />
+      <title>Zedemy | Learning Platform by Sanjay Patidar</title>
+      <meta
+        name="description"
+        content="Zedemy, by Sanjay Patidar, offers tech courses, certificate verification, and in-browser coding for learners. Join now."
+      />
+      <meta
+        name="keywords"
+        content="Zedemy, Sanjay Patidar, online learning, tech education, course platform, certificate verification, code editor, serverless LMS, React.js, AWS Lambda"
+      />
+      <meta name="author" content="Sanjay Patidar" />
+      <meta name="robots" content="index, follow" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <link rel="icon" type="image/svg+xml" href="/zedemy-logo.png" />
+      <link rel="canonical" href="https://zedemy.vercel.app/" />
+      <meta property="og:title" content="Zedemy | Learning Platform by Sanjay Patidar" />
+      <meta
+        property="og:description"
+        content="Zedemy, by Sanjay Patidar, offers tech courses, certificate verification, and in-browser coding for learners. Join now."
+      />
+      <meta property="og:image" content="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
+      <meta property="og:image:alt" content="Zedemy Logo" />
+      <meta property="og:url" content="https://zedemy.vercel.app/" />
+      <meta property="og:type" content="website" />
+      <meta property="og:site_name" content="Zedemy" />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content="Zedemy | Learning Platform by Sanjay Patidar" />
+      <meta
+        name="twitter:description"
+        content="Zedemy, by Sanjay Patidar, offers tech courses, certificate verification, and in-browser coding for learners. Join now."
+      />
+      <meta name="twitter:image" content="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
+      <meta name="twitter:site" content="@sanjaypatidar" />
+      <meta name="twitter:creator" content="@sanjaypatidar" />
+      <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
+    </Helmet>    <HomeContainer>
     
       <ContentWrapper style={{ opacity: isVisible ? 1 : 0 }}>
         <TextContainer>
