@@ -427,7 +427,6 @@ const Home = () => {
   
   return (
     <>
-          <Helmet>
     
    <Helmet>
       <html lang="en" />
@@ -465,7 +464,10 @@ const Home = () => {
       <meta name="twitter:site" content="@sanjaypatidar" />
       <meta name="twitter:creator" content="@sanjaypatidar" />
       <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
-    </Helmet>    <HomeContainer>
+    </Helmet>
+            
+            
+            <HomeContainer>
     
       <ContentWrapper style={{ opacity: isVisible ? 1 : 0 }}>
         <TextContainer>
