@@ -401,7 +401,7 @@ const Home = () => {
     {
       '@context': 'https://schema.org',
       '@type': 'WebPage',
-      name: 'Zedemy | Serverless Learning Platform by Sanjay Patidar',
+      name: 'Zedemy | Learn & Build Tech Skills | Sanjay Patidar',
       description: 'Zedemy, founded by Sanjay Patidar, is a serverless platform for tech education with courses, certificate verification, and coding.',
       url: 'https://zedemy.vercel.app/',
       mainEntityOfPage: {
@@ -430,7 +430,7 @@ const Home = () => {
     
    <Helmet>
       <html lang="en" />
-      <title>Zedemy | Learning Platform by Sanjay Patidar</title>
+      <title>Zedemy | Learn & Build Tech Skills | Sanjay Patidar</title>
       <meta
         name="description"
         content="Zedemy, by Sanjay Patidar, offers tech courses, certificate verification, and in-browser coding for learners. Join now."
@@ -444,7 +444,7 @@ const Home = () => {
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <link rel="icon" type="image/svg+xml" href="/zedemy-logo.png" />
       <link rel="canonical" href="https://zedemy.vercel.app/" />
-      <meta property="og:title" content="Zedemy | Learning Platform by Sanjay Patidar" />
+      <meta property="og:title" content="Zedemy | Learn & Build Tech Skills | Sanjay Patidar" />
       <meta
         property="og:description"
         content="Zedemy, by Sanjay Patidar, offers tech courses, certificate verification, and in-browser coding for learners. Join now."
@@ -455,7 +455,7 @@ const Home = () => {
       <meta property="og:type" content="website" />
       <meta property="og:site_name" content="Zedemy" />
       <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content="Zedemy | Learning Platform by Sanjay Patidar" />
+      <meta name="twitter:title" content="Zedemy | Learn & Build Tech Skills | Sanjay Patidar" />
       <meta
         name="twitter:description"
         content="Zedemy, by Sanjay Patidar, offers tech courses, certificate verification, and in-browser coding for learners. Join now."
