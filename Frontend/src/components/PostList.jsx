@@ -7,7 +7,7 @@ const SearchBlog = lazy(() => import('./SearchBlog'));
 
 // Styled Components
 const Container = styled.div`
-  max-width: 100%;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
   background-color: #f9f9f9;
@@ -19,9 +19,7 @@ const Title = styled.h2`
   text-align: center;
   font-size: 2em;
   color: #333;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  margin-bottom: 20px;
 `;
 
 const fadeIn = keyframes`
@@ -37,56 +35,121 @@ const fadeIn = keyframes`
 
 const PostListContainer = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  grid-gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-gap: 24px;
   animation: ${fadeIn} 0.5s ease-in-out;
 `;
 
 const PostContainer = styled.div`
-  padding: 20px;
+  padding: 24px;
   background-color: #fff;
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s;
+  transition: transform 0.3s, box-shadow 0.3s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 
   &:hover {
     transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+  }
+
+  @media (max-width: 768px) {
+    padding: 20px;
+  }
+
+  @media (max-width: 600px) {
+    padding: 16px;
+  }
+`;
+
+const PostImage = styled.img`
+  width: 100%;
+  max-width: 200px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid #007BFF;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 16px;
+  transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+
+  ${PostContainer}:hover & {
+    transform: scale(1.05);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  @media (max-width: 768px) {
+    max-width: 160px;
+    height: 100px;
+  }
+
+  @media (max-width: 600px) {
+    max-width: 140px;
+    height: 80px;
   }
 `;
 
 const PostTitle = styled.h3`
-  font-size: 1.5em;
+  font-size: 1.4em;
   color: #007BFF;
-  margin-bottom: 10px;
+  margin: 0 0 12px;
+  text-align: center;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  white-space: nowrap;
   text-overflow: ellipsis;
+  transition: color 0.3s;
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  ${PostContainer}:hover & {
+    color: #0056b3;
+  }
+
+  @media (max-width: 768px) {
+    font-size: 1.3em;
+  }
+
+  @media (max-width: 600px) {
+    font-size: 1.2em;
+  }
 `;
 
 const PostAuthor = styled.p`
-  font-size: 1em;
+  font-size: 0.95em;
   color: #555;
+  margin: 0 0 12px;
+  text-align: center;
 `;
 
 const ReadMoreLink = styled(Link)`
   display: inline-block;
-  margin-top: 10px;
-  padding: 10px 15px;
+  margin-top: 12px;
+  padding: 10px 16px;
   background-color: #007BFF;
   color: #fff;
   border-radius: 5px;
   text-decoration: none;
-  transition: background-color 0.3s;
+  font-size: 0.95em;
+  transition: background-color 0.3s, transform 0.3s;
 
   &:hover {
     background-color: #0056b3;
+    transform: scale(1.05);
   }
 `;
 
 const LoadMoreButton = styled.button`
   display: block;
-  margin: 20px auto;
-  padding: 10px 20px;
+  margin: 24px auto;
+  padding: 12px 24px;
   background-color: #007BFF;
   color: #fff;
   border: none;
@@ -138,6 +201,9 @@ const PostList = () => {
   // Use searchResults if available, otherwise use posts
   const displayedPosts = searchResults.length > 0 ? searchResults : posts;
 
+  // Fallback image URL
+  const fallbackImage = 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
+
   return (
     <Container>
       <Suspense fallback={<div>Loading...</div>}>
@@ -147,6 +213,13 @@ const PostList = () => {
       <PostListContainer>
         {displayedPosts.slice(0, page * 5).map(post => (
           <PostContainer key={post.postId}>
+            <Link to={`/post/${post.slug}`}>
+              <PostImage
+                src={post.titleImage || fallbackImage}
+                alt={`Featured image for ${post.title} on Zedemy`}
+                loading="lazy"
+              />
+            </Link>
             <PostTitle><Link to={`/post/${post.slug}`}>{post.title}</Link></PostTitle>
             <PostAuthor>Author: {post.author}</PostAuthor>
             <ReadMoreLink to={`/post/${post.slug}`}>Read More</ReadMoreLink>
