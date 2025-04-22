@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useSpring, animated } from 'react spring';
+import { useSpring, animated } from 'react-spring';
 import { useDispatch, useSelector } from 'react-redux';
 import { followCategory, unfollowCategory, fetchFollowedCategories } from '../actions/notificationActions';
 import { toast, ToastContainer } from 'react-toastify';
