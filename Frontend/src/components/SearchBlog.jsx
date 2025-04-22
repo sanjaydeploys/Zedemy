@@ -18,6 +18,7 @@ const SearchContainer = styled.div`
     align-items: center;
     justify-content: center;
     margin-bottom: 20px;
+    animation: ${fadeIn} 0.5s ease-in;
 
     @media (min-width: 768px) {
         flex-direction: row;
@@ -26,13 +27,21 @@ const SearchContainer = styled.div`
 
 const SearchInput = styled.input`
     padding: 10px 15px;
-    border: 1px solid #ccc;
+    border: 1px solid #212121;
     border-radius: 25px;
     margin-bottom: 10px;
     outline: none;
     font-size: 16px;
     width: 100%;
     max-width: 300px;
+    background-color: #ffffff;
+    color: #212121;
+
+    &:focus {
+        border-color: #003c8f;
+        outline: 3px solid #1565c0;
+        outline-offset: 2px;
+    }
 
     @media (min-width: 768px) {
         margin-right: 10px;
@@ -44,39 +53,50 @@ const SearchButton = styled.button`
     padding: 10px 20px;
     border: none;
     border-radius: 25px;
-    background-color: #007bff;
-    color: #fff;
+    background-color: #1565c0;
+    color: #ffffff;
     cursor: pointer;
-    outline: none;
     font-size: 16px;
     transition: background-color 0.3s ease;
+    min-height: 44px;
+    min-width: 44px;
 
     &:hover {
-        background-color: #0056b3;
+        background-color: #003c8f;
+    }
+
+    &:focus {
+        outline: 3px solid #1565c0;
+        outline-offset: 2px;
     }
 `;
 
 const SearchCount = styled.p`
     margin-top: 10px;
     font-size: 14px;
-    color: #666;
+    color: #212121;
 `;
 
 const ClearSearch = styled.span`
     font-size: 14px;
-    color: #007bff;
+    color: #1565c0;
     cursor: pointer;
     transition: color 0.3s ease;
 
     &:hover {
-        color: #0056b3;
+        color: #003c8f;
+    }
+
+    &:focus {
+        outline: 3px solid #1565c0;
+        outline-offset: 2px;
     }
 `;
 
 const ErrorMessage = styled.p`
     margin-top: 10px;
     font-size: 14px;
-    color: #d32f2f;
+    color: #b71c1c;
 `;
 
 const SearchBlog = () => {
@@ -111,15 +131,16 @@ const SearchBlog = () => {
     };
 
     return (
-        <SearchContainer>
+        <SearchContainer role="search">
             <SearchInput
                 type="text"
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Search blog posts..."
+                aria-label="Search blog posts"
             />
-            <SearchButton onClick={handleSearch}>Search</SearchButton>
+            <SearchButton onClick={handleSearch} aria-label="Search blog posts">Search</SearchButton>
             {!searching && searchResults && searchResults.length > 0 && (
                 <SearchCount>{searchResults.length} results found</SearchCount>
             )}
@@ -130,7 +151,9 @@ const SearchBlog = () => {
                 <ErrorMessage>Error: {error}</ErrorMessage>
             )}
             {!searching && keyword !== '' && (
-                <ClearSearch onClick={clearSearch}>Clear Search</ClearSearch>
+                <ClearSearch onClick={clearSearch} role="button" tabIndex="0" onKeyPress={(e) => e.key === 'Enter' && clearSearch()} aria-label="Clear search results">
+                    Clear Search
+                </ClearSearch>
             )}
         </SearchContainer>
     );
