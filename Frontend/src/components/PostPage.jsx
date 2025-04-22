@@ -535,7 +535,7 @@ const PostPage = memo(() => {
 
     return (
         <HelmetProvider>
-            <Helmet>
+            <Helmet prioritizeSeoTags>
                 <html lang="en" />
                 <title>{pageTitle}</title>
                 <meta name="description" content={pageDescription} />
