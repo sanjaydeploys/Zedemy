@@ -292,7 +292,7 @@ const PostList = () => {
         "name": "Can I contribute a blog post to Zedemy?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Yes, Zedemy welcomes guest contributions. Contact us through the website to submit your ideas or draft posts for review."
+          "text": "Absolutely! Zedemy encourages community contributions. If you're a registered user, you can easily submit your blog post through the Add Post page after logging in. Simply share your insights, and our team will review and publish them as appropriate."
         }
       },
       {
@@ -452,7 +452,7 @@ const PostList = () => {
         <FAQItem>
           <FAQQuestion>Can I contribute a blog post to Zedemy?</FAQQuestion>
           <FAQAnswer>
-            Yes, Zedemy welcomes guest contributions. Contact us through the website to submit your ideas or draft posts for review.
+            Absolutely! Zedemy encourages community contributions. If you're a registered user, you can easily submit your blog post through the Add Post page after logging in. Simply share your insights, and our team will review and publish them as appropriate.
           </FAQAnswer>
         </FAQItem>
         <FAQItem>
