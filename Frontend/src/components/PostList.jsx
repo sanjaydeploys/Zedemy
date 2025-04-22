@@ -142,6 +142,7 @@ const ReadMoreLink = styled(Link)`
   transition: background-color 0.3s, transform 0.3s;
   min-height: 44px;
   min-width: 44px;
+  text-align: center;
 
   &:hover {
     background-color: #003c8f;
@@ -277,6 +278,30 @@ const PostList = () => {
           "@type": "Answer",
           "text": "Yes, all blog posts on Zedemy are free to read, providing accessible learning resources for everyone."
         }
+      },
+      {
+        "@type": "Question",
+        "name": "How often are new blog posts published on Zedemy?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Zedemy publishes new blog posts regularly, typically weekly, to keep you updated with the latest programming trends and tutorials."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Can I contribute a blog post to Zedemy?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Yes, Zedemy welcomes guest contributions. Contact us through the website to submit your ideas or draft posts for review."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What programming languages are covered in Zedemy's blog?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Zedemy's blog covers a wide range of programming languages, including HTML, CSS, JavaScript, Python, Java, C++, and frameworks like React, Angular, and Vue.js."
+        }
       }
     ]
   };
@@ -284,8 +309,7 @@ const PostList = () => {
   return (
     <Container>
       <Helmet>
-      <html lang="en" />
-
+        <html lang="en" />
         <title>Latest Programming Blog Posts - Zedemy</title>
         <meta
           name="description"
@@ -388,7 +412,7 @@ const PostList = () => {
             </PostTitle>
             <PostAuthor>Author: {post.author}</PostAuthor>
             <ReadMoreLink to={`/post/${post.slug}`} aria-label={`Read more about ${post.title}`}>
-              Read More
+              {`Read ${post.title}`}
             </ReadMoreLink>
           </PostContainer>
         ))}
@@ -417,6 +441,24 @@ const PostList = () => {
           <FAQQuestion>Are the blog posts on Zedemy free to read?</FAQQuestion>
           <FAQAnswer>
             Yes, all blog posts on Zedemy are free to read, providing accessible learning resources for everyone.
+          </FAQAnswer>
+        </FAQItem>
+        <FAQItem>
+          <FAQQuestion>How often are new blog posts published on Zedemy?</FAQQuestion>
+          <FAQAnswer>
+            Zedemy publishes new blog posts regularly, typically weekly, to keep you updated with the latest programming trends and tutorials.
+          </FAQAnswer>
+        </FAQItem>
+        <FAQItem>
+          <FAQQuestion>Can I contribute a blog post to Zedemy?</FAQQuestion>
+          <FAQAnswer>
+            Yes, Zedemy welcomes guest contributions. Contact us through the website to submit your ideas or draft posts for review.
+          </FAQAnswer>
+        </FAQItem>
+        <FAQItem>
+          <FAQQuestion>What programming languages are covered in Zedemy's blog?</FAQQuestion>
+          <FAQAnswer>
+            Zedemy's blog covers a wide range of programming languages, including HTML, CSS, JavaScript, Python, Java, C++, and frameworks like React, Angular, and Vue.js.
           </FAQAnswer>
         </FAQItem>
       </FAQSection>
