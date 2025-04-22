@@ -443,7 +443,6 @@ const Home = () => {
       <meta name="robots" content="index, follow" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <link rel="icon" type="image/svg+xml" href="/zedemy-logo.png" />
-      <link rel="canonical" href="https://zedemy.vercel.app/" />
       <meta property="og:title" content="Zedemy | Learn & Build Tech Skills | Sanjay Patidar" />
       <meta
         property="og:description"
