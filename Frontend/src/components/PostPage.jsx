@@ -293,8 +293,8 @@ const Button = styled.button`
 
 const ToggleButton = styled.button`
     display: none;
-    background: #e74c3c;
-    color: white;
+    background: #d32f2f; 
+    color: #ffffff;
     border: none;
     padding: 10px;
     cursor: pointer;
@@ -302,6 +302,9 @@ const ToggleButton = styled.button`
     top: 10px;
     left: 10px;
     z-index: 1010;
+    &:hover {
+        background: #b71c1c;
+    }
     @media (max-width: 768px) {
         display: block;
     }
