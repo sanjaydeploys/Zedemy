@@ -298,14 +298,14 @@ const PostList = () => {
         <meta name="author" content="Sanjay Patidar" />
         <meta name="robots" content="index, follow" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="canonical" href="https://zedemy.vercel.app/blog" />
+        <link rel="canonical" href="https://zedemy.vercel.app/explore" />
         <meta property="og:title" content="Latest Programming Blog Posts - Zedemy" />
         <meta
           property="og:description"
           content="Explore the latest programming blog posts on Zedemy, covering HTML, JavaScript, Python, React, and more. Search and read tutorials, tips, and guides."
         />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://zedemy.vercel.app/blog" />
+        <meta property="og:url" content="https://zedemy.vercel.app/explore" />
         <meta property="og:image" content="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
         <meta property="og:site_name" content="Zedemy" />
         <meta name="twitter:card" content="summary_large_image" />
@@ -322,7 +322,7 @@ const PostList = () => {
             "@type": "CollectionPage",
             "name": "Zedemy Blog",
             "description": "Explore the latest programming blog posts on Zedemy, covering HTML, JavaScript, Python, React, and more.",
-            "url": "https://zedemy.vercel.app/blog",
+            "url": "https://zedemy.vercel.app/explore",
             "publisher": {
               "@type": "Organization",
               "name": "Zedemy",
