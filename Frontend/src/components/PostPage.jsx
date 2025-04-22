@@ -574,6 +574,7 @@ const PostPage = memo(() => {
                             <img
                                 src={post.titleImage}
                                 alt={post.title}
+                                aria-label={post.title}
                                 style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'block' }}
                                 onError={() => handleImageError(post.titleImage)}
                             />
@@ -583,7 +584,12 @@ const PostPage = memo(() => {
                         </LazyLoad>
                     )}
                     {post.titleVideo && (
-                        <video controls style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }} loading="lazy">
+                        <video
+                            controls
+                            style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
+                            loading="lazy"
+                            aria-label={`Video content for ${post.title}`}
+                        >
                             <source src={post.titleVideo} type="video/mp4" />
                             Your browser does not support the video tag.
                         </video>
@@ -600,6 +606,7 @@ const PostPage = memo(() => {
                                     <img
                                         src={subtitle.image}
                                         alt={subtitle.title}
+                                        aria-label={subtitle.title}
                                         loading="lazy"
                                         style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
                                         onError={() => handleImageError(subtitle.image)}
@@ -610,7 +617,12 @@ const PostPage = memo(() => {
                                 </Zoom>
                             )}
                             {subtitle.video && (
-                                <video controls style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }} loading="lazy">
+                                <video
+                                    controls
+                                    style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
+                                    loading="lazy"
+                                    aria-label={`Video content for ${subtitle.title}`}
+                                >
                                     <source src={subtitle.video} />
                                     Your browser does not support the video tag.
                                 </video>
@@ -623,7 +635,8 @@ const PostPage = memo(() => {
                                             <Zoom>
                                                 <img
                                                     src={point.image}
-                                                    alt={point.text}
+                                                    alt={point.text || subtitle.title}
+                                                    aria-label={point.text || subtitle.title}
                                                     loading="lazy"
                                                     style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
                                                     onError={() => handleImageError(point.image)}
@@ -634,7 +647,12 @@ const PostPage = memo(() => {
                                             </Zoom>
                                         )}
                                         {point.video && (
-                                            <video controls style={{ width: '100%', maxWidth: '400px', margin: '10px 0' }} loading="lazy">
+                                            <video
+                                                controls
+                                                style={{ width: '100%', maxWidth: '400px', margin: '10px 0' }}
+                                                loading="lazy"
+                                                aria-label={`Video content for ${point.text || subtitle.title}`}
+                                            >
                                                 <source src={point.video} type="video/mp4" />
                                                 Your browser does not support the video tag.
                                             </video>
@@ -689,7 +707,7 @@ const PostPage = memo(() => {
                                         <tbody>
                                             {post.superTitles[0].attributes.map((attr, attrIndex) => (
                                                 attr.attribute.trim() !== '' && attr.items && attr.items.length > 0 && attr.items.some(item => item.title.trim() !== '' || (item.bulletPoints && item.bulletPoints.length > 0 && item.bulletPoints.some(point => point.trim() !== ''))) && (
-                                                    <tr key={attr  = attrIndex}>
+                                                    <tr key={attrIndex}>
                                                         <TableCell dangerouslySetInnerHTML={{ __html: parseLinksForHtml(attr.attribute, post.category) }} />
                                                         {post.superTitles.map((superTitle, superIndex) => (
                                                             superTitle.attributes[attrIndex] && superTitle.attributes[attrIndex].items && superTitle.attributes[attrIndex].items.length > 0 && (
