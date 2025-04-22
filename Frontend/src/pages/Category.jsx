@@ -6,7 +6,6 @@ import { followCategory, unfollowCategory, fetchFollowedCategories } from '../ac
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Helmet } from 'react-helmet';
-import '../styles/Category.css';
 import {
     FaHtml5, FaCss3Alt, FaJs, FaNodeJs, FaReact, FaAngular, FaVuejs,
     FaPython, FaJava, FaPhp, FaSwift, FaGithub
@@ -141,14 +140,110 @@ const Category = () => {
                                 "item": {
                                     "@type": "Thing",
                                     "name": category.name,
-                                    "url": `https://zedemy.vercel.app/category/${category.name.toLowerCase()}`
+                                    "url": `https://zedemy.vercel.app/category/${category}`
                                 }
                             }))
                         }
                     })}
                 </script>
             </Helmet>
-            <h2>Categories</h2>
+            <style>
+                {`
+                    .category {
+                        max-width: 1200px;
+                        margin: 0 auto;
+                        padding: 2rem;
+                        background-color: #ffffff;
+                        color: #212121;
+                    }
+
+                    .category h2 {
+                        font-size: 2rem;
+                        color: #212121;
+                        margin-bottom: 1.5rem;
+                        text-align: center;
+                    }
+
+                    .category ul {
+                        list-style: none;
+                        padding: 0;
+                        display: grid;
+                        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                        gap: 1.5rem;
+                    }
+
+                    .category-item {
+                        background-color: #f5f5f5;
+                        border: 2px solid #e0e0e0;
+                        border-radius: 8px;
+                        padding: 1.5rem;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        transition: transform 0.2s, box-shadow 0.2s;
+                    }
+
+                    .category-item:hover {
+                        transform: translateY(-5px);
+                        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                    }
+
+                    .category-item a {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        text-decoration: none;
+                        color: #1976d2;
+                        font-size: 1.2rem;
+                        font-weight: 500;
+                        margin-bottom: 1rem;
+                        padding: 0.75rem;
+                        min-height: 44px;
+                        min-width: 44px;
+                        text-align: center;
+                    }
+
+                    .category-item a:hover,
+                    .category-item a:focus {
+                        color: #004ba0;
+                        outline: 3px solid #1976d2;
+                        outline-offset: 2px;
+                    }
+
+                    .category-item svg {
+                        font-size: 2.5rem;
+                        margin-bottom: 0.5rem;
+                        color: #1976d2;
+                    }
+
+                    .category-item button {
+                        background-color: #1976d2;
+                        color: #ffffff;
+                        border: none;
+                        border-radius: 4px;
+                        padding: 0.75rem 1.5rem;
+                        font-size: 1rem;
+                        font-weight: 500;
+                        cursor: pointer;
+                        min-height: 44px;
+                        min-width: 44px;
+                        transition: background-color 0.2s;
+                    }
+
+                    .category-item button:hover,
+                    .category-item button:focus {
+                        background-color: #004ba0;
+                        outline: 3px solid #1976d2;
+                        outline-offset: 2px;
+                    }
+
+                    .category-item button:focus {
+                        outline: 3px solid #1976d2;
+                        outline-offset: 2px;
+                    }
+                `}
+            </style>
+            <h2>Explore Coding Categories</h2>
             <ul>
                 {categories.map((category, index) => {
                     const animationProps = useSpring({
@@ -162,14 +257,27 @@ const Category = () => {
 
                     return (
                         <animated.li key={category.name} className="category-item" style={animationProps}>
-                            <Link to={`/category/${category.name}`}>
+                            <Link
+                                to={`/category/${category.name}`}
+                                aria-label={`View ${category.name} category`}
+                            >
                                 {category.icon}
                                 <span>{category.name}</span>
                             </Link>
                             {isFollowed ? (
-                                <button onClick={() => handleUnfollow(category.name)}>Unfollow</button>
+                                <button
+                                    onClick={() => handleUnfollow(category.name)}
+                                    aria-label={`Unfollow ${category.name} category`}
+                                >
+                                    Unfollow
+                                </button>
                             ) : (
-                                <button onClick={() => handleFollow(category.name)}>Follow</button>
+                                <button
+                                    onClick={() => handleFollow(category.name)}
+                                    aria-label={`Follow ${category.name} category`}
+                                >
+                                    Follow
+                                </button>
                             )}
                         </animated.li>
                     );
