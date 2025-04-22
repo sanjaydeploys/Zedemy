@@ -15,29 +15,46 @@ import { RingLoader } from 'react-spinners';
 import DOMPurify from 'dompurify';
 import LazyLoad from 'react-lazyload';
 
+// Custom AccessibleZoom component to fix aria-owns issue
+const AccessibleZoom = ({ children, ...props }) => {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (ref.current) {
+      // Remove invalid aria-owns attribute from the wrapper div
+      const wrapper = ref.current.querySelector('[data-rmiz]');
+      if (wrapper && wrapper.hasAttribute('aria-owns')) {
+        wrapper.removeAttribute('aria-owns');
+      }
+    }
+  }, []);
+
+  return (
+    <div ref={ref}>
+      <Zoom {...props}>{children}</Zoom>
+    </div>
+  );
+};
+
 // Function to parse [text](url) links, returning React elements
 const parseLinks = (text, category) => {
     if (!text) return [text];
 
-    // Regular expression for Markdown-style [text](url) links (http, https, or vscode)
     const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+)\)/g;
 
     const elements = [];
     let lastIndex = 0;
     let match;
 
-    // Process text, splitting into plain text and links
     while ((match = linkRegex.exec(text)) !== null) {
         const [fullMatch, linkText, url] = match;
         const startIndex = match.index;
         const endIndex = startIndex + fullMatch.length;
 
-        // Add plain text before the link
         if (startIndex > lastIndex) {
             elements.push(text.slice(lastIndex, startIndex));
         }
 
-        // Add the link as a React element
         elements.push(
             <a
                 key={startIndex}
@@ -53,12 +70,10 @@ const parseLinks = (text, category) => {
         lastIndex = endIndex;
     }
 
-    // Add remaining text after the last link
     if (lastIndex < text.length) {
         elements.push(text.slice(lastIndex));
     }
 
-    // If no links, return the original text as a single element
     if (elements.length === 0) {
         elements.push(text);
     }
@@ -66,14 +81,12 @@ const parseLinks = (text, category) => {
     return elements;
 };
 
-// Function to parse text for dangerouslySetInnerHTML (used in superTitles and sidebar)
+// Function to parse text for dangerouslySetInnerHTML
 const parseLinksForHtml = (text, category) => {
     if (!text) return text;
 
-    // Regular expression for Markdown-style [text](url) links (http, https, or vscode)
     const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+)\)/g;
 
-    // Replace Markdown links with <a> tags
     return text.replace(linkRegex, (match, linkText, url) => {
         const target = url.startsWith('vscode://') ? '_self' : '_blank';
         const rel = url.startsWith('vscode://') ? '' : ' rel="noopener noreferrer"';
@@ -101,7 +114,7 @@ const sanitizeCodeSnippet = (code) => {
     });
 };
 
-// Function to truncate text for SEO description while preserving content
+// Truncate text for SEO description
 const truncateText = (text, maxLength) => {
     if (!text) return '';
     if (text.length <= maxLength) return text;
@@ -115,7 +128,7 @@ const truncateText = (text, maxLength) => {
     return truncated;
 };
 
-// Styled Components
+// Styled Components (unchanged)
 const Container = styled.div`
     display: flex;
     flex-direction: row;
@@ -200,7 +213,7 @@ const ResponsiveCell = styled.td`
 
 const SidebarContainer = styled.div`
     width: 250px;
-    background-color:rgba(15, 1, 1, 0.82);
+    background-color: rgba(15, 1, 1, 0.82);
     color: #ecf0f1;
     position: sticky;
     top: 0;
@@ -221,7 +234,7 @@ const SidebarContainer = styled.div`
 const SidebarHeader = styled.div`
     padding: 2px;
     font-size: 1.2em;
-    background-color:rgb(4, 18, 33);
+    background-color: rgb(4, 18, 33);
     text-align: center;
 `;
 
@@ -235,11 +248,11 @@ const SubtitlesList = styled.ul`
 
 const SubtitleItem = styled.li`
     padding: 10px 20px;
-    border-bottom: 1px solidrgb(228, 231, 235);
+    border-bottom: 1px solid rgb(228, 231, 235);
     cursor: pointer;
     background-color: ${({ isActive }) => (isActive ? '#34495e' : 'transparent')};
     &:hover {
-        background-color:rgb(59, 118, 20);
+        background-color: rgb(59, 118, 20);
     }
 `;
 
@@ -357,7 +370,7 @@ const PostPage = memo(() => {
         const observerOptions = {
             root: null,
             rootMargin: '0px',
-            threshold: 0.5, // Trigger when 50% of the section is visible
+            threshold: 0.5,
         };
 
         const observer = new IntersectionObserver((entries) => {
@@ -366,7 +379,6 @@ const PostPage = memo(() => {
                     const sectionId = entry.target.id;
                     setActiveSection(sectionId);
 
-                    // Scroll the corresponding sidebar item into view
                     const subtitleIndex = sectionId.startsWith('subtitle-')
                         ? parseInt(sectionId.replace('subtitle-', ''), 10)
                         : sectionId === 'summary'
@@ -388,7 +400,6 @@ const PostPage = memo(() => {
             });
         }, observerOptions);
 
-        // Observe all subtitle sections and the summary
         const sections = document.querySelectorAll('[id^="subtitle-"], #summary');
         sections.forEach((section) => observer.observe(section));
 
@@ -475,7 +486,6 @@ const PostPage = memo(() => {
         );
     }
 
-    // SEO-related data
     const pageTitle = `${post.title} | Zedemy`;
     const pageDescription = post.summary ? truncateText(post.summary, 160) : (post.content ? truncateText(post.content, 160) : 'Learn more about this topic at Zedemy.');
     const pageKeywords = post.keywords || `${post.title}, Zedemy, tutorial, education`;
@@ -485,7 +495,6 @@ const PostPage = memo(() => {
     const ogImage = post.titleImage || 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
     const readTime = calculateReadTime(post);
 
-    // Structured Data with FAQ
     const faqData = post.subtitles
         .filter(subtitle => subtitle.isFAQ)
         .map(subtitle => ({
@@ -543,7 +552,7 @@ const PostPage = memo(() => {
                 <meta name="author" content={post.author || 'Zedemy Team'} />
                 <meta name="robots" content="index, follow" />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <link rel="canonical" href={canonicalUrl} />
+                <link rel="canonical" href={canonicalUrl} data-react-helmet="true" />
                 <meta property="og:title" content={pageTitle} />
                 <meta property="og:description" content={pageDescription} />
                 <meta property="og:image" content={ogImage} />
@@ -602,7 +611,7 @@ const PostPage = memo(() => {
                         <div key={index} id={`subtitle-${index}`}>
                             <SubtitleHeader>{parseLinks(subtitle.title, post.category)}</SubtitleHeader>
                             {subtitle.image && (
-                                <Zoom>
+                                <AccessibleZoom>
                                     <img
                                         src={subtitle.image}
                                         alt={subtitle.title}
@@ -614,7 +623,7 @@ const PostPage = memo(() => {
                                     {imageErrors[subtitle.image] && (
                                         <ImageError>Failed to load image: {subtitle.image}</ImageError>
                                     )}
-                                </Zoom>
+                                </AccessibleZoom>
                             )}
                             {subtitle.video && (
                                 <video
@@ -632,7 +641,7 @@ const PostPage = memo(() => {
                                     <li key={pointIndex} style={{ marginBottom: '10px' }}>
                                         <span>{parseLinks(point.text, post.category)}</span>
                                         {point.image && (
-                                            <Zoom>
+                                            <AccessibleZoom>
                                                 <img
                                                     src={point.image}
                                                     alt={point.text || subtitle.title}
@@ -644,7 +653,7 @@ const PostPage = memo(() => {
                                                 {imageErrors[point.image] && (
                                                     <ImageError>Failed to load image: {point.image}</ImageError>
                                                 )}
-                                            </Zoom>
+                                            </AccessibleZoom>
                                         )}
                                         {point.video && (
                                             <video
