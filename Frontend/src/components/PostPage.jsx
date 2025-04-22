@@ -20,13 +20,38 @@ const AccessibleZoom = ({ children, ...props }) => {
   const ref = useRef(null);
 
   useEffect(() => {
-    if (ref.current) {
-      // Remove invalid aria-owns attribute from the wrapper div
+    if (!ref.current) return;
+
+    // Function to remove aria-owns from the wrapper div
+    const removeAriaOwns = () => {
       const wrapper = ref.current.querySelector('[data-rmiz]');
       if (wrapper && wrapper.hasAttribute('aria-owns')) {
         wrapper.removeAttribute('aria-owns');
       }
+    };
+
+    // Initial check
+    removeAriaOwns();
+
+    // Set up MutationObserver to watch for attribute changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'aria-owns') {
+          removeAriaOwns();
+        }
+      });
+    });
+
+    // Observe the wrapper div for attribute changes
+    const wrapper = ref.current.querySelector('[data-rmiz]');
+    if (wrapper) {
+      observer.observe(wrapper, { attributes: true });
     }
+
+    // Cleanup observer on unmount
+    return () => {
+      observer.disconnect();
+    };
   }, []);
 
   return (
@@ -128,7 +153,7 @@ const truncateText = (text, maxLength) => {
     return truncated;
 };
 
-// Styled Components (unchanged)
+// Styled Components
 const Container = styled.div`
     display: flex;
     flex-direction: row;
@@ -570,7 +595,10 @@ const PostPage = memo(() => {
 
             <Container>
                 <Content>
-                    <ToggleButton onClick={() => setSidebarOpen(!isSidebarOpen)}>
+                    <ToggleButton
+                        onClick={() => setSidebarOpen(!isSidebarOpen)}
+                        aria-label={isSidebarOpen ? 'Close sidebar navigation' : 'Open sidebar navigation'}
+                    >
                         {isSidebarOpen ? 'Close' : 'Menu'}
                     </ToggleButton>
                     <PostHeader>{parseLinks(post.title, post.category)}</PostHeader>
@@ -669,7 +697,7 @@ const PostPage = memo(() => {
                                         {point.codeSnippet && (
                                             <CodeSnippetContainer>
                                                 <CopyToClipboard text={point.codeSnippet} onCopy={handleCopyCode}>
-                                                    <CopyButton>Copy</CopyButton>
+                                                    <CopyButton aria-label="Copy code to clipboard">Copy</CopyButton>
                                                 </CopyToClipboard>
                                                 <SyntaxHighlighter language="javascript" style={vs}>
                                                     {sanitizeCodeSnippet(point.codeSnippet)}
@@ -754,6 +782,7 @@ const PostPage = memo(() => {
                         onClick={handleMarkAsCompleted}
                         disabled={isCompleted}
                         isCompleted={isCompleted}
+                        aria-label={isCompleted ? 'Post marked as completed' : 'Mark post as completed'}
                     >
                         {isCompleted ? 'Completed' : 'Mark as Completed'}
                     </CompleteButton>
