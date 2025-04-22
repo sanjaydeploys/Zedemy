@@ -485,7 +485,7 @@ const Home = () => {
         </TextContainer>
         <GifContainer>
           <img 
-            src="https://sanjaybasket.s3.ap-south-1.amazonaws.com/Student-home-header-1.gif" 
+            src="https://sanjaybasket.s3.ap-south-1.amazonaws.com/Student-home-header-1+(3).gif" 
             alt="Smart Learning Experience" 
           />
         </GifContainer>
