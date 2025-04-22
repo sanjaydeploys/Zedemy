@@ -168,8 +168,14 @@ const Category = () => {
                         list-style: none;
                         padding: 0;
                         display: grid;
-                        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                        grid-template-columns: 1fr;
                         gap: 1.5rem;
+                        @media (min-width: 481px) {
+                            grid-template-columns: repeat(2, 1fr);
+                        }
+                        @media (min-width: 993px) {
+                            grid-template-columns: repeat(3, 1fr);
+                        }
                     }
 
                     .category-item {
