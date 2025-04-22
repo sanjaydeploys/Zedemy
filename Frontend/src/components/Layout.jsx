@@ -136,28 +136,46 @@ const Layout = ({ children }) => {
     <>
       <Sidebar color={color}>
         <NavContainer>
-          <SidebarItem to="/" data-toast="Home">
+          <SidebarItem to="/" 
+            aria-label="Home"
+            data-toast="Home">
             <Icon iconColor={iconColor}><FaHome /></Icon>
+            
           </SidebarItem>
-          <SidebarItem to="/category" data-toast="Courses">
+          <SidebarItem to="/category" 
+               aria-label="Courses" 
+
+            data-toast="Courses">
             <Icon iconColor={iconColor}><FaBook /></Icon>
+            
           </SidebarItem>
-          <SidebarItem to="/add-post" data-toast="Add Post">
+          <SidebarItem to="/add-post" 
+                      aria-label="Add Post" 
+
+            data-toast="Add Post">
             <Icon iconColor={iconColor}><FaFileUpload /></Icon>
+            
           </SidebarItem>
-          <SidebarItem to="/login" data-toast="User Login">
+          <SidebarItem to="/login"
+                        aria-label="User Login" 
+data-toast="User Login">
             <Icon iconColor={iconColor}><FaUserPlus /></Icon>
           </SidebarItem>
-          <SidebarItem to="/certificate-verification" data-toast="Certificate Verification">
+          
+          <SidebarItem to="/certificate-verification"
+            aria-label="Certificate Verification" 
+            data-toast="Certificate Verification">
             <Icon iconColor={iconColor}><FaCertificate /></Icon>
           </SidebarItem>
-          <SidebarItem to="/editor" data-toast="Code Editor">
+          <SidebarItem to="/editor" 
+            aria-label="Code Editor" data-toast="Code Editor">
             <Icon iconColor={iconColor}><FaFileCode /></Icon>
           </SidebarItem>
 
           <CategoryCarousel />
 
-          <SidebarButton onClick={toggleSettingPanel} data-toast="Settings">
+          <SidebarButton onClick={toggleSettingPanel} aria-label="Settings"
+            data-toast="Settings">
             <Icon iconColor={iconColor}><FaCog /></Icon>
           </SidebarButton>
         </NavContainer>
