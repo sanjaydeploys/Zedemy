@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, memo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchPostBySlug, fetchCompletedPosts } from '../actions/postActions';
+import { fetchPostBySlug, fetchCompletedPosts, fetchPosts } from '../actions/postActions';
 import { useParams } from 'react-router-dom';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import Zoom from 'react-medium-image-zoom';
@@ -14,72 +14,69 @@ import 'react-toastify/dist/ReactToastify.css';
 import { RingLoader } from 'react-spinners';
 import DOMPurify from 'dompurify';
 import LazyLoad from 'react-lazyload';
+import { useTrail, animated } from 'react-spring';
+
 
 // Custom AccessibleZoom component to fix aria-owns issue
 const AccessibleZoom = ({ children, ...props }) => {
-  const ref = useRef(null);
-
-  useEffect(() => {
-    if (!ref.current) return;
-
-    // Function to remove aria-owns from the wrapper div
-    const removeAriaOwns = () => {
-      const wrapper = ref.current.querySelector('[data-rmiz]');
-      if (wrapper && wrapper.hasAttribute('aria-owns')) {
-        wrapper.removeAttribute('aria-owns');
-      }
-    };
-
-    // Initial check
-    removeAriaOwns();
-
-    // Set up MutationObserver to watch for attribute changes
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'aria-owns') {
-          removeAriaOwns();
+    const ref = useRef(null);
+  
+    useEffect(() => {
+      if (!ref.current) return;
+  
+      // Function to remove aria-owns from the wrapper div
+      const removeAriaOwns = () => {
+        const wrapper = ref.current.querySelector('[data-rmiz]');
+        if (wrapper && wrapper.hasAttribute('aria-owns')) {
+          wrapper.removeAttribute('aria-owns');
         }
+      };
+  
+      // Initial check
+      removeAriaOwns();
+  
+      // Set up MutationObserver to watch for attribute changes
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.type === 'attributes' && mutation.attributeName === 'aria-owns') {
+            removeAriaOwns();
+          }
+        });
       });
-    });
-
-    // Observe the wrapper div for attribute changes
-    const wrapper = ref.current.querySelector('[data-rmiz]');
-    if (wrapper) {
-      observer.observe(wrapper, { attributes: true });
-    }
-
-    // Cleanup observer on unmount
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-
-  return (
-    <div ref={ref}>
-      <Zoom {...props}>{children}</Zoom>
-    </div>
-  );
-};
-
+  
+      // Observe the wrapper div for attribute changes
+      const wrapper = ref.current.querySelector('[data-rmiz]');
+      if (wrapper) {
+        observer.observe(wrapper, { attributes: true });
+      }
+  
+      // Cleanup observer on unmount
+      return () => {
+        observer.disconnect();
+      };
+    }, []);
+  
+    return (
+      <div ref={ref}>
+        <Zoom {...props}>{children}</Zoom>
+      </div>
+    );
+  };
+  
 // Function to parse [text](url) links, returning React elements
 const parseLinks = (text, category) => {
     if (!text) return [text];
-
     const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+)\)/g;
-
     const elements = [];
     let lastIndex = 0;
     let match;
-
     while ((match = linkRegex.exec(text)) !== null) {
         const [fullMatch, linkText, url] = match;
         const startIndex = match.index;
         const endIndex = startIndex + fullMatch.length;
-
         if (startIndex > lastIndex) {
             elements.push(text.slice(lastIndex, startIndex));
         }
-
         elements.push(
             <a
                 key={startIndex}
@@ -91,27 +88,21 @@ const parseLinks = (text, category) => {
                 {linkText}
             </a>
         );
-
         lastIndex = endIndex;
     }
-
     if (lastIndex < text.length) {
         elements.push(text.slice(lastIndex));
     }
-
     if (elements.length === 0) {
         elements.push(text);
     }
-
     return elements;
 };
 
 // Function to parse text for dangerouslySetInnerHTML
 const parseLinksForHtml = (text, category) => {
     if (!text) return text;
-
     const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+)\)/g;
-
     return text.replace(linkRegex, (match, linkText, url) => {
         const target = url.startsWith('vscode://') ? '_self' : '_blank';
         const rel = url.startsWith('vscode://') ? '' : ' rel="noopener noreferrer"';
@@ -119,19 +110,22 @@ const parseLinksForHtml = (text, category) => {
     });
 };
 
-// Calculate read time
-const calculateReadTime = (post) => {
-    if (!post) return 0;
-    const wordCount = (
-      (post.title || '') +
-      (post.content || '') +
-      (post.summary || '') +
-      post.subtitles.map(s => (s.title || '') + s.bulletPoints.map(b => b.text || '').join('')).join('')
-    ).split(/\s+/).filter(word => word.length > 0).length;
-    return Math.ceil(wordCount / 200);
+// Calculate read time and word count
+const calculateReadTimeAndWordCount = (post) => {
+    if (!post) return { readTime: 0, wordCount: 0 };
+    const textContent = (
+        (post.title || '') +
+        (post.content || '') +
+        (post.summary || '') +
+        post.subtitles.map(s => (s.title || '') + s.bulletPoints.map(b => b.text || '').join('')).join('')
+    );
+    const words = textContent.split(/\s+/).filter(word => word.length > 0);
+    const wordCount = words.length;
+    const readTime = Math.ceil(wordCount / 200);
+    return { readTime, wordCount };
 };
 
-// Function to sanitize only code snippets
+// Sanitize code snippets
 const sanitizeCodeSnippet = (code) => {
     return DOMPurify.sanitize(code, {
         ALLOWED_TAGS: [],
@@ -151,6 +145,22 @@ const truncateText = (text, maxLength) => {
         truncated = truncated + '...';
     }
     return truncated;
+};
+
+// Get related posts based on category
+const getRelatedPosts = (filteredPosts, currentPostId) => {
+    console.log('getRelatedPosts called with postId:', currentPostId);
+    const related = filteredPosts
+        .filter(
+            (post) =>
+                post.postId &&
+                post.postId !== currentPostId &&
+                post.title &&
+                post.slug
+        )
+        .slice(0, 3);
+    console.log('Related posts:', related);
+    return related;
 };
 
 // Styled Components
@@ -185,25 +195,6 @@ const LoadingOverlay = styled.div`
 const ComparisonTableContainer = styled.div`
     margin-top: 20px;
     overflow-x: auto;
-`;
-
-const ComparisonTable = styled.table`
-    border-collapse: collapse;
-    width: 100%;
-    min-width: 800px;
-`;
-
-const TableHeader = styled.th`
-    background-color: #34495e;
-    color: #ecf0f1;
-    padding: 15px;
-    border: 1px solid #34495e;
-`;
-
-const TableCell = styled.td`
-    border: 1px solid #34495e;
-    padding: 15px;
-    vertical-align: top;
 `;
 
 const ResponsiveContent = styled.div`
@@ -309,7 +300,6 @@ const ToggleButton = styled.button`
         display: block;
     }
 `;
-
 const PostHeader = styled.h1`
     font-size: 2.5em;
     color: #2c3e50;
@@ -377,20 +367,73 @@ const ImageError = styled.div`
     margin: 10px 0;
 `;
 
+const RelatedPostsContainer = styled.div`
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #f9f9f9; /* Light gray background for contrast */
+    border-radius: 5px;
+    color: #1a1a1a; /* Dark text for readability */
+`;
+
+const RelatedPostsHeader = styled.h2`
+    font-size: 1.8em;
+    color: #0a0a0a; /* High contrast header */
+    margin-bottom: 10px;
+`;
+
+const RelatedPostLink = styled.a`
+    display: block;
+    color: #0645ad; 
+    text-decoration: none;
+    margin: 5px 0;
+    font-size: 1rem;
+    &:hover,
+    &:focus {
+        text-decoration: underline;
+        color: #0b3d91; 
+        outline: 2px dashed #0b3d91;
+        outline-offset: 2px;
+    }
+`;
+
+
 const PostPage = memo(() => {
     const { slug } = useParams();
     const dispatch = useDispatch();
     const post = useSelector((state) => state.postReducer.post);
+    const posts = useSelector((state) => state.postReducer.posts || []);
     const completedPosts = useSelector((state) => state.postReducer.completedPosts || []);
     const [isSidebarOpen, setSidebarOpen] = useState(false);
     const [imageErrors, setImageErrors] = useState({});
     const [activeSection, setActiveSection] = useState(null);
     const subtitlesListRef = useRef(null);
 
+    // Fetch posts and current post data
     useEffect(() => {
+        dispatch(fetchPosts());
         dispatch(fetchPostBySlug(slug));
         dispatch(fetchCompletedPosts());
     }, [dispatch, slug]);
+
+    // Filter posts by category
+    const filteredPosts = posts.filter(
+        (p) => p.category?.toLowerCase() === post?.category?.toLowerCase()
+    );
+    console.log('Posts from Redux:', posts);
+    console.log('Current post category:', post?.category);
+    console.log('Filtered Posts:', filteredPosts);
+
+    // Get related posts
+    const relatedPosts = getRelatedPosts(filteredPosts, post?.postId);
+    console.log('Related Posts for postId', post?.postId, ':', relatedPosts);
+
+    // Animation for related posts
+    const trail = useTrail(relatedPosts.length, {
+        from: { opacity: 0, transform: 'translateY(20px)' },
+        to: { opacity: 1, transform: 'translateY(0)' },
+        config: { duration: 500 },
+        delay: 1000
+    });
 
     useEffect(() => {
         if (!post) return;
@@ -406,13 +449,11 @@ const PostPage = memo(() => {
                 if (entry.isIntersecting) {
                     const sectionId = entry.target.id;
                     setActiveSection(sectionId);
-
                     const subtitleIndex = sectionId.startsWith('subtitle-')
                         ? parseInt(sectionId.replace('subtitle-', ''), 10)
                         : sectionId === 'summary'
                         ? 'summary'
                         : null;
-
                     if (subtitleIndex !== null && subtitlesListRef.current) {
                         const sidebarItem = subtitlesListRef.current.querySelector(
                             `[data-section="${sectionId}"]`
@@ -514,27 +555,49 @@ const PostPage = memo(() => {
         );
     }
 
-    const pageTitle = `${post.title} | Zedemy`;
-    const pageDescription = post.summary ? truncateText(post.summary, 160) : (post.content ? truncateText(post.content, 160) : 'Learn more about this topic at Zedemy.');
-    const pageKeywords = post.keywords || `${post.title}, Zedemy, tutorial, education`;
+    // SEO-related data
+    const pageTitle = `${post.title} | Best Online Tech Tutorials in India | Zedemy`;
+    const pageDescription = post.summary
+        ? truncateText(post.summary, 160)
+        : (post.content
+            ? truncateText(post.content, 160)
+            : `Learn ${post.title.toLowerCase()} with Zedemy's expert-led tutorials for Indian students.`);
+    const pageKeywords = post.keywords
+        ? `${post.keywords}, online tech tutorials India, learn coding India, tech education India, Zedemy`
+        : `${post.title}, online tech tutorials India, learn coding India, tech education India, Zedemy`;
     const canonicalUrl = `https://zedemy.vercel.app/post/${slug}`;
-    console.log('[PostPage] Canonical URL:', canonicalUrl);
-
     const ogImage = post.titleImage || 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
-    const readTime = calculateReadTime(post);
+    const { readTime, wordCount } = calculateReadTimeAndWordCount(post);
 
-    const faqData = post.subtitles
-        .filter(subtitle => subtitle.isFAQ)
-        .map(subtitle => ({
+    // Structured Data with FAQ, Breadcrumbs, and Related Posts
+    const faqData = [
+        ...(post.subtitles
+            .filter(subtitle => subtitle.isFAQ)
+            .map(subtitle => ({
+                '@type': 'Question',
+                name: subtitle.title,
+                acceptedAnswer: {
+                    '@type': 'Answer',
+                    text: subtitle.bulletPoints.map(point => point.text).join(' ')
+                }
+            }))),
+        {
             '@type': 'Question',
-            name: subtitle.title,
+            name: `Why choose Zedemy for learning ${post.title.toLowerCase()} in India?`,
             acceptedAnswer: {
                 '@type': 'Answer',
-                text: subtitle.bulletPoints.map(point => point.text).join(' ')
+                text: `Zedemy offers expert-led ${post.title.toLowerCase()} tutorials tailored for Indian students, with in-browser coding and certificate verification.`
             }
-        }));
-    console.log('[PostPage] Subtitles with isFAQ:', post.subtitles.map(sub => ({ title: sub.title, isFAQ: sub.isFAQ })));
-    console.log('[PostPage] Generated FAQ Data:', faqData);
+        },
+        {
+            '@type': 'Question',
+            name: `How can ${post.title.toLowerCase()} help Indian professionals?`,
+            acceptedAnswer: {
+                '@type': 'Answer',
+                text: `Learning ${post.title.toLowerCase()} on Zedemy equips Indian professionals with in-demand tech skills for career growth.`
+            }
+        }
+    ];
 
     const structuredData = [
         {
@@ -542,6 +605,8 @@ const PostPage = memo(() => {
             '@type': 'BlogPosting',
             headline: post.title,
             description: pageDescription,
+            keywords: pageKeywords.split(', ').map(k => k.trim()),
+            articleSection: post.category || 'Tech Tutorials',
             author: {
                 '@type': 'Person',
                 name: post.author || 'Zedemy Team'
@@ -561,7 +626,37 @@ const PostPage = memo(() => {
                 '@type': 'WebPage',
                 '@id': canonicalUrl
             },
-            timeRequired: `PT${readTime}M`
+            timeRequired: `PT${readTime}M`,
+            wordCount: wordCount,
+            relatedLink: relatedPosts.map((relatedPost) => ({
+                '@type': 'CreativeWork',
+                name: relatedPost.title,
+                url: `https://zedemy.vercel.app/post/${relatedPost.slug}`
+            }))
+        },
+        {
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+                {
+                    '@type': 'ListItem',
+                    position: 1,
+                    name: 'Home',
+                    item: 'https://zedemy.vercel.app/'
+                },
+                {
+                    '@type': 'ListItem',
+                    position: 2,
+                    name: post.category || 'Blog',
+                    item: `https://zedemy.vercel.app/category/${post.category || 'blog'}`
+                },
+                {
+                    '@type': 'ListItem',
+                    position: 3,
+                    name: post.title,
+                    item: canonicalUrl
+                }
+            ]
         },
         ...(faqData.length > 0 ? [{
             '@context': 'https://schema.org',
@@ -569,10 +664,11 @@ const PostPage = memo(() => {
             mainEntity: faqData
         }] : [])
     ];
-
+    console.log('[PostPage] Subtitles with isFAQ:', post.subtitles.map(sub => ({ title: sub.title, isFAQ: sub.isFAQ })));
+    console.log('[PostPage] Generated FAQ Data:', faqData);
     return (
         <HelmetProvider>
-            <Helmet prioritizeSeoTags>
+            <Helmet>
                 <html lang="en" />
                 <title>{pageTitle}</title>
                 <meta name="description" content={pageDescription} />
@@ -580,10 +676,11 @@ const PostPage = memo(() => {
                 <meta name="author" content={post.author || 'Zedemy Team'} />
                 <meta name="robots" content="index, follow" />
                 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-                <link rel="canonical" href={canonicalUrl} data-react-helmet="true" />
+                <link rel="canonical" href={canonicalUrl} />
                 <meta property="og:title" content={pageTitle} />
                 <meta property="og:description" content={pageDescription} />
                 <meta property="og:image" content={ogImage} />
+                <meta property="og:image:alt" content={`${post.title} tutorial on Zedemy`} />
                 <meta property="og:url" content={canonicalUrl} />
                 <meta property="og:type" content="article" />
                 <meta property="og:site_name" content="Zedemy" />
@@ -591,17 +688,15 @@ const PostPage = memo(() => {
                 <meta name="twitter:title" content={pageTitle} />
                 <meta name="twitter:description" content={pageDescription} />
                 <meta name="twitter:image" content={ogImage} />
-                <script type="application/ld+json">
-                    {JSON.stringify(structuredData)}
-                </script>
+                <meta name="twitter:image:alt" content={`${post.title} tutorial on Zedemy`} />
+                <meta name="twitter:site" content="@sanjaypatidar" />
+                <meta name="twitter:creator" content="@sanjaypatidar" />
+                <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
             </Helmet>
 
             <Container>
                 <Content>
-                    <ToggleButton
-                        onClick={() => setSidebarOpen(!isSidebarOpen)}
-                        aria-label={isSidebarOpen ? 'Close sidebar navigation' : 'Open sidebar navigation'}
-                    >
+                    <ToggleButton onClick={() => setSidebarOpen(!isSidebarOpen)}>
                         {isSidebarOpen ? 'Close' : 'Menu'}
                     </ToggleButton>
                     <PostHeader>{parseLinks(post.title, post.category)}</PostHeader>
@@ -613,8 +708,7 @@ const PostPage = memo(() => {
                         <LazyLoad height={200} offset={100}>
                             <img
                                 src={post.titleImage}
-                                alt={post.title}
-                                aria-label={post.title}
+                                alt={`Learn ${post.title.toLowerCase()} online in India`}
                                 style={{ width: '100%', maxWidth: '600px', margin: '0 auto', display: 'block' }}
                                 onError={() => handleImageError(post.titleImage)}
                             />
@@ -628,7 +722,7 @@ const PostPage = memo(() => {
                             controls
                             style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
                             loading="lazy"
-                            aria-label={`Video content for ${post.title}`}
+                            aria-label={`Video tutorial for ${post.title}`}
                         >
                             <source src={post.titleVideo} type="video/mp4" />
                             Your browser does not support the video tag.
@@ -661,7 +755,7 @@ const PostPage = memo(() => {
                                     controls
                                     style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
                                     loading="lazy"
-                                    aria-label={`Video content for ${subtitle.title}`}
+                                    aria-label={`Video for ${subtitle.title}`}
                                 >
                                     <source src={subtitle.video} />
                                     Your browser does not support the video tag.
@@ -675,8 +769,7 @@ const PostPage = memo(() => {
                                             <AccessibleZoom>
                                                 <img
                                                     src={point.image}
-                                                    alt={point.text || subtitle.title}
-                                                    aria-label={point.text || subtitle.title}
+                                                    alt={`${point.text} example for tech learning in India`}
                                                     loading="lazy"
                                                     style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
                                                     onError={() => handleImageError(point.image)}
@@ -691,7 +784,7 @@ const PostPage = memo(() => {
                                                 controls
                                                 style={{ width: '100%', maxWidth: '400px', margin: '10px 0' }}
                                                 loading="lazy"
-                                                aria-label={`Video content for ${point.text || subtitle.title}`}
+                                                aria-label={`Video example for ${point.text}`}
                                             >
                                                 <source src={point.video} type="video/mp4" />
                                                 Your browser does not support the video tag.
@@ -700,7 +793,7 @@ const PostPage = memo(() => {
                                         {point.codeSnippet && (
                                             <CodeSnippetContainer>
                                                 <CopyToClipboard text={point.codeSnippet} onCopy={handleCopyCode}>
-                                                    <CopyButton aria-label="Copy code to clipboard">Copy</CopyButton>
+                                                    <CopyButton>Copy</CopyButton>
                                                 </CopyToClipboard>
                                                 <SyntaxHighlighter language="javascript" style={vs}>
                                                     {sanitizeCodeSnippet(point.codeSnippet)}
@@ -736,7 +829,7 @@ const PostPage = memo(() => {
                                     <ResponsiveTable>
                                         <thead>
                                             <tr>
-                                                <TableHeader>Attribute</TableHeader>
+                                                <ResponsiveHeader>Attribute</ResponsiveHeader>
                                                 {post.superTitles.map((superTitle, index) => (
                                                     superTitle.superTitle.trim() !== '' && superTitle.attributes && superTitle.attributes.length > 0 && (
                                                         <ResponsiveHeader key={index} dangerouslySetInnerHTML={{ __html: parseLinksForHtml(superTitle.superTitle, post.category) }} />
@@ -748,7 +841,7 @@ const PostPage = memo(() => {
                                             {post.superTitles[0].attributes.map((attr, attrIndex) => (
                                                 attr.attribute.trim() !== '' && attr.items && attr.items.length > 0 && attr.items.some(item => item.title.trim() !== '' || (item.bulletPoints && item.bulletPoints.length > 0 && item.bulletPoints.some(point => point.trim() !== ''))) && (
                                                     <tr key={attrIndex}>
-                                                        <TableCell dangerouslySetInnerHTML={{ __html: parseLinksForHtml(attr.attribute, post.category) }} />
+                                                        <ResponsiveCell dangerouslySetInnerHTML={{ __html: parseLinksForHtml(attr.attribute, post.category) }} />
                                                         {post.superTitles.map((superTitle, superIndex) => (
                                                             superTitle.attributes[attrIndex] && superTitle.attributes[attrIndex].items && superTitle.attributes[attrIndex].items.length > 0 && (
                                                                 <ResponsiveCell key={superIndex}>
@@ -781,14 +874,29 @@ const PostPage = memo(() => {
                             <p>{parseLinks(post.summary, post.category)}</p>
                         </SummaryContainer>
                     )}
+                   
                     <CompleteButton
                         onClick={handleMarkAsCompleted}
                         disabled={isCompleted}
                         isCompleted={isCompleted}
-                        aria-label={isCompleted ? 'Post marked as completed' : 'Mark post as completed'}
+                        aria-label={isCompleted ? 'Post already completed' : 'Mark post as completed'}
                     >
                         {isCompleted ? 'Completed' : 'Mark as Completed'}
                     </CompleteButton>
+
+                     {/* Related Posts Section */}
+                     {relatedPosts.length > 0 && (
+                        <RelatedPostsContainer>
+                            <RelatedPostsHeader>Related Posts</RelatedPostsHeader>
+                            {trail.map((style, index) => (
+                                <animated.div key={relatedPosts[index].postId} style={style}>
+                                    <RelatedPostLink href={`/post/${relatedPosts[index].slug}`}>
+                                        {relatedPosts[index].title}
+                                    </RelatedPostLink>
+                                </animated.div>
+                            ))}
+                        </RelatedPostsContainer>
+                    )}
                 </Content>
                 <SidebarContainer isOpen={isSidebarOpen}>
                     <SidebarHeader>Contents</SidebarHeader>
@@ -802,6 +910,7 @@ const PostPage = memo(() => {
                                 <Button
                                     dangerouslySetInnerHTML={{ __html: parseLinksForHtml(subtitle.title, post.category) }}
                                     onClick={() => scrollToSection(`subtitle-${index}`)}
+                                    aria-label={`Navigate to ${subtitle.title}`}
                                 />
                             </SubtitleItem>
                         ))}
@@ -810,7 +919,7 @@ const PostPage = memo(() => {
                                 isActive={activeSection === 'summary'}
                                 data-section="summary"
                             >
-                                <Button onClick={() => scrollToSection('summary')}>
+                                <Button onClick={() => scrollToSection('summary')} aria-label="Navigate to summary">
                                     Summary
                                 </Button>
                             </SubtitleItem>
@@ -818,6 +927,7 @@ const PostPage = memo(() => {
                     </SubtitlesList>
                 </SidebarContainer>
             </Container>
+            <ToastContainer />
         </HelmetProvider>
     );
 });
