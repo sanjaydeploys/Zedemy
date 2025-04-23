@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import Typed from 'typed.js';
 import { Helmet } from "react-helmet"; 
+import CreaTeaImage from '../assets/tea.gif';
 
 const fadeIn = keyframes`
   from {
@@ -93,6 +94,7 @@ const TypedText = styled.span`
   font-size: 2.5rem;
   font-weight: 700;
   text-transform: uppercase;
+
   background: linear-gradient(45deg, #ff6f00, #ffcc80);
   -webkit-background-clip: text;
   color: transparent;
@@ -102,36 +104,7 @@ const TypedText = styled.span`
   }
 `;
 
-const Title = styled.h1`
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  text-align: center;
-  text-transform: uppercase;
-  
-  /* Base text styling */
-  color: #fff;
-  text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.8);
-  
-  /* Emphasize 'Z' with gradient similar to EduXcel's yellow 'X' */
-  & span.emphasized {
-    color: #ffd700; /* Yellow color matching EduXcel's 'X' */
-    font-size: 1.2em; /* Slightly larger for emphasis */
-    font-weight: 900; /* Extra bold */
-    text-shadow: 0 0 10px #ffd700, 0 0 20px #ffd700, 0 0 30px #ffaa00; /* Glow effect */
-    display: inline-block;
-    padding: 0 0.2rem;
-    background: linear-gradient(45deg, #ffd700, #ffaa00);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  
-  @media (max-width: 768px) {
-    font-size: 2.5rem;
-    & span.emphasized {
-      font-size: 1.1em;
-    }
-  }
-`;
+
 
 const Subtitle = styled.h2`
   font-size: 1.8rem;
@@ -276,6 +249,77 @@ const CertificatePreview = styled.div`
     max-width: 100%;
   }
 `;
+
+const TeaContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap; /* stack on small screens */
+  margin-top: 1rem;
+  gap: 0.5rem;
+
+  @media (max-width: 768px) {
+    gap: 0.25rem;
+  }
+`;
+const H1 = styled.h1`
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #2ecc71;
+  font-family: 'Playfair Display', serif;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+  letter-spacing: 2px;
+  transform: skew(-5deg);
+  margin: 0 0.5rem;
+
+  @media (max-width: 768px) {
+    font-size: 1.2rem;
+  }
+`;
+
+const StyledSpan = styled.span`
+  color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: bold;
+  font-family: 'Playfair Display', serif;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  text-decoration: underline;
+
+  @media (max-width: 768px) {
+    font-size: 1.2rem;
+  }
+`;
+
+const StyledCreaTeaImage = styled.img`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  box-shadow: 0px 0px 10px rgba(46, 204, 113, 0.5);
+
+  @media (max-width: 768px) {
+    width: 30px;
+    height: 30px;
+  }
+`;
+
+const H2 = styled.h1`
+  display: flex;
+  align-items: center;
+  color: #2ecc71;
+  font-size: 3rem;
+  margin: 0;
+  font-weight: 900;
+  font-family: 'Playfair Display', serif;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+  transform: skew(-5deg);
+
+  @media (max-width: 768px) {
+    font-size: 1.5rem;
+  }
+`;
+
+
 const Home = () => {
   const navigate = useNavigate();
   const typedRef = useRef(null);
@@ -284,7 +328,7 @@ const Home = () => {
 
   useEffect(() => {
     setIsVisible(true);
-    
+  
     if (typedRef.current) {
       typedInstance.current = new Typed(typedRef.current, {
         strings: [
@@ -295,23 +339,25 @@ const Home = () => {
           'Intelligent Design Systems',
           'Future-Ready Platform'
         ],
-        typeSpeed: 80,
-        backSpeed: 40,
+        typeSpeed: 50,
+        backSpeed: 25,
         backDelay: 1500,
         loop: true,
-        smartBackspace: true,
+        onStringTyped: () => {
+          if (typedRef.current) {
+            typedRef.current.style.fontFamily =  "'Amatic SC', cursive";
+          }
+        }
       });
     }
-
+  
     return () => {
-      if (typedInstance.current) {
-        typedInstance.current.destroy();
-      }
+      typedInstance.current?.destroy();
     };
   }, []);
+  
   const handleCertificatePreview = () => {
-    window.open('https://sanjaybasket.s3.ap-south-1.amazonaws.com/certificates/Sanjay_Patidar_VS%20Code_2025-04-06_3f4fb268-3f6a-46d3-9b4f-109a2574ecbb.pdf', '_blank');
-    // Note: Update URL with a stable link or implement a dynamic fetch
+    window.open('https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/certificates/Zedemy_by_HogwartsEdx_VS%20Code_2025-04-20_5c0f2f41-57cb-46ce-89ef-0a89298b002a.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIA5BQ4NJCXBUCDIMHH%2F20250423%2Fap-south-1%2Fs3%2Faws4_request&X-Amz-Date=20250423T095231Z&X-Amz-Expires=60&X-Amz-Signature=870f6be370cb38e4bc51daef097ad46803530cc7f90851f1f128aff0279fdef3&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject', '_blank');
   };
 
  const faqData = [
@@ -431,6 +477,7 @@ const Home = () => {
    <Helmet>
       <html lang="en" />
       <title>Zedemy | Learn & Build Tech Skills | Sanjay Patidar</title>
+
       <meta
         name="description"
         content="Zedemy, by Sanjay Patidar, offers tech courses, certificate verification, and in-browser coding for learners. Join now."
@@ -443,6 +490,7 @@ const Home = () => {
       <meta name="robots" content="index, follow" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <link rel="icon" type="image/svg+xml" href="/zedemy-logo.png" />
+      <link rel="canonical" href="https://zedemy.vercel.app/" />
       <meta property="og:title" content="Zedemy | Learn & Build Tech Skills | Sanjay Patidar" />
       <meta
         property="og:description"
@@ -478,13 +526,14 @@ const Home = () => {
             Explore Now
           </CallToAction>
           <CertificatePreview onClick={handleCertificatePreview}>
-          <h4>Sample Certificate</h4>
+          <p>Certificate Preview</p>
+          <p>Click to view your personalized certificate!</p>
           <p>Earn your HogWartxEdx certificate in courses like Wizarding VS Code Mastery!</p>
         </CertificatePreview>
         </TextContainer>
         <GifContainer>
           <img 
-            src="https://sanjaybasket.s3.ap-south-1.amazonaws.com/Student-home-header-1+(3).gif" 
+            src="https://sanjaybasket.s3.ap-south-1.amazonaws.com/Student-home-header-1.gif" 
             alt="Smart Learning Experience" 
           />
         </GifContainer>
@@ -495,7 +544,15 @@ const Home = () => {
         </TypedContainer>
        
       </ContentWrapper>
-   
+
+      <TeaContainer>
+      <H1>Made With</H1>
+      <H2>
+        <StyledSpan>Crea</StyledSpan>
+        <StyledCreaTeaImage src={CreaTeaImage} alt="CreaTea" />
+        <StyledSpan>vity</StyledSpan>
+      </H2>
+    </TeaContainer>
     </HomeContainer>
     </>
   );
