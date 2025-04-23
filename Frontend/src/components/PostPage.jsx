@@ -492,7 +492,7 @@ const PostPage = memo(() => {
   }
 
   // SEO-related data
-  const pageTitle = `${post.title} | Best Online Tech Tutorials in India | Zedemy`;
+  const pageTitle = `${post.title} | Zedemy, India`;
   const pageDescription = post.summary
     ? truncateText(post.summary, 160)
     : (post.content
