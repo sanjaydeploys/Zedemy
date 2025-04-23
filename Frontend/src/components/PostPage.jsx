@@ -682,6 +682,7 @@ const PostPage = memo(() => {
                   alt={`Learn ${post.title.toLowerCase()} online in India`}
                   style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
                   loading="lazy"
+                   fetchpriority="high"
                   onError={() => handleImageError(post.titleImage)}
                 />
                 {imageErrors[post.titleImage] && (
