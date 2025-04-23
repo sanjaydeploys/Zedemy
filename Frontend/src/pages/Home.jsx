@@ -250,6 +250,47 @@ const CertificatePreview = styled.div`
   }
 `;
 
+const SubtitleBlog = styled.p`
+font-size: 1.4rem;
+color: #ccc;
+margin-top: 2rem;
+margin-bottom:1rem;
+padding: 0.5rem 1rem;
+border: 2px solid #ccc;
+border-radius: 20px;
+
+@media (max-width: 768px) {
+  font-size: 1rem;
+
+}
+`;
+
+const SubtitleLink = styled.a`
+color: #ffcc80;
+text-decoration: none;
+position: relative;
+transition: color 0.3s;
+
+&:hover {
+  color: #ff6f00;
+
+  &:before {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(45deg, #ff6f00, #ffcc80);
+    bottom: 0;
+    left: 0;
+    transform: scaleX(0);
+    transform-origin: bottom center;
+    transition: transform 0.3s;
+  }
+}
+`;
+
+
+
 const TeaContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -523,11 +564,14 @@ const Home = () => {
 </StyledText>
           <Subtitle>Experience the future of education with intelligent features</Subtitle>
           <CallToAction onClick={() => navigate('/explore')}>
-            Explore Now
-          </CallToAction>
+          Read Latest Posts          </CallToAction>
+
+          <SubtitleBlog>
+  Discover coding topics by category and dive deeper with hands-on tips in my <SubtitleLink href="/category">Blogs</SubtitleLink>.
+</SubtitleBlog>
+
           <CertificatePreview onClick={handleCertificatePreview}>
           <p>Certificate Preview</p>
-          <p>Click to view your personalized certificate!</p>
           <p>Earn your HogWartxEdx certificate in courses like Wizarding VS Code Mastery!</p>
         </CertificatePreview>
         </TextContainer>
