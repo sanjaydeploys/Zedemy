@@ -1,19 +1,20 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import styled, { keyframes } from 'styled-components';
+import React, { useEffect, useRef, useState, memo, Suspense, lazy } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import styled, { keyframes, css } from 'styled-components';
+import { Helmet } from 'react-helmet';
 import Typed from 'typed.js';
-import { Helmet } from "react-helmet"; 
+import LazyLoad from 'react-lazyload';
+// Lazy-loaded components
+const ShareButton = lazy(() => import('../components/ShareButton'));
+const FAQ = lazy(() => import('../components/FAQ'));
+
+// Assets
 import CreaTeaImage from '../assets/tea.gif';
 
+// Animations
 const fadeIn = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
 `;
 
 const float = keyframes`
@@ -22,7 +23,23 @@ const float = keyframes`
   100% { transform: translateY(0px); }
 `;
 
-const HomeContainer = styled.div`
+const parchmentWave = keyframes`
+  0% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.02) rotate(1deg); }
+  100% { transform: scale(1) rotate(0deg); }
+`;
+
+// Shared styles
+const sharedSectionStyles = css`
+  margin-top: 20px;
+  padding: 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+`;
+
+// Styled Components
+const HomeContainer = styled.main`
   position: relative;
   display: flex;
   flex-direction: column;
@@ -31,29 +48,31 @@ const HomeContainer = styled.div`
   color: #fff;
   text-align: center;
   padding: 2rem;
+  min-height: 100vh;
   overflow: hidden;
-  
+
   &::before {
-    content: "";
+    content: '';
     position: absolute;
     top: -50%;
     left: -50%;
     width: 200%;
     height: 200%;
-    background: url('https://sanjaybasket.s3.ap-south-1.amazonaws.com/wallpaper.jpg') center/cover;
+    background:rgb(2, 14, 25);
     filter: blur(8px) brightness(0.7);
     z-index: -1;
     animation: ${fadeIn} 2s ease-out;
   }
 `;
 
-const ContentWrapper = styled.div`
+const ContentWrapper = styled.section`
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-areas: 
-    "text gif"
-    "typed typed";
+  grid-template-areas:
+    'text gif'
+    'typed typed'
+    'cert cert';
   gap: 1rem;
   max-width: 1400px;
   width: 100%;
@@ -61,10 +80,11 @@ const ContentWrapper = styled.div`
   animation: ${fadeIn} 1.5s ease-out;
 
   @media (max-width: 768px) {
-    grid-template-areas: 
-      "gif"
-      "text"
-      "typed";
+    grid-template-areas:
+      'gif'
+      'text'
+      'typed'
+      'cert';
   }
 `;
 
@@ -87,103 +107,105 @@ const TypedContainer = styled.div`
   justify-content: center;
   padding: 1rem;
   border-radius: 15px;
-  margin-top: 0rem;
 `;
 
 const TypedText = styled.span`
   font-size: 2.5rem;
   font-weight: 700;
   text-transform: uppercase;
-
   background: linear-gradient(45deg, #ff6f00, #ffcc80);
   -webkit-background-clip: text;
   color: transparent;
-  
+
   @media (max-width: 768px) {
     font-size: 1.5rem;
   }
 `;
 
-
-
 const Subtitle = styled.h2`
   font-size: 1.8rem;
   color: #ffcc80;
   text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.7);
-  line-height: 1;
-  
+  line-height: 1.4;
+  margin: 1rem 0;
+
   @media (max-width: 768px) {
     font-size: 1.3rem;
   }
 `;
 
-const GifContainer = styled.div`
+const GifContainer = styled.figure`
   grid-area: gif;
   max-width: 600px;
   width: 100%;
+  height: 400px;
   animation: ${float} 6s ease-in-out infinite;
-  
+
   img {
     width: 100%;
+    height: 100%;
+    object-fit: cover;
     border-radius: 20px;
     transition: transform 0.3s ease;
-    
+
     &:hover {
       transform: scale(1.05);
     }
   }
-`;
-const H3 = styled.h1`
-color: #2E35D2;
-  font-size: 3rem;
- margin-bottom: 0rem;
- font-weight: 900;
- font-family: 'Playfair Display', serif;
- margin-top: 0rem;
-text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
- transform: skew(-5deg); /* Apply a slight skew for a dynamic effect */
- 
- @media (max-width: 768px) {
-   margin-top: 0rem;
-   font-size: 1.5rem;
 
- }
+  @media (max-width: 768px) {
+    height: 300px;
+  }
 `;
+
+const H3 = styled.h1`
+  color: #2e35d2;
+  font-size: 3rem;
+  margin: 0 0 1rem;
+  font-weight: 900;
+  font-family: 'Playfair Display', serif;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+  transform: skew(-5deg);
+
+  @media (max-width: 768px) {
+    font-size: 1.8rem;
+  }
+`;
+
 const StyledText = styled.span`
   .eduxcel-text {
     font-size: 40px;
-    font-weight: bold; 
-    position: relative; 
-    color: #fff; 
+    font-weight: bold;
+    position: relative;
+    color: #fff;
 
     &:hover {
-      color: #fbbf24; 
-    }
-
-    /* Styling the "X" */
-    &:before {
-      content: '';
+      color: #fbbf24;
     }
 
     .x-letter {
       color: #fbbf24;
       margin-left: 10px;
-      font-size: 48px; 
-      font-family: 'Bangers', cursive; 
-      transform: skew(-20deg, -5deg) scaleX(1.2); 
+      font-size: 48px;
+      font-family: 'Bangers', cursive;
+      transform: skew(-20deg, -5deg) scaleX(1.2);
       display: inline-block;
       position: relative;
       top: -5px;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2); 
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
     }
-    
+  }
+
+  @media (max-width: 768px) {
+    .eduxcel-text {
+      font-size: 24px;
+    }
+    .x-letter {
+      font-size: 28px;
+    }
   }
 `;
-const parchmentWave = keyframes`
-  0% { transform: scale(1) rotate(0deg); }
-  50% { transform: scale(1.02) rotate(1deg); }
-  100% { transform: scale(1) rotate(0deg); }
-`;
+
 const CallToAction = styled.button`
   background: linear-gradient(45deg, #ff6f00, #ffcc80);
   color: #fff;
@@ -197,7 +219,7 @@ const CallToAction = styled.button`
   box-shadow: 0 5px 15px rgba(255, 108, 0, 0.4);
   position: relative;
   overflow: hidden;
-  
+
   &:before {
     content: '';
     position: absolute;
@@ -210,34 +232,35 @@ const CallToAction = styled.button`
     transform: translate(-50%, -50%);
     transition: width 0.6s ease, height 0.6s ease;
   }
-  
+
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 25px rgba(255, 108, 0, 0.6);
     background: linear-gradient(45deg, #ff8c00, #ffd700);
-    
+
     &:before {
       width: 300px;
       height: 300px;
     }
   }
 `;
+
 const CertificatePreview = styled.div`
   grid-area: cert;
   max-width: 400px;
   width: 100%;
   padding: 1rem;
-  background: url('https://www.transparenttextures.com/patterns/parchment.png'); /* Parchment texture */
+  background: url('https://www.transparenttextures.com/patterns/parchment.png');
   border-radius: 15px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
   animation: ${parchmentWave} 4s infinite ease-in-out;
   text-align: center;
-  color: #2F2F4F;
+  color: #2f2f4f;
 
-  h4 {
+  h3 {
     font-size: 1.2rem;
     margin-bottom: 0.5rem;
-    color: #D3A625;
+    color: #d3a625;
   }
 
   p {
@@ -251,51 +274,47 @@ const CertificatePreview = styled.div`
 `;
 
 const SubtitleBlog = styled.p`
-font-size: 1.4rem;
-color: #ccc;
-margin-top: 2rem;
-margin-bottom:1rem;
-padding: 0.5rem 1rem;
-border: 2px solid #ccc;
-border-radius: 20px;
+  font-size: 1.4rem;
+  color: #ccc;
+  margin: 2rem 0 1rem;
+  padding: 0.5rem 1rem;
+  border: 2px solid #ccc;
+  border-radius: 20px;
 
-@media (max-width: 768px) {
-  font-size: 1rem;
-
-}
-`;
-
-const SubtitleLink = styled.a`
-color: #ffcc80;
-text-decoration: none;
-position: relative;
-transition: color 0.3s;
-
-&:hover {
-  color: #ff6f00;
-
-  &:before {
-    content: '';
-    position: absolute;
-    width: 100%;
-    height: 2px;
-    background: linear-gradient(45deg, #ff6f00, #ffcc80);
-    bottom: 0;
-    left: 0;
-    transform: scaleX(0);
-    transform-origin: bottom center;
-    transition: transform 0.3s;
+  @media (max-width: 768px) {
+    font-size: 1rem;
   }
-}
 `;
 
+const SubtitleLink = styled(Link)`
+  color: #ffcc80;
+  text-decoration: none;
+  position: relative;
+  transition: color 0.3s;
 
+  &:hover {
+    color: #ff6f00;
+
+    &:before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(45deg, #ff6f00, #ffcc80);
+      bottom: 0;
+      left: 0;
+      transform: scaleX(1);
+      transform-origin: bottom center;
+      transition: transform 0.3s;
+    }
+  }
+`;
 
 const TeaContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  flex-wrap: wrap; /* stack on small screens */
+  flex-wrap: wrap;
   margin-top: 1rem;
   gap: 0.5rem;
 
@@ -303,7 +322,8 @@ const TeaContainer = styled.div`
     gap: 0.25rem;
   }
 `;
-const H1 = styled.h1`
+
+const H1 = styled.h2`
   font-size: 1.5rem;
   font-weight: 900;
   color: #2ecc71;
@@ -344,24 +364,45 @@ const StyledCreaTeaImage = styled.img`
   }
 `;
 
-const H2 = styled.h1`
+const BreadcrumbNav = styled.nav`
+  ${sharedSectionStyles}
   display: flex;
-  align-items: center;
-  color: #2ecc71;
-  font-size: 3rem;
-  margin: 0;
-  font-weight: 900;
-  font-family: 'Playfair Display', serif;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-  transform: skew(-5deg);
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 20px;
 
-  @media (max-width: 768px) {
-    font-size: 1.5rem;
+  a {
+    color: #ffcc80;
+    text-decoration: none;
+    &:hover {
+      text-decoration: underline;
+    }
   }
 `;
 
+const Footer = styled.footer`
+  ${sharedSectionStyles}
+  width: 100%;
+  text-align: center;
+  padding: 1rem;
+  margin-top: 2rem;
+`;
 
-const Home = () => {
+const ViewAllFAQs = styled(Link)`
+  display: inline-block;
+  margin-top: 1rem;
+  color: #ffcc80;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s;
+
+  &:hover {
+    color: #ff6f00;
+  }
+`;
+
+const Home = memo(() => {
   const navigate = useNavigate();
   const typedRef = useRef(null);
   const typedInstance = useRef(null);
@@ -369,7 +410,7 @@ const Home = () => {
 
   useEffect(() => {
     setIsVisible(true);
-  
+
     if (typedRef.current) {
       typedInstance.current = new Typed(typedRef.current, {
         strings: [
@@ -378,7 +419,7 @@ const Home = () => {
           'Smart Certificates',
           'Adaptive UI/UX',
           'Intelligent Design Systems',
-          'Future-Ready Platform'
+          'Future-Ready Platform',
         ],
         typeSpeed: 50,
         backSpeed: 25,
@@ -386,28 +427,32 @@ const Home = () => {
         loop: true,
         onStringTyped: () => {
           if (typedRef.current) {
-            typedRef.current.style.fontFamily =  "'Amatic SC', cursive";
+            typedRef.current.style.fontFamily = "'Amatic SC', cursive";
           }
-        }
+        },
       });
     }
-  
+
     return () => {
       typedInstance.current?.destroy();
     };
   }, []);
-  
+
   const handleCertificatePreview = () => {
-    window.open('https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/certificates/Zedemy_by_HogwartsEdx_VS%20Code_2025-04-20_5c0f2f41-57cb-46ce-89ef-0a89298b002a.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIA5BQ4NJCXBUCDIMHH%2F20250423%2Fap-south-1%2Fs3%2Faws4_request&X-Amz-Date=20250423T095231Z&X-Amz-Expires=60&X-Amz-Signature=870f6be370cb38e4bc51daef097ad46803530cc7f90851f1f128aff0279fdef3&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject', '_blank');
+    window.open(
+      'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/certificates/Zedemy_by_HogwartsEdx_VS%20Code_2025-04-20_5c0f2f41-57cb-46ce-89ef-0a89298b002a.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIA5BQ4NJCXBUCDIMHH%2F20250423%2Fap-south-1%2Fs3%2Faws4_request&X-Amz-Date=20250423T095231Z&X-Amz-Expires=60&X-Amz-Signature=870f6be370cb38e4bc51daef097ad46803530cc7f90851f1f128aff0279fdef3&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject',
+      '_blank'
+    );
   };
 
- const faqData = [
+  // SEO Structured Data
+  const faqData = [
     {
       '@type': 'Question',
       name: 'What is Zedemy?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Zedemy is a serverless learning platform for tech education, offering course uploads, certificate verification, and in-browser coding.',
+        text: 'Zedemy is a serverless learning platform for tech education, offering course uploads, certificate verification, and in-browser coding for learners worldwide.',
       },
     },
     {
@@ -415,15 +460,15 @@ const Home = () => {
       name: 'Who founded Zedemy?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Zedemy was founded by Sanjay Patidar, a Software Development Engineer specializing in full-stack and AI-driven solutions.',
+        text: 'Zedemy was founded by Sanjay Patidar, a Software Development Engineer specializing in full-stack development and AI-driven solutions.',
       },
     },
     {
       '@type': 'Question',
-      name: 'What can I do on Zedemy?',
+      name: 'What can I learn on Zedemy?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'On Zedemy, you can upload courses, verify certificates, code in-browser, customize themes, and engage with a tech learning community.',
+        text: 'On Zedemy, you can learn web development, AI, cloud computing, JavaScript, Python, and more through expert-led courses and hands-on coding.',
       },
     },
     {
@@ -431,7 +476,7 @@ const Home = () => {
       name: 'How does Zedemy verify certificates?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Zedemy uses a secure system to verify course completion certificates, ensuring authenticity for learners and employers.',
+        text: 'Zedemy uses a secure, blockchain-inspired system to verify course completion certificates, ensuring authenticity for learners and employers.',
       },
     },
     {
@@ -439,23 +484,31 @@ const Home = () => {
       name: 'What is Zedemy’s in-browser code editor?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Zedemy’s in-browser code editor lets users write, test, and share code in languages like JavaScript and Python, no setup required.',
+        text: 'Zedemy’s in-browser code editor allows users to write, test, and share code in languages like JavaScript, Python, and HTML without any setup.',
       },
     },
     {
       '@type': 'Question',
-      name: 'Can I upload courses on Zedemy?',
+      name: 'Can I create and upload courses on Zedemy?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Yes, creators can upload courses on Zedemy, sharing knowledge in tech fields like web development, AI, and cloud computing.',
+        text: 'Yes, educators and creators can upload courses on Zedemy, sharing expertise in tech fields like programming, AI, and cloud computing.',
       },
     },
     {
       '@type': 'Question',
-      name: 'How does Zedemy support personalized learning?',
+      name: 'Is Zedemy suitable for beginners in tech?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Zedemy offers customizable themes, settings, and dynamic content to tailor the learning experience to individual preferences.',
+        text: 'Absolutely, Zedemy offers beginner-friendly courses with step-by-step guidance, making it ideal for those new to tech and coding.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'How does Zedemy personalize learning?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Zedemy provides customizable themes, adaptive content, and personalized settings to tailor the learning experience to individual needs.',
       },
     },
     {
@@ -463,24 +516,56 @@ const Home = () => {
       name: 'What technologies power Zedemy?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Zedemy is built with React.js, Node.js, AWS Lambda, and MongoDB, ensuring scalability and a seamless user experience.',
+        text: 'Zedemy is built with React.js, Node.js, AWS Lambda, and MongoDB, delivering a scalable and seamless user experience.',
       },
     },
     {
       '@type': 'Question',
-      name: 'How can I join the Zedemy community?',
+      name: 'How can I join Zedemy’s tech community?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Join Zedemy at zedemy.vercel.app to learn, share courses, and connect with tech enthusiasts and educators.',
+        text: 'Visit zedemy.vercel.app to sign up, learn, create courses, and connect with a global community of tech enthusiasts and educators.',
       },
     },
     {
       '@type': 'Question',
-      name: 'Why choose Zedemy for tech education?',
+      name: 'Why choose Zedemy for online tech education?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Zedemy combines course creation, coding, and certificate verification in a serverless platform, ideal for tech learners and creators.',
+        text: 'Zedemy offers a unique combination of course creation, in-browser coding, and certificate verification, making it a top choice for tech learners.',
       },
+    },
+    {
+      '@type': 'Question',
+      name: 'Does Zedemy offer free courses?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Yes, Zedemy provides a range of free courses alongside premium options, catering to learners at all levels.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'How can I verify a Zedemy certificate?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Use Zedemy’s certificate verification page at /certificate-verification to authenticate certificates securely and instantly.',
+      },
+    },
+  ];
+
+  // FAQs to display on homepage (subset of faqData)
+  const displayedFAQs = [
+    {
+      name: 'What is Zedemy?',
+      text: 'Zedemy is a serverless learning platform for tech education, offering course uploads, certificate verification, and in-browser coding for learners worldwide.',
+    },
+    {
+      name: 'Does Zedemy offer free courses?',
+      text: 'Yes, Zedemy provides a range of free courses alongside premium options, catering to learners at all levels.',
+    },
+    {
+      name: 'How can I verify a Zedemy certificate?',
+      text: 'Use Zedemy’s <a href="/certificate-verification" aria-label="Verify certificates">certificate verification page</a> to authenticate certificates securely and instantly.',
     },
   ];
 
@@ -488,8 +573,9 @@ const Home = () => {
     {
       '@context': 'https://schema.org',
       '@type': 'WebPage',
-      name: 'Zedemy | Learn & Build Tech Skills | Sanjay Patidar',
-      description: 'Zedemy, founded by Sanjay Patidar, is a serverless platform for tech education with courses, certificate verification, and coding.',
+      name: 'Zedemy | Online Tech Education Platform by Sanjay Patidar',
+      description:
+        'Zedemy, founded by Sanjay Patidar, is a serverless platform offering tech courses, certificate verification, and in-browser coding. Learn coding and tech skills today.',
       url: 'https://zedemy.vercel.app/',
       mainEntityOfPage: {
         '@type': 'WebPage',
@@ -498,108 +584,250 @@ const Home = () => {
       author: {
         '@type': 'Person',
         name: 'Sanjay Patidar',
+        url: 'https://sanjay-patidar.vercel.app/',
       },
       publisher: {
+        '@type': 'Organization',
+        name: 'Zedemy',
+        logo: {
+          '@type': 'ImageObject',
+          url: 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png',
+        },
+      },
+      image: {
+        '@type': 'ImageObject',
+        url: 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png',
+      },
+      inLanguage: 'en',
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: 'Zedemy',
+      url: 'https://zedemy.vercel.app/',
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png',
+      },
+      founder: {
         '@type': 'Person',
         name: 'Sanjay Patidar',
+        url: 'https://sanjay-patidar.vercel.app/',
       },
+      sameAs: [
+        'https://www.linkedin.com/in/sanjay-patidar/',
+        'https://twitter.com/sanjaypatidar',
+        'https://www.instagram.com/sanjaypatidar_/',
+        'https://www.facebook.com/zedemy',
+      ],
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        {
+          '@type': 'ListItem',
+          position: 1,
+          name: 'Home',
+          item: 'https://zedemy.vercel.app/',
+        },
+        {
+          '@type': 'ListItem',
+          position: 2,
+          name: 'Explore',
+          item: 'https://zedemy.vercel.app/explore',
+        },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: 'About',
+          item: 'https://zedemy.vercel.app/faq',
+        },
+      ],
     },
     {
       '@context': 'https://schema.org',
       '@type': 'FAQPage',
       mainEntity: faqData,
     },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: 'Zedemy',
+      url: 'https://zedemy.vercel.app/',
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: 'https://zedemy.vercel.app/explore?search={search_term_string}',
+        'query-input': 'required name=search_term_string',
+      },
+    },
   ];
 
-  
   return (
     <>
-    
-   <Helmet>
-      <html lang="en" />
-      <title>Zedemy | Learn & Build Tech Skills | Sanjay Patidar</title>
+      <Helmet>
+        <html lang="en" />
+        <title>Zedemy | Learn & Build Tech Skills | Sanjay Patidar</title>
+        <meta
+          name="description"
+          content="Zedemy, founded by Sanjay Patidar, offers online tech courses, certificate verification, and in-browser coding. Learn web development, AI, and more."
+        />
+        <meta
+          name="keywords"
+          content="Zedemy, Sanjay Patidar, online tech courses, learn coding, certificate verification, in-browser code editor, serverless LMS, React.js, AWS Lambda, web development, AI, Python, tech education"
+        />
+        <meta name="author" content="Sanjay Patidar" />
+        <meta name="robots" content="index, follow, max-image-preview:large" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" type="image/svg+xml" href="/zedemy-logo.png" />
+        <link rel="canonical" href="https://zedemy.vercel.app/" />
+        <link rel="preload" as="image" href="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
+        <link
+          rel="preload"
+          as="image"
+          href="https://sanjaybasket.s3.ap-south-1.amazonaws.com/Student-home-header-1.gif"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Amatic+SC&family=Bangers&display=swap"
+          rel="stylesheet"
+          media="print"
+          onload="this.media='all'"
+        />
+        <meta property="og:title" content="Zedemy | Learn & Build Tech Skills | Sanjay Patidar" />
+        <meta
+          property="og:description"
+          content="Zedemy, founded by Sanjay Patidar, offers online tech courses, certificate verification, and in-browser coding. Learn web development, AI, and more."
+        />
+        <meta
+          property="og:image"
+          content="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png"
+        />
+        <meta property="og:image:alt" content="Zedemy Tech Education Platform Logo" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:url" content="https://zedemy.vercel.app/" />
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="Zedemy" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Zedemy | Learn & Build Tech Skills | Sanjay Patidar" />
+        <meta
+          name="twitter:description"
+          content="Zedemy, founded by Sanjay Patidar, offers online tech courses, certificate verification, and in-browser coding. Learn web development, AI, and more."
+        />
+        <meta
+          name="twitter:image"
+          content="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png"
+        />
+        <meta name="twitter:image:alt" content="Zedemy Tech Education Platform Logo" />
+        <meta name="twitter:site" content="@sanjaypatidar" />
+        <meta name="twitter:creator" content="@sanjaypatidar" />
+        <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
+      </Helmet>
 
-      <meta
-        name="description"
-        content="Zedemy, by Sanjay Patidar, offers tech courses, certificate verification, and in-browser coding for learners. Join now."
-      />
-      <meta
-        name="keywords"
-        content="Zedemy, Sanjay Patidar, online learning, tech education, course platform, certificate verification, code editor, serverless LMS, React.js, AWS Lambda"
-      />
-      <meta name="author" content="Sanjay Patidar" />
-      <meta name="robots" content="index, follow" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <link rel="icon" type="image/svg+xml" href="/zedemy-logo.png" />
-      <link rel="canonical" href="https://zedemy.vercel.app/" />
-      <meta property="og:title" content="Zedemy | Learn & Build Tech Skills | Sanjay Patidar" />
-      <meta
-        property="og:description"
-        content="Zedemy, by Sanjay Patidar, offers tech courses, certificate verification, and in-browser coding for learners. Join now."
-      />
-      <meta property="og:image" content="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
-      <meta property="og:image:alt" content="Zedemy Logo" />
-      <meta property="og:url" content="https://zedemy.vercel.app/" />
-      <meta property="og:type" content="website" />
-      <meta property="og:site_name" content="Zedemy" />
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:title" content="Zedemy | Learn & Build Tech Skills | Sanjay Patidar" />
-      <meta
-        name="twitter:description"
-        content="Zedemy, by Sanjay Patidar, offers tech courses, certificate verification, and in-browser coding for learners. Join now."
-      />
-      <meta name="twitter:image" content="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
-      <meta name="twitter:site" content="@sanjaypatidar" />
-      <meta name="twitter:creator" content="@sanjaypatidar" />
-      <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
-    </Helmet>
-            
-            
-            <HomeContainer>
-    
-      <ContentWrapper style={{ opacity: isVisible ? 1 : 0 }}>
-        <TextContainer>
-        <StyledText>
- <H3>Welcome to <span className="eduxcel-text">Hog<span className="x-letter">W</span>arts<span className="x-letter">E</span>dx</span> <br/>E-Learning Wonderland!</H3>
-</StyledText>
-          <Subtitle>Experience the future of education with intelligent features</Subtitle>
-          <CallToAction onClick={() => navigate('/explore')}>
-          Read Latest Posts          </CallToAction>
+      <HomeContainer role="main" aria-label="Zedemy Homepage">
+        <header>
+          <BreadcrumbNav aria-label="Breadcrumb navigation">
+            <Link to="/">Home</Link> 
+            <Link to="/explore">Explore Courses</Link> 
+            <Link to="/faq">About Zedemy</Link>
+          </BreadcrumbNav>
+        </header>
 
-          <SubtitleBlog>
-  Discover coding topics by category and dive deeper with hands-on tips in my <SubtitleLink href="/category">Blogs</SubtitleLink>.
-</SubtitleBlog>
+        <ContentWrapper style={{ opacity: isVisible ? 1 : 0 }}>
+          <TextContainer>
+            <StyledText>
+              <H3>
+                Welcome to <span className="eduxcel-text">Hog<span className="x-letter">W</span>arts<span className="x-letter">E</span>dx</span>{' '}
+              
+              </H3>
+            </StyledText>
+            <Subtitle>Experience the future of tech education with intelligent features</Subtitle>
+            <CallToAction onClick={() => navigate('/explore')} aria-label="Explore latest tech courses">
+              Explore Courses
+            </CallToAction>
+            <SubtitleBlog>
+              Discover coding topics by category and dive deeper with hands-on tips in our{' '}
+              <SubtitleLink to="/explore" aria-label="Visit blog posts">
+                Blogs
+              </SubtitleLink>
+              .
+            </SubtitleBlog>
+            <CertificatePreview onClick={handleCertificatePreview} role="button" tabIndex={0} aria-label="View certificate preview">
+              <h3>Certificate Preview</h3>
+              <p>Earn your HogWartsEdx certificate in courses like Wizarding VS Code Mastery!</p>
+            </CertificatePreview>
+            <Suspense fallback={<div>Loading share buttons...</div>}>
+              <ShareButton url="https://zedemy.vercel.app/" title="Zedemy | Online Tech Education Platform" />
+            </Suspense>
+          </TextContainer>
+          <GifContainer>
+            <LazyLoad height={400} offset={100}>
+              <img
+                src="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/home_header_Zedemy.webp"
+                alt="Interactive tech learning experience on Zedemy"
+                width="600"
+                height="400"
+                loading="lazy"
+              />
+            </LazyLoad>
+          </GifContainer>
+          <TypedContainer>
+            <TypedText>
+              <span ref={typedRef} />
+            </TypedText>
+          </TypedContainer>
+        </ContentWrapper>
 
-          <CertificatePreview onClick={handleCertificatePreview}>
-          <p>Certificate Preview</p>
-          <p>Earn your HogWartxEdx certificate in courses like Wizarding VS Code Mastery!</p>
-        </CertificatePreview>
-        </TextContainer>
-        <GifContainer>
-          <img 
-            src="https://sanjaybasket.s3.ap-south-1.amazonaws.com/Student-home-header-1.gif" 
-            alt="Smart Learning Experience" 
-          />
-        </GifContainer>
-        <TypedContainer>
-          <TypedText>
-            <span ref={typedRef} />
-          </TypedText>
-        </TypedContainer>
-       
-      </ContentWrapper>
+        <Suspense fallback={<div>Loading FAQs...</div>}>
+          <FAQ faqs={displayedFAQs} />
+          <ViewAllFAQs to="/faq" aria-label="View all frequently asked questions">
+            View All FAQs
+          </ViewAllFAQs>
+        </Suspense>
 
-      <TeaContainer>
-      <H1>Made With</H1>
-      <H2>
-        <StyledSpan>Crea</StyledSpan>
-        <StyledCreaTeaImage src={CreaTeaImage} alt="CreaTea" />
-        <StyledSpan>vity</StyledSpan>
-      </H2>
-    </TeaContainer>
-    </HomeContainer>
+        <TeaContainer>
+          <H1>Made With</H1>
+          <H1>
+            <StyledSpan>Crea</StyledSpan>
+            <StyledCreaTeaImage src={CreaTeaImage} alt="Creativity icon" width="40" height="40" loading="lazy" />
+            <StyledSpan>vity</StyledSpan>
+          </H1>
+        </TeaContainer>
+
+        <Footer>
+          <p>
+            Founded by{' '}
+            <a
+              href="https://sanjay-patidar.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Visit Sanjay Patidar's personal website"
+            >
+              Sanjay Patidar
+            </a>
+            . Join the{' '}
+            <Link to="/faq" aria-label="Learn more about Zedemy">
+              Zedemy community
+            </Link>{' '}
+            for tech education.
+          </p>
+          <nav aria-label="Footer navigation">
+            <Link to="/certificate-verification" aria-label="Verify certificates">
+              Verify Certificates
+            </Link>{' '}
+            |{' '}
+            <Link to="/editor" aria-label="Try in-browser code editor">
+              Code Editor
+            </Link>{' '}
+            |{' '}
+            <Link to="/category/web-development" aria-label="Explore web development courses">
+              Web Development
+            </Link>
+          </nav>
+        </Footer>
+      </HomeContainer>
     </>
   );
-};
+});
 
 export default Home;
