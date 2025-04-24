@@ -1,7 +1,19 @@
 import React from 'react';
 import styled from 'styled-components';
 import { parseLinksForHtml } from './utils';
-// Styled Components
+
+// Add slugify function (or import from utils)
+const slugify = (text) => {
+  if (!text) return '';
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+};
+
+// Styled Components (unchanged)
 const SidebarContainer = styled.div`
   width: 250px;
   background-color: rgba(15, 1, 1, 0.82);
@@ -86,19 +98,22 @@ const Sidebar = ({ post, isSidebarOpen, setSidebarOpen, activeSection, scrollToS
       <SidebarContainer isOpen={isSidebarOpen}>
         <SidebarHeader>Contents</SidebarHeader>
         <SubtitlesList ref={subtitlesListRef}>
-          {post.subtitles.map((subtitle, index) => (
-            <SubtitleItem
-              key={index}
-              isActive={activeSection === `subtitle-${index}`}
-              data-section={`subtitle-${index}`}
-            >
-              <Button
-                dangerouslySetInnerHTML={{ __html: parseLinksForHtml(subtitle.title, post.category) }}
-                onClick={() => scrollToSection(`subtitle-${index}`)}
-                aria-label={`Navigate to ${subtitle.title}`}
-              />
-            </SubtitleItem>
-          ))}
+          {post.subtitles.map((subtitle, index) => {
+            const slug = slugify(subtitle.title);
+            return (
+              <SubtitleItem
+                key={index}
+                isActive={activeSection === `subtitle-${index}`}
+                data-section={`subtitle-${index}`}
+              >
+                <Button
+                  dangerouslySetInnerHTML={{ __html: parseLinksForHtml(subtitle.title, post.category) }}
+                  onClick={() => scrollToSection(`subtitle-${index}`)}
+                  aria-label={`Navigate to ${subtitle.title}`}
+                />
+              </SubtitleItem>
+            );
+          })}
           {post.summary && (
             <SubtitleItem
               isActive={activeSection === 'summary'}
