@@ -42,11 +42,12 @@ const slugify = (text) => {
   if (!text) return '';
   return text
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+    .replace(/[^a-z0-9\s-]/g, '')
     .trim()
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-'); // Remove duplicate hyphens
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
 };
+
 // Shared styles
 const sharedSectionStyles = css`
   margin-top: 20px;
@@ -62,7 +63,7 @@ const Container = styled.div`
   min-height: 100vh;
 `;
 
-const Content = styled.div`
+const MainContent = styled.main`
   flex: 1;
   padding: 20px;
   overflow-y: auto;
@@ -84,22 +85,49 @@ const LoadingOverlay = styled.div`
 `;
 
 const PostHeader = styled.h1`
-  font-size: 2.5em;
-  color: #2c3e50;
+  font-size: 2.8rem;
+  color: #111827; 
   text-align: left;
-  margin-bottom: 20px;
+  margin: 1rem 0 1.5rem;
+  font-weight: 800; 
+  line-height: 1.3;
+  letter-spacing: -0.5px;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
   @media (max-width: 768px) {
-    font-size: 1.5em;
+    font-size: 2rem;
+    margin: 0.75rem 0 1.25rem;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 1.6rem;
   }
 `;
 
+
+
 const SubtitleHeader = styled.h2`
-  font-size: 2em;
-  color: #34495e;
-  margin: 20px 0 10px;
+  font-size: 1.75rem;
+  color:rgb(1, 16, 32);
+  margin: 1.5rem 0 1rem;
+  font-weight: 600;
+  border-left: 4px solid#34db58;
+  padding-left: 1rem;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+  @media (max-width: 768px) {
+    font-size: 1.5rem;
+    margin: 0.75rem 0 1.25rem;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 1.2rem;
+  }
+  
 `;
 
-const SummaryContainer = styled.div`
+
+const SummaryContainer = styled.section`
   margin-top: 20px;
 `;
 
@@ -150,7 +178,7 @@ const ImageError = styled.div`
   margin: 10px 0;
 `;
 
-const ComparisonTableContainer = styled.div`
+const ComparisonTableContainer = styled.section`
   ${sharedSectionStyles}
   overflow-x: auto;
 `;
@@ -185,7 +213,7 @@ const ResponsiveCell = styled.td`
   white-space: normal;
 `;
 
-const ReferencesSection = styled.div`
+const ReferencesSection = styled.section`
   ${sharedSectionStyles}
 `;
 
@@ -393,33 +421,31 @@ const PostPage = memo(() => {
     fetchData();
   }, [dispatch, slug, toast]);
 
-// Map subtitles to slugged IDs
-const subtitleSlugs = useMemo(() => {
-  if (!post || !post.subtitles) return {};
-  const slugs = {};
-  post.subtitles.forEach((subtitle, index) => {
-    slugs[`subtitle-${index}`] = slugify(subtitle.title);
-  });
-  if (post.summary) slugs['summary'] = 'summary';
-  return slugs;
-}, [post]);
+  // Map subtitles to slugged IDs
+  const subtitleSlugs = useMemo(() => {
+    if (!post || !post.subtitles) return {};
+    const slugs = {};
+    post.subtitles.forEach((subtitle, index) => {
+      slugs[`subtitle-${index}`] = slugify(subtitle.title);
+    });
+    if (post.summary) slugs['summary'] = 'summary';
+    return slugs;
+  }, [post]);
 
-// Handle fragment on page load
-useEffect(() => {
-  const hash = window.location.hash.replace('#', '');
-  if (hash) {
-    // Find the section ID corresponding to the slugged hash
-    const sectionId = Object.keys(subtitleSlugs).find(
-      (id) => subtitleSlugs[id] === hash
-    );
-    if (sectionId) {
-      setTimeout(() => {
-        scrollToSection(sectionId, false); // Scroll without updating URL
-      }, 0);
+  // Handle fragment on page load
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '');
+    if (hash) {
+      const sectionId = Object.keys(subtitleSlugs).find(
+        (id) => subtitleSlugs[id] === hash
+      );
+      if (sectionId) {
+        setTimeout(() => {
+          scrollToSection(sectionId, false);
+        }, 0);
+      }
     }
-  }
-}, [subtitleSlugs]);
-
+  }, [subtitleSlugs]);
 
   // Memoized computations
   const filteredPosts = useMemo(
@@ -502,7 +528,6 @@ useEffect(() => {
       section.scrollIntoView({ behavior: 'smooth' });
       setActiveSection(id);
       if (isSidebarOpen) setSidebarOpen(false);
-      // Append slugged subtitle to URL
       if (updateUrl && subtitleSlugs[id]) {
         const fragment = subtitleSlugs[id];
         window.history.pushState(null, '', `#${fragment}`);
@@ -542,7 +567,7 @@ useEffect(() => {
 
   if (!post) {
     return (
-      <LoadingOverlay>
+      <LoadingOverlay aria-live="polite">
         <RingLoader color="#2c3e50" size={150} />
       </LoadingOverlay>
     );
@@ -562,7 +587,8 @@ useEffect(() => {
   const ogImage = post.titleImage || 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
 
   // Enhanced structured data
-  const faqData = post.subtitles
+  
+    const faqData = post.subtitles
   .filter(subtitle => subtitle.isFAQ)
   .map((subtitle, index) => ({
     '@type': 'Question',
@@ -665,11 +691,8 @@ useEffect(() => {
       }
     }
   ];
+
   console.log(JSON.stringify(structuredData, null, 2));
-
-
-
-
   return (
     <ErrorBoundary>
       <HelmetProvider>
@@ -701,268 +724,297 @@ useEffect(() => {
         </Helmet>
 
         <Container>
-          <Content>
+          <MainContent role="main" aria-label="Main content">
             <Suspense fallback={<div>Loading...</div>}>
               <Toast />
             </Suspense>
-            <PostHeader>{parsedTitle}</PostHeader>
-            <div style={{ marginBottom: '10px', color: '#666' }}>
-              Estimated read time: {readTime} min
-            </div>
-            <NavigationLinks>
-              <Link to="/explore" aria-label="Back to all blog posts">Back to Blog</Link>
-              {post.category && (
-                <Link to={`/category/${post.category.toLowerCase()}`} aria-label={`Explore more in ${post.category}`}>
-                  Explore {post.category}
-                </Link>
-              )}
-              <Link to="/" aria-label="Go to homepage">Home</Link>
-            </NavigationLinks>
+            <article>
+              <header>
+                <PostHeader>{parsedTitle}</PostHeader>
+                <div style={{ marginBottom: '10px', color: '#666' }}>
+                  Estimated read time: {readTime} min
+                </div>
+                <NavigationLinks aria-label="Page navigation">
+                  <Link to="/explore" aria-label="Back to all blog posts">Back to Blog</Link>
+                  {post.category && (
+                    <Link to={`/category/${post.category.toLowerCase()}`} aria-label={`Explore more in ${post.category}`}>
+                      Explore {post.category}
+                    </Link>
+                  )}
+                  <Link to="/" aria-label="Go to homepage">Home</Link>
+                </NavigationLinks>
+              </header>
 
-            {post.titleImage && (
-              <LazyLoad height={200} offset={100}>
-                <img
-                  src={post.titleImage}
-                  srcSet={`${post.titleImage}?w=300 300w, ${post.titleImage}?w=600 600w`}
-                  sizes="(max-width: 600px) 300px, 600px"
-                  alt={`Learn ${post.title.toLowerCase()} online in India`}
-                  style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
-                  loading="lazy"
-                  onError={() => handleImageError(post.titleImage)}
-                />
-                {imageErrors[post.titleImage] && (
-                  <ImageError>Failed to load image: {post.titleImage}</ImageError>
-                )}
-              </LazyLoad>
-            )}
-            {post.titleVideo && (
-              <video
-                controls
-                preload="metadata"
-                style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
-                loading="lazy"
-                aria-label={`Video tutorial for ${post.title}`}
-              >
-                <source src={post.titleVideo} type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
-            )}
-            <p>Date Published: {post.date}</p>
-            <p>Author: {post.author}</p>
-            <p>{parsedContent}</p>
-
-            {post.subtitles.map((subtitle, index) => (
-              <div key={index} id={`subtitle-${index}`}>
-                <SubtitleHeader>{parseLinks(subtitle.title, post.category)}</SubtitleHeader>
-                {subtitle.image && (
-                  <AccessibleZoom>
+              {post.titleImage && (
+                <figure>
+                  <LazyLoad height={200} offset={100}>
                     <img
-                      src={subtitle.image}
-                      srcSet={`${subtitle.image}?w=300 300w, ${subtitle.image}?w=600 600w`}
+                      src={post.titleImage}
+                      srcSet={`${post.titleImage}?w=300 300w, ${post.titleImage}?w=600 600w`}
                       sizes="(max-width: 600px) 300px, 600px"
-                      alt={subtitle.title}
-                      aria-label={subtitle.title}
-                      loading="lazy"
+                      alt={`Illustration for ${post.title} tutorial`}
                       style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
-                      onError={() => handleImageError(subtitle.image)}
+                      loading="lazy"
+                      onError={() => handleImageError(post.titleImage)}
                     />
-                    {imageErrors[subtitle.image] && (
-                      <ImageError>Failed to load image: {subtitle.image}</ImageError>
+                    {imageErrors[post.titleImage] && (
+                      <ImageError>Failed to load image: {post.titleImage}</ImageError>
                     )}
-                  </AccessibleZoom>
-                )}
-                {subtitle.video && (
+                  </LazyLoad>
+                  <figcaption>Image related to {post.title}</figcaption>
+                </figure>
+              )}
+              {post.titleVideo && (
+                <figure>
                   <video
                     controls
                     preload="metadata"
                     style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
                     loading="lazy"
-                    aria-label={`Video for ${subtitle.title}`}
+                    aria-label={`Video tutorial for ${post.title}`}
                   >
-                    <source src={subtitle.video} type="video/mp4" />
+                    <source src={post.titleVideo} type="video/mp4" />
                     Your browser does not support the video tag.
                   </video>
-                )}
-                <ul>
-                  {subtitle.bulletPoints.map((point, pointIndex) => (
-                    <li key={pointIndex} style={{ marginBottom: '10px' }}>
-                      <span>{parseLinks(point.text, post.category)}</span>
-                      {point.image && (
-                        <AccessibleZoom>
-                          <img
-                            src={point.image}
-                            srcSet={`${point.image}?w=300 300w, ${point.image}?w=600 600w`}
-                            sizes="(max-width: 600px) 300px, 600px"
-                            alt={`${point.text} example for tech learning in India`}
-                            loading="lazy"
-                            style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
-                            onError={() => handleImageError(point.image)}
-                          />
-                          {imageErrors[point.image] && (
-                            <ImageError>Failed to load image: {point.image}</ImageError>
-                          )}
-                        </AccessibleZoom>
-                      )}
-                      {point.video && (
-                        <video
-                          controls
-                          preload="metadata"
-                          style={{ width: '100%', maxWidth: '400px', margin: '10px 0' }}
-                          loading="lazy"
-                          aria-label={`Video example for ${point.text}`}
-                        >
-                          <source src={point.video} type="video/mp4" />
-                          Your browser does not support the video tag.
-                        </video>
-                      )}
-                      {point.codeSnippet && (
-                        <CodeSnippetContainer>
-                          <CopyToClipboard text={point.codeSnippet} onCopy={handleCopyCode}>
-                            <CopyButton>Copy</CopyButton>
-                          </CopyToClipboard>
-                          <Suspense fallback={<div>Loading code...</div>}>
-                            <SyntaxHighlighter language="javascript" style={vs}>
-                              {sanitizeCodeSnippet(point.codeSnippet)}
-                            </SyntaxHighlighter>
-                          </Suspense>
-                        </CodeSnippetContainer>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
+                  <figcaption>Video tutorial for {post.title}</figcaption>
+                </figure>
+              )}
+              <p><time dateTime={post.date}>Date Published: {post.date}</time></p>
+              <p>Author: {post.author}</p>
+              <section>
+                <p>{parsedContent}</p>
+              </section>
 
-            {post.superTitles &&
-              post.superTitles.length > 0 &&
-              post.superTitles.some(superTitle =>
-                superTitle.superTitle.trim() !== '' &&
-                superTitle.attributes &&
-                superTitle.attributes.length > 0 &&
-                superTitle.attributes.some(attr =>
-                  attr.attribute.trim() !== '' &&
-                  attr.items &&
-                  attr.items.length > 0 &&
-                  attr.items.some(item =>
-                    item.title.trim() !== '' &&
-                    item.bulletPoints &&
-                    item.bulletPoints.length > 0 &&
-                    item.bulletPoints.some(point => point.trim() !== '')
+              {post.subtitles.map((subtitle, index) => (
+                <section key={index} id={`subtitle-${index}`} aria-labelledby={`subtitle-${index}-heading`}>
+                  <SubtitleHeader id={`subtitle-${index}-heading`}>{parseLinks(subtitle.title, post.category)}</SubtitleHeader>
+                  {subtitle.image && (
+                    <figure>
+                      <AccessibleZoom>
+                        <img
+                          src={subtitle.image}
+                          srcSet={`${subtitle.image}?w=300 300w, ${subtitle.image}?w=600 600w`}
+                          sizes="(max-width: 600px) 300px, 600px"
+                          alt={`Image for ${subtitle.title}`}
+                          aria-label={subtitle.title}
+                          loading="lazy"
+                          style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
+                          onError={() => handleImageError(subtitle.image)}
+                        />
+                        {imageErrors[subtitle.image] && (
+                          <ImageError>Failed to load image: {subtitle.image}</ImageError>
+                        )}
+                      </AccessibleZoom>
+                      <figcaption>{subtitle.title}</figcaption>
+                    </figure>
+                  )}
+                  {subtitle.video && (
+                    <figure>
+                      <video
+                        controls
+                        preload="metadata"
+                        style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
+                        loading="lazy"
+                        aria-label={`Video for ${subtitle.title}`}
+                      >
+                        <source src={subtitle.video} type="video/mp4" />
+                        Your browser does not support the video tag.
+                      </video>
+                      <figcaption>Video for {subtitle.title}</figcaption>
+                    </figure>
+                  )}
+                  <ul>
+                    {subtitle.bulletPoints.map((point, pointIndex) => (
+                      <li key={pointIndex} style={{ marginBottom: '10px' }}>
+                        <span>{parseLinks(point.text, post.category)}</span>
+                        {point.image && (
+                          <figure>
+                            <AccessibleZoom>
+                              <img
+                                src={point.image}
+                                srcSet={`${point.image}?w=300 300w, ${point.image}?w=600 600w`}
+                                sizes="(max-width: 600px) 300px, 600px"
+                                alt={`Example image for ${point.text}`}
+                                loading="lazy"
+                                style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
+                                onError={() => handleImageError(point.image)}
+                              />
+                              {imageErrors[point.image] && (
+                                <ImageError>Failed to load image: {point.image}</ImageError>
+                              )}
+                            </AccessibleZoom>
+                            <figcaption>Example for {point.text}</figcaption>
+                          </figure>
+                        )}
+                        {point.video && (
+                          <figure>
+                            <video
+                              controls
+                              preload="metadata"
+                              style={{ width: '100%', maxWidth: '400px', margin: '10px 0' }}
+                              loading="lazy"
+                              aria-label={`Video example for ${point.text}`}
+                            >
+                              <source src={point.video} type="video/mp4" />
+                              Your browser does not support the video tag.
+                            </video>
+                            <figcaption>Video example for {point.text}</figcaption>
+                          </figure>
+                        )}
+                        {point.codeSnippet && (
+                          <CodeSnippetContainer>
+                            <CopyToClipboard text={point.codeSnippet} onCopy={handleCopyCode}>
+                              <CopyButton aria-label="Copy code to clipboard">Copy</CopyButton>
+                            </CopyToClipboard>
+                            <Suspense fallback={<div>Loading code...</div>}>
+                              <SyntaxHighlighter language="javascript" style={vs}>
+                                {sanitizeCodeSnippet(point.codeSnippet)}
+                              </SyntaxHighlighter>
+                            </Suspense>
+                          </CodeSnippetContainer>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+
+              {post.superTitles &&
+                post.superTitles.length > 0 &&
+                post.superTitles.some(superTitle =>
+                  superTitle.superTitle.trim() !== '' &&
+                  superTitle.attributes &&
+                  superTitle.attributes.length > 0 &&
+                  superTitle.attributes.some(attr =>
+                    attr.attribute.trim() !== '' &&
+                    attr.items &&
+                    attr.items.length > 0 &&
+                    attr.items.some(item =>
+                      item.title.trim() !== '' &&
+                      item.bulletPoints &&
+                      item.bulletPoints.length > 0 &&
+                      item.bulletPoints.some(point => point.trim() !== '')
+                    )
                   )
-                )
-              ) && (
-                <ComparisonTableContainer>
-                  <SubtitleHeader>Comparison</SubtitleHeader>
-                  <ResponsiveContent>
-                    <ResponsiveTable>
-                      <thead>
-                        <tr>
-                          <ResponsiveHeader>Attribute</ResponsiveHeader>
-                          {post.superTitles.map((superTitle, index) => (
-                            superTitle.superTitle.trim() !== '' && superTitle.attributes && superTitle.attributes.length > 0 && (
-                              <ResponsiveHeader key={index} dangerouslySetInnerHTML={{ __html: parseLinksForHtml(superTitle.superTitle, post.category) }} />
+                ) && (
+                  <ComparisonTableContainer aria-labelledby="comparison-heading">
+                    <SubtitleHeader id="comparison-heading">Comparison</SubtitleHeader>
+                    <ResponsiveContent>
+                      <ResponsiveTable>
+                        <caption>Comparison of {post.category} features</caption>
+                        <thead>
+                          <tr>
+                            <ResponsiveHeader scope="col">Attribute</ResponsiveHeader>
+                            {post.superTitles.map((superTitle, index) => (
+                              superTitle.superTitle.trim() !== '' && superTitle.attributes && superTitle.attributes.length > 0 && (
+                                <ResponsiveHeader key={index} scope="col" dangerouslySetInnerHTML={{ __html: parseLinksForHtml(superTitle.superTitle, post.category) }} />
+                              )
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {post.superTitles[0].attributes.map((attr, attrIndex) => (
+                            attr.attribute.trim() !== '' && attr.items && attr.items.length > 0 && attr.items.some(item => item.title.trim() !== '' || (item.bulletPoints && item.bulletPoints.length > 0 && item.bulletPoints.some(point => point.trim() !== ''))) && (
+                              <tr key={attrIndex}>
+                                <ResponsiveCell scope="row" dangerouslySetInnerHTML={{ __html: parseLinksForHtml(attr.attribute, post.category) }} />
+                                {post.superTitles.map((superTitle, superIndex) => (
+                                  superTitle.attributes[attrIndex] && superTitle.attributes[attrIndex].items && superTitle.attributes[attrIndex].items.length > 0 && (
+                                    <ResponsiveCell key={superIndex}>
+                                      {superTitle.attributes[attrIndex].items.map((item, itemIndex) => (
+                                        (item.title.trim() !== '' || (item.bulletPoints && item.bulletPoints.length > 0 && item.bulletPoints.some(point => point.trim() !== ''))) && (
+                                          <div key={itemIndex}>
+                                            <strong dangerouslySetInnerHTML={{ __html: parseLinksForHtml(item.title, post.category) }} />
+                                            <ul>
+                                              {item.bulletPoints.map((point, pointIndex) => (
+                                                point.trim() !== '' && <li key={pointIndex} dangerouslySetInnerHTML={{ __html: parseLinksForHtml(point, post.category) }} />
+                                              ))}
+                                            </ul>
+                                          </div>
+                                        )
+                                      ))}
+                                    </ResponsiveCell>
+                                  )
+                                ))}
+                              </tr>
                             )
                           ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {post.superTitles[0].attributes.map((attr, attrIndex) => (
-                          attr.attribute.trim() !== '' && attr.items && attr.items.length > 0 && attr.items.some(item => item.title.trim() !== '' || (item.bulletPoints && item.bulletPoints.length > 0 && item.bulletPoints.some(point => point.trim() !== ''))) && (
-                            <tr key={attrIndex}>
-                              <ResponsiveCell dangerouslySetInnerHTML={{ __html: parseLinksForHtml(attr.attribute, post.category) }} />
-                              {post.superTitles.map((superTitle, superIndex) => (
-                                superTitle.attributes[attrIndex] && superTitle.attributes[attrIndex].items && superTitle.attributes[attrIndex].items.length > 0 && (
-                                  <ResponsiveCell key={superIndex}>
-                                    {superTitle.attributes[attrIndex].items.map((item, itemIndex) => (
-                                      (item.title.trim() !== '' || (item.bulletPoints && item.bulletPoints.length > 0 && item.bulletPoints.some(point => point.trim() !== ''))) && (
-                                        <div key={itemIndex}>
-                                          <strong dangerouslySetInnerHTML={{ __html: parseLinksForHtml(item.title, post.category) }} />
-                                          <ul>
-                                            {item.bulletPoints.map((point, pointIndex) => (
-                                              point.trim() !== '' && <li key={pointIndex} dangerouslySetInnerHTML={{ __html: parseLinksForHtml(point, post.category) }} />
-                                            ))}
-                                          </ul>
-                                        </div>
-                                      )
-                                    ))}
-                                  </ResponsiveCell>
-                                )
-                              ))}
-                            </tr>
-                          )
-                        ))}
-                      </tbody>
-                    </ResponsiveTable>
-                  </ResponsiveContent>
-                </ComparisonTableContainer>
+                        </tbody>
+                      </ResponsiveTable>
+                    </ResponsiveContent>
+                  </ComparisonTableContainer>
+                )}
+
+              {post.summary && (
+                <SummaryContainer id="summary" aria-labelledby="summary-heading">
+                  <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
+                  <p>{parsedSummary}</p>
+                </SummaryContainer>
               )}
 
-            {post.summary && (
-              <SummaryContainer id="summary">
-                <SubtitleHeader>Summary</SubtitleHeader>
-                <p>{parsedSummary}</p>
-              </SummaryContainer>
-            )}
+              <CompleteButton
+                onClick={handleMarkAsCompleted}
+                disabled={completedPosts.some(p => p.postId === post.postId)}
+                isCompleted={completedPosts.some(p => p.postId === post.postId)}
+                aria-label={completedPosts.some(p => p.postId === post.postId) ? 'Post already completed' : 'Mark post as completed'}
+              >
+                {completedPosts.some(p => p.postId === post.postId) ? 'Completed' : 'Mark as Completed'}
+              </CompleteButton>
 
-            <CompleteButton
-              onClick={handleMarkAsCompleted}
-              disabled={completedPosts.some(p => p.postId === post.postId)}
-              isCompleted={completedPosts.some(p => p.postId === post.postId)}
-              aria-label={completedPosts.some(p => p.postId === post.postId) ? 'Post already completed' : 'Mark post as completed'}
-            >
-              {completedPosts.some(p => p.postId === post.postId) ? 'Completed' : 'Mark as Completed'}
-            </CompleteButton>
+              <section aria-labelledby="related-posts-heading">
+                <Suspense fallback={<div>Loading related posts...</div>}>
+                  <RelatedPosts relatedPosts={relatedPosts} />
+                </Suspense>
+              </section>
 
-            <Suspense fallback={<div>Loading related posts...</div>}>
-              <RelatedPosts relatedPosts={relatedPosts} />
-            </Suspense>
-
-            <ReferencesSection>
-              <SubtitleHeader>Further Reading</SubtitleHeader>
-              {post.references?.length > 0 ? (
-                post.references.map((ref, index) => (
-                  <ReferenceLink
-                    key={index}
-                    href={ref.url}
-                    target="_blank"
-                    rel="noopener noreferrer nofollow"
-                    aria-label={`Visit ${ref.title}`}
-                  >
-                    {ref.title}
-                  </ReferenceLink>
-                ))
-              ) : (
-                <>
-                  <ReferenceLink
-                    href={`https://www.geeksforgeeks.org/${post.category.toLowerCase().replace(/\s+/g, '-')}-tutorials`}
-                    target="_blank"
-                    rel="noopener noreferrer nofollow"
-                    aria-label={`GeeksforGeeks ${post.category} Tutorials`}
-                  >
-                    GeeksforGeeks: {post.category} Tutorials
-                  </ReferenceLink>
-                  <ReferenceLink
-                    href={`https://developer.mozilla.org/en-US/docs/Web/${post.category.replace(/\s+/g, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer nofollow"
-                    aria-label={`MDN ${post.category} Documentation`}
-                  >
-                    MDN: {post.category} Documentation
-                  </ReferenceLink>
-                </>
-              )}
-            </ReferencesSection>
-          </Content>
+              <ReferencesSection aria-labelledby="references-heading">
+                <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
+                {post.references?.length > 0 ? (
+                  post.references.map((ref, index) => (
+                    <ReferenceLink
+                      key={index}
+                      href={ref.url}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      aria-label={`Visit ${ref.title}`}
+                    >
+                      {ref.title}
+                    </ReferenceLink>
+                  ))
+                ) : (
+                  <>
+                    <ReferenceLink
+                      href={`https://www.geeksforgeeks.org/${post.category.toLowerCase().replace(/\s+/g, '-')}-tutorials`}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      aria-label={`GeeksforGeeks ${post.category} Tutorials`}
+                    >
+                      GeeksforGeeks: {post.category} Tutorials
+                    </ReferenceLink>
+                    <ReferenceLink
+                      href={`https://developer.mozilla.org/en-US/docs/Web/${post.category.replace(/\s+/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      aria-label={`MDN ${post.category} Documentation`}
+                    >
+                      MDN: {post.category} Documentation
+                    </ReferenceLink>
+                  </>
+                )}
+              </ReferencesSection>
+            </article>
+          </MainContent>
 
           <Suspense fallback={<div>Loading sidebar...</div>}>
-            <Sidebar
-              post={post}
-              isSidebarOpen={isSidebarOpen}
-              setSidebarOpen={setSidebarOpen}
-              activeSection={activeSection}
-              scrollToSection={scrollToSection}
-              subtitlesListRef={subtitlesListRef}
-            />
+            <aside>
+              <Sidebar
+                post={post}
+                isSidebarOpen={isSidebarOpen}
+                setSidebarOpen={setSidebarOpen}
+                activeSection={activeSection}
+                scrollToSection={scrollToSection}
+                subtitlesListRef={subtitlesListRef}
+              />
+            </aside>
           </Suspense>
         </Container>
       </HelmetProvider>
