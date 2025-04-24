@@ -679,7 +679,7 @@ const Home = memo(() => {
         <meta name="author" content="Sanjay Patidar" />
         <meta name="robots" content="index, follow, max-image-preview:large" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="icon" type="image/svg+xml" href="/zedemy-logo.png" />
+        <link rel="icon" type="image/svg+xml" href="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
         <link rel="canonical" href="https://zedemy.vercel.app/" />
         <link rel="preload" as="image" href="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
         <link
