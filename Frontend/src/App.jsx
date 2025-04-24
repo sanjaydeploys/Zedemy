@@ -22,6 +22,7 @@ import Policy from './components/Policy';
 import { loadUser } from './actions/authActions'; 
 import CodeEditor from './components/CodeEditor';
 import About from './components/About';
+import FAQPage from './components/FAQPage';
 
 const ScrollToTop = () => {
     const { pathname } = useLocation();
@@ -79,6 +80,7 @@ const App = () => {
 
                         <Route exact path="/certificate-verification" element={<VerifyCertificate />} />
                                                 <Route exact path="/editor" element={<CodeEditor />} />
+                        <Route exact path="/faq" element={<FAQPage />} />
 
                     </Routes>
                     <Footer />
