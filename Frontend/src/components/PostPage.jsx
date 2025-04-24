@@ -38,6 +38,15 @@ class ErrorBoundary extends React.Component {
   }
 }
 
+const slugify = (text) => {
+  if (!text) return '';
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+    .trim()
+    .replace(/\s+/g, '-') // Replace spaces with hyphens
+    .replace(/-+/g, '-'); // Remove duplicate hyphens
+};
 // Shared styles
 const sharedSectionStyles = css`
   margin-top: 20px;
@@ -384,6 +393,34 @@ const PostPage = memo(() => {
     fetchData();
   }, [dispatch, slug, toast]);
 
+// Map subtitles to slugged IDs
+const subtitleSlugs = useMemo(() => {
+  if (!post || !post.subtitles) return {};
+  const slugs = {};
+  post.subtitles.forEach((subtitle, index) => {
+    slugs[`subtitle-${index}`] = slugify(subtitle.title);
+  });
+  if (post.summary) slugs['summary'] = 'summary';
+  return slugs;
+}, [post]);
+
+// Handle fragment on page load
+useEffect(() => {
+  const hash = window.location.hash.replace('#', '');
+  if (hash) {
+    // Find the section ID corresponding to the slugged hash
+    const sectionId = Object.keys(subtitleSlugs).find(
+      (id) => subtitleSlugs[id] === hash
+    );
+    if (sectionId) {
+      setTimeout(() => {
+        scrollToSection(sectionId, false); // Scroll without updating URL
+      }, 0);
+    }
+  }
+}, [subtitleSlugs]);
+
+
   // Memoized computations
   const filteredPosts = useMemo(
     () => posts.filter(p => p.category?.toLowerCase() === post?.category?.toLowerCase()),
@@ -459,14 +496,34 @@ const PostPage = memo(() => {
     }
   }, [post, dispatch, toast]);
 
-  const scrollToSection = useCallback((id) => {
+  const scrollToSection = useCallback((id, updateUrl = true) => {
     const section = document.getElementById(id);
     if (section) {
       section.scrollIntoView({ behavior: 'smooth' });
       setActiveSection(id);
       if (isSidebarOpen) setSidebarOpen(false);
+      // Append slugged subtitle to URL
+      if (updateUrl && subtitleSlugs[id]) {
+        const fragment = subtitleSlugs[id];
+        window.history.pushState(null, '', `#${fragment}`);
+      }
     }
-  }, [isSidebarOpen]);
+  }, [isSidebarOpen, subtitleSlugs]);
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash && window.gtag) {
+        window.gtag('event', 'section_view', {
+          event_category: 'Navigation',
+          event_label: hash,
+          page_path: window.location.pathname + window.location.hash
+        });
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   const handleCopyCode = useCallback(() => {
     toast?.success('Code copied to clipboard!', {
@@ -505,35 +562,20 @@ const PostPage = memo(() => {
   const ogImage = post.titleImage || 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
 
   // Enhanced structured data
-  const faqData = [
-    ...(post.subtitles
-      .filter(subtitle => subtitle.isFAQ)
-      .map(subtitle => ({
-        '@type': 'Question',
-        name: subtitle.title,
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: subtitle.bulletPoints.map(point => point.text).join(' ')
-        }
-      }))),
-    {
-      '@type': 'Question',
-      name: `Why choose Zedemy for learning ${post.title.toLowerCase()} in India?`,
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: `Zedemy offers expert-led ${post.title.toLowerCase()} tutorials tailored for Indian students, with in-browser coding, interactive lessons, and certificate verification.`
-      }
+  const faqData = post.subtitles
+  .filter(subtitle => subtitle.isFAQ)
+  .map((subtitle, index) => ({
+    '@type': 'Question',
+    name: subtitle.title,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: subtitle.bulletPoints.map(point => point.text).join(' ')
     },
-    {
-      '@type': 'Question',
-      name: `How can ${post.title.toLowerCase()} help Indian professionals?`,
-      acceptedAnswer: {
-        '@type': 'Answer',
-        text: `Learning ${post.title.toLowerCase()} on Zedemy equips Indian professionals with in-demand tech skills for career growth, including practical projects and industry-relevant content.`
-      }
+    mainEntityOfPage: {
+      '@type': 'WebPage',
+      '@id': `${canonicalUrl}#${slugify(subtitle.title)}`
     }
-  ];
-
+  }));
   const structuredData = [
     {
       '@context': 'https://schema.org',
@@ -623,6 +665,10 @@ const PostPage = memo(() => {
       }
     }
   ];
+  console.log(JSON.stringify(structuredData, null, 2));
+
+
+
 
   return (
     <ErrorBoundary>
@@ -682,7 +728,6 @@ const PostPage = memo(() => {
                   alt={`Learn ${post.title.toLowerCase()} online in India`}
                   style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
                   loading="lazy"
-                   fetchpriority="high"
                   onError={() => handleImageError(post.titleImage)}
                 />
                 {imageErrors[post.titleImage] && (
