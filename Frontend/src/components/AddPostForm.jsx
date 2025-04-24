@@ -7,6 +7,7 @@ import axios from 'axios';
 import DOMPurify from 'dompurify';
 import styled from 'styled-components';
 import { Tooltip } from '@material-ui/core';
+import pica from 'pica';
 
 // Styled Components (unchanged)
 const FormContainer = styled.div`
