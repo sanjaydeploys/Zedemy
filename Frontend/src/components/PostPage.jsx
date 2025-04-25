@@ -8,8 +8,6 @@ import { CopyToClipboard } from 'react-copy-to-clipboard';
 import DOMPurify from 'dompurify';
 import LazyLoad from 'react-lazyload';
 import { RingLoader } from 'react-spinners';
-
-// Lazy-loaded dependencies
 const Toast = lazy(() => import('react-toastify').then(module => ({
   default: module.ToastContainer,
   toast: module.toast
@@ -19,11 +17,9 @@ const Zoom = lazy(() => import('react-medium-image-zoom'));
 import { vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import 'react-toastify/dist/ReactToastify.css';
 import 'react-medium-image-zoom/dist/styles.css';
-
-// Lazy-loaded components
 const Sidebar = lazy(() => import('./Sidebar'));
 const RelatedPosts = lazy(() => import('./RelatedPosts'));
-
+const AccessibleZoom = lazy(() => import('./AccessibleZoom'));
 // Error Boundary
 class ErrorBoundary extends React.Component {
   state = { hasError: false };
@@ -37,7 +33,6 @@ class ErrorBoundary extends React.Component {
     return this.props.children;
   }
 }
-
 const slugify = (text) => {
   if (!text) return '';
   return text
@@ -48,7 +43,6 @@ const slugify = (text) => {
     .replace(/-+/g, '-');
 };
 
-// Shared styles
 const sharedSectionStyles = css`
   margin-top: 20px;
   padding: 20px;
@@ -56,13 +50,11 @@ const sharedSectionStyles = css`
   border-radius: 5px;
 `;
 
-// Styled Components
 const Container = styled.div`
   display: flex;
   flex-direction: row;
   min-height: 100vh;
 `;
-
 const MainContent = styled.main`
   flex: 1;
   padding: 20px;
@@ -70,7 +62,6 @@ const MainContent = styled.main`
   background-color: #f4f4f9;
   contain: layout;
 `;
-
 const LoadingOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -83,7 +74,6 @@ const LoadingOverlay = styled.div`
   background-color: rgba(92, 6, 6, 0.7);
   z-index: 9999;
 `;
-
 const PostHeader = styled.h1`
   font-size: 2.8rem;
   color: #111827; 
@@ -93,19 +83,14 @@ const PostHeader = styled.h1`
   line-height: 1.3;
   letter-spacing: -0.5px;
   font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-
   @media (max-width: 768px) {
     font-size: 2rem;
     margin: 0.75rem 0 1.25rem;
   }
-
   @media (max-width: 480px) {
     font-size: 1.6rem;
   }
 `;
-
-
-
 const SubtitleHeader = styled.h2`
   font-size: 1.75rem;
   color:rgb(1, 16, 32);
@@ -125,12 +110,9 @@ const SubtitleHeader = styled.h2`
   }
   
 `;
-
-
 const SummaryContainer = styled.section`
   margin-top: 20px;
 `;
-
 const CodeSnippetContainer = styled.div`
   position: relative;
   margin: 20px 0;
@@ -138,7 +120,6 @@ const CodeSnippetContainer = styled.div`
   border-radius: 5px;
   overflow: hidden;
 `;
-
 const CopyButton = styled.button`
   position: absolute;
   top: 10px;
@@ -153,7 +134,6 @@ const CopyButton = styled.button`
     background: #0056b3;
   }
 `;
-
 const CompleteButton = styled.button`
   position: sticky;
   bottom: 20px;
@@ -172,28 +152,23 @@ const CompleteButton = styled.button`
     background-color: ${({ isCompleted }) => (isCompleted ? '#27ae60' : '#34495e')};
   }
 `;
-
 const ImageError = styled.div`
   color: red;
   margin: 10px 0;
 `;
-
 const ComparisonTableContainer = styled.section`
   ${sharedSectionStyles}
   overflow-x: auto;
 `;
-
 const ResponsiveContent = styled.div`
   overflow: auto;
   white-space: nowrap;
 `;
-
 const ResponsiveTable = styled.table`
   border-collapse: collapse;
   width: auto;
   min-width: 800px;
 `;
-
 const ResponsiveHeader = styled.th`
   background-color: #34495e;
   color: #ecf0f1;
@@ -201,7 +176,6 @@ const ResponsiveHeader = styled.th`
   border: 1px solid #34495e;
   min-width: 150px;
 `;
-
 const ResponsiveCell = styled.td`
   border: 1px solid #34495e;
   padding: 15px;
@@ -244,48 +218,6 @@ const NavigationLinks = styled.nav`
   gap: 20px;
   flex-wrap: wrap;
 `;
-
-// Custom AccessibleZoom component
-const AccessibleZoom = ({ children, ...props }) => {
-  const ref = useRef(null);
-
-  useEffect(() => {
-    if (!ref.current) return;
-
-    const removeAriaOwns = () => {
-      const wrapper = ref.current.querySelector('[data-rmiz]');
-      if (wrapper && wrapper.hasAttribute('aria-owns')) {
-        wrapper.removeAttribute('aria-owns');
-      }
-    };
-
-    removeAriaOwns();
-
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'aria-owns') {
-          removeAriaOwns();
-        }
-      });
-    });
-
-    const wrapper = ref.current.querySelector('[data-rmiz]');
-    if (wrapper) {
-      observer.observe(wrapper, { attributes: true });
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div ref={ref}>
-      <Suspense fallback={<div>Loading zoom...</div>}>
-        <Zoom {...props}>{children}</Zoom>
-      </Suspense>
-    </div>
-  );
-};
-
 // Utility functions
 export const parseLinks = (text, category) => {
   if (!text) return [text];
@@ -394,7 +326,6 @@ const debounce = (func, wait) => {
     timeout = setTimeout(() => func(...args), wait);
   };
 };
-
 const PostPage = memo(() => {
   const { slug } = useParams();
   const dispatch = useDispatch();
@@ -560,7 +491,6 @@ const PostPage = memo(() => {
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
-
   const handleCopyCode = useCallback(() => {
     toast?.success('Code copied to clipboard!', {
       position: 'top-right',
@@ -583,8 +513,6 @@ const PostPage = memo(() => {
       </LoadingOverlay>
     );
   }
-
-  // SEO-related data
   const pageTitle = `${post.title} | Zedemy, India`;
   const pageDescription = post.summary
     ? truncateText(post.summary, 160)
@@ -596,9 +524,6 @@ const PostPage = memo(() => {
     : `${post.title}, online tech tutorials India, learn coding India, tech education India, Zedemy, ${post.category}`;
   const canonicalUrl = `https://zedemy.vercel.app/post/${slug}`;
   const ogImage = post.titleImage || 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
-
-  // Enhanced structured data
-  
     const faqData = post.subtitles
   .filter(subtitle => subtitle.isFAQ)
   .map((subtitle, index) => ({
@@ -732,7 +657,6 @@ const PostPage = memo(() => {
           <meta name="twitter:creator" content="@sanjaypatidar" />
           <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
         </Helmet>
-
         <Container>
           <MainContent role="main" aria-label="Main content">
             <Suspense fallback={<div>Loading...</div>}>
@@ -953,14 +877,12 @@ const PostPage = memo(() => {
                     </ResponsiveContent>
                   </ComparisonTableContainer>
                 )}
-
               {post.summary && (
                 <SummaryContainer id="summary" aria-labelledby="summary-heading">
                   <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
                   <p>{parsedSummary}</p>
                 </SummaryContainer>
               )}
-
               <CompleteButton
                 onClick={handleMarkAsCompleted}
                 disabled={completedPosts.some(p => p.postId === post.postId)}
@@ -975,7 +897,6 @@ const PostPage = memo(() => {
                   <RelatedPosts relatedPosts={relatedPosts} />
                 </Suspense>
               </section>
-
               <ReferencesSection aria-labelledby="references-heading">
                 <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
                 {post.references?.length > 0 ? (
@@ -1013,7 +934,6 @@ const PostPage = memo(() => {
               </ReferencesSection>
             </article>
           </MainContent>
-
           <Suspense fallback={<div>Loading sidebar...</div>}>
             <aside>
               <Sidebar
@@ -1031,5 +951,4 @@ const PostPage = memo(() => {
     </ErrorBoundary>
   );
 });
-
 export default PostPage;
