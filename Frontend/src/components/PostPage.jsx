@@ -20,19 +20,7 @@ import 'react-medium-image-zoom/dist/styles.css';
 const Sidebar = lazy(() => import('./Sidebar'));
 const RelatedPosts = lazy(() => import('./RelatedPosts'));
 const AccessibleZoom = lazy(() => import('./AccessibleZoom'));
-// Error Boundary
-class ErrorBoundary extends React.Component {
-  state = { hasError: false };
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-  render() {
-    if (this.state.hasError) {
-      return <div>Something went wrong. Please try again.</div>;
-    }
-    return this.props.children;
-  }
-}
+
 const slugify = (text) => {
   if (!text) return '';
   return text
@@ -629,7 +617,6 @@ const PostPage = memo(() => {
   ];
 
   return (
-    <ErrorBoundary>
       <HelmetProvider>
         <Helmet>
           <html lang="en" />
@@ -948,7 +935,6 @@ const PostPage = memo(() => {
           </Suspense>
         </Container>
       </HelmetProvider>
-    </ErrorBoundary>
   );
 });
 export default PostPage;
