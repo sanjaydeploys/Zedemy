@@ -5,15 +5,13 @@ import { python } from '@codemirror/lang-python';
 import { css } from '@codemirror/lang-css';
 import { html } from '@codemirror/lang-html';
 import { markdown } from '@codemirror/lang-markdown';
-import { toPng, toJpeg } from 'html-to-image';
+import { toPng } from 'html-to-image';
 import download from 'downloadjs';
 import { history, undo, redo } from '@codemirror/commands';
 import { keymap } from '@codemirror/view';
 import { autocompletion } from '@codemirror/autocomplete';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { dracula } from '@uiw/codemirror-theme-dracula';
-import { darcula } from '@uiw/codemirror-theme-darcula';
-import { okaidia } from '@uiw/codemirror-theme-okaidia';
 import { motion } from 'framer-motion';
 import '../styles/CodeEditor.css';
 import { Helmet } from 'react-helmet';
@@ -26,14 +24,6 @@ const themes = {
   dracula: {
     theme: dracula,
     backgroundColor: '#282a36'
-  },
-  darcula: {
-    theme: darcula,
-    backgroundColor: '#2b2b2b'
-  },
-  okaidia: {
-    theme: okaidia,
-    backgroundColor: '#272822'
   }
 };
 
@@ -49,7 +39,6 @@ const CodeEditor = () => {
   const [syntaxHighlighting, setSyntaxHighlighting] = useState(true);
   const [autoSave, setAutoSave] = useState(true);
   const [lineWrapping, setLineWrapping] = useState(true);
-  const [livePreview, setLivePreview] = useState(false);
   const codeRef = useRef(null);
 
   useEffect(() => {
@@ -89,26 +78,15 @@ const CodeEditor = () => {
     return themes[theme].theme;
   };
 
-  const handleDownload = (format) => {
+  const handleDownload = () => {
     const element = codeRef.current;
-
-    if (format === 'png') {
-      toPng(element)
-        .then((dataUrl) => {
-          download(dataUrl, 'code.png');
-        })
-        .catch((error) => {
-          console.error('oops, something went wrong!', error);
-        });
-    } else if (format === 'jpeg') {
-      toJpeg(element)
-        .then((dataUrl) => {
-          download(dataUrl, 'code.jpeg');
-        })
-        .catch((error) => {
-          console.error('oops, something went wrong!', error);
-        });
-    }
+    toPng(element)
+      .then((dataUrl) => {
+        download(dataUrl, 'code.png');
+      })
+      .catch((error) => {
+        console.error('oops, something went wrong!', error);
+      });
   };
 
   const handleDownloadTextFile = () => {
@@ -195,8 +173,6 @@ const CodeEditor = () => {
           <select value={theme} onChange={(e) => setTheme(e.target.value)}>
             <option value="oneDark">One Dark</option>
             <option value="dracula">Dracula</option>
-            <option value="darcula">Darcula</option>
-            <option value="okaidia">Okaidia</option>
           </select>
           <select value={fontSize} onChange={(e) => setFontSize(Number(e.target.value))}>
             <option value={12}>12px</option>
@@ -212,7 +188,7 @@ const CodeEditor = () => {
           <label>
             <input type="checkbox" checked={syntaxHighlighting} onChange={toggleSyntaxHighlighting} />
             Syntax Highlight
-            </label>
+          </label>
           <label>
             <input type="checkbox" checked={lineWrapping} onChange={toggleLineWrapping} />
             Line Wrapping
@@ -223,8 +199,7 @@ const CodeEditor = () => {
           </label>
         </motion.div>
         <div className="buttonz-container">
-          <button className="buttonz" onClick={() => handleDownload('png')}>Download as PNG</button>
-          <button className="buttonz" onClick={() => handleDownload('jpeg')}>Download as JPEG</button>
+          <button className="buttonz" onClick={handleDownload}>Download as PNG</button>
           <button className="buttonz" onClick={handleDownloadTextFile}>Download as Text</button>
           <button className="buttonz" onClick={addNewWindow}>New Window</button>
         </div>
