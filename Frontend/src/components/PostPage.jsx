@@ -221,12 +221,23 @@ const ReferenceLink = styled.a`
   display: block;
   color: #0645ad;
   text-decoration: none;
-  margin: 5px 0;
+  margin: 3px 0; 
+  padding: 5px 0; 
+  min-height: 2px; 
   &:hover {
     text-decoration: underline;
   }
-`;
 
+  @media (max-width: 768px) {
+    padding: 10px 0;
+    margin: 8px 0;
+  }
+
+  @media (max-width: 480px) {
+    padding: 8px 0;
+    margin: 8px 0;
+  }
+`;
 const NavigationLinks = styled.nav`
   margin: 20px 0;
   display: flex;
