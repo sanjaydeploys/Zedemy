@@ -692,7 +692,6 @@ const PostPage = memo(() => {
     }
   ];
 
-  console.log(JSON.stringify(structuredData, null, 2));
   return (
     <ErrorBoundary>
       <HelmetProvider>
