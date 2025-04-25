@@ -21,7 +21,6 @@ import Notification from './components/Notification';
 import Policy from './components/Policy';
 import { loadUser } from './actions/authActions'; 
 import CodeEditor from './components/CodeEditor';
-import About from './components/About';
 import FAQPage from './components/FAQPage';
 
 const ScrollToTop = () => {
@@ -75,7 +74,6 @@ const App = () => {
                         <Route path="/reset-password/:token" element={<ResetPassword />} />
                         <Route exact path="/verify/:uniqueId" element={<VerifyCertificate />} />
                         <Route exact path="/explore" element={<PostList />} />
-                        <Route exact path="/about" element={<About />} />
                         <Route exact path="/notifications" element={<Notification />} />
 
                         <Route exact path="/certificate-verification" element={<VerifyCertificate />} />
