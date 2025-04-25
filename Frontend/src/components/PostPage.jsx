@@ -681,7 +681,7 @@ const PostPage = memo(() => {
 
               {post.titleImage && (
                 <figure>
-                  <LazyLoad height={200} offset={100}>
+                 <AccessibleZoom>
                     <img
                       src={post.titleImage}
                       srcSet={`${post.titleImage}?w=300 300w, ${post.titleImage}?w=600 600w`}
@@ -694,7 +694,7 @@ const PostPage = memo(() => {
                     {imageErrors[post.titleImage] && (
                       <ImageError>Failed to load image: {post.titleImage}</ImageError>
                     )}
-                  </LazyLoad>
+                   </AccessibleZoom>
                   <figcaption>Image related to {post.title}</figcaption>
                 </figure>
               )}
