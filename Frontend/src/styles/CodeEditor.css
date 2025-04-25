@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&display=swap');
 
 .editor-container .containereditor {
   display: flex;
@@ -6,12 +5,11 @@
   align-items: center;
   margin: 0px;
   overflow: scroll;
-  width: 100%; /* Adjust width to fit the content */
+  width: 100%;
 }
 
 .editor-container .status-bar {
   color: white;
-  word-wrap: break-word;
 }
 
 .editor-container .toolbar {
@@ -33,10 +31,7 @@
 }
 
 .editor-container select,
-.editor-container label,
-.editor-container input[type="text"],
-.editor-container input[type="number"],
-.editor-container textarea {
+.editor-container input[type="text"] {
   padding: 8px;
   font-size: 16px;
   border: 2px solid #333;
@@ -47,10 +42,7 @@
 }
 
 .editor-container select:focus,
-.editor-container label:focus,
-.editor-container input[type="text"]:focus,
-.editor-container input[type="number"]:focus,
-.editor-container textarea:focus {
+.editor-container input[type="text"]:focus {
   outline: none;
   border-color: #007acc;
   box-shadow: 0 0 10px rgba(0, 122, 204, 0.6);
@@ -98,14 +90,7 @@
   grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: 10px;
   width: 100%;
-  margin-left: 0; /* Default margin-left value */
   justify-content: center;
-}
-
-@media (max-width: 768px) {
-  .editor-container .code-windows {
-    margin-left: 150px; /* Adjusted margin-left for mobile devices */
-  }
 }
 
 .editor-container .code-container {
