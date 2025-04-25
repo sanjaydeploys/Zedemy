@@ -662,7 +662,6 @@ const Home = memo(() => {
       },
     },
   ];
-
   return (
     <>
       <Helmet>
@@ -685,10 +684,9 @@ const Home = memo(() => {
         <link
           rel="preload"
           as="image"
-          href="https://sanjaybasket.s3.ap-south-1.amazonaws.com/Student-home-header-1.gif"
+          href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy_header_image.webp"
         />
         <link
-          href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Amatic+SC&family=Bangers&display=swap"
           rel="stylesheet"
           media="print"
           onload="this.media='all'"
@@ -723,34 +721,30 @@ const Home = memo(() => {
         <meta name="twitter:creator" content="@sanjaypatidar" />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
-
       <HomeContainer role="main" aria-label="Zedemy Homepage">
         <header>
           <BreadcrumbNav aria-label="Breadcrumb navigation">
             <Link to="/">Home</Link> 
-            <Link to="/explore">Explore Courses</Link> 
+            <Link to="/explore">Explore New Blogs</Link> 
             <Link to="/faq">About Zedemy</Link>
           </BreadcrumbNav>
         </header>
-
         <ContentWrapper style={{ opacity: isVisible ? 1 : 0 }}>
           <TextContainer>
             <StyledText>
               <H3>
                 Welcome to <span className="eduxcel-text">Hog<span className="x-letter">W</span>arts<span className="x-letter">E</span>dx</span>{' '}
-              
               </H3>
             </StyledText>
             <Subtitle>Experience the future of tech education with intelligent features</Subtitle>
             <CallToAction onClick={() => navigate('/explore')} aria-label="Explore latest tech courses">
-              Explore Courses
+              Explore New Blogs
             </CallToAction>
             <SubtitleBlog>
               Discover coding topics by category and dive deeper with hands-on tips in our{' '}
               <SubtitleLink to="/explore" aria-label="Visit blog posts">
                 Blogs
               </SubtitleLink>
-              .
             </SubtitleBlog>
             <CertificatePreview onClick={handleCertificatePreview} role="button" tabIndex={0} aria-label="View certificate preview">
               <h3>Certificate Preview</h3>
@@ -763,7 +757,7 @@ const Home = memo(() => {
           <GifContainer>
             <LazyLoad height={400} offset={100}>
               <img
-                src="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/home_header_Zedemy.webp"
+                src="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy_header_image.webp"
                 alt="Interactive tech learning experience on Zedemy"
                 width="600"
                 height="400"
@@ -777,14 +771,12 @@ const Home = memo(() => {
             </TypedText>
           </TypedContainer>
         </ContentWrapper>
-
         <Suspense fallback={<div>Loading FAQs...</div>}>
           <FAQ faqs={displayedFAQs} />
           <ViewAllFAQs to="/faq" aria-label="View all frequently asked questions">
             View All FAQs
           </ViewAllFAQs>
         </Suspense>
-
         <TeaContainer>
           <H1>Made With</H1>
           <H1>
@@ -793,7 +785,6 @@ const Home = memo(() => {
             <StyledSpan>vity</StyledSpan>
           </H1>
         </TeaContainer>
-
         <Footer>
           <p>
             Founded by{' '}
@@ -829,5 +820,4 @@ const Home = memo(() => {
     </>
   );
 });
-
 export default Home;
