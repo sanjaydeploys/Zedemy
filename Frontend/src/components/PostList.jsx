@@ -239,17 +239,16 @@ const PostList = () => {
     setPage(prevPage => prevPage + 1);
     setLoadingMore(true);
   };
-
   useEffect(() => {
     setLoadingMore(false);
   }, [posts]);
-
+const handlePreload = debounce((slug) => {
+    dispatch(fetchPostBySlug(slug)); // Fetch and cache in Redux
+  }, 200);
   // Use searchResults if available, otherwise use posts
   const displayedPosts = searchResults.length > 0 ? searchResults : posts;
-
   // Fallback image URL
   const fallbackImage = 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
-
   // FAQ Structured Data
   const faqData = {
     "@context": "https://schema.org",
