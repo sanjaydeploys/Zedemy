@@ -668,6 +668,7 @@ const PostPage = memo(() => {
 
               {post.titleImage && (
                 <figure>
+                  <Suspense fallback={<div>Loading image zoom...</div>}>
                  <AccessibleZoom>
                     <img
                       src={post.titleImage}
@@ -682,6 +683,7 @@ const PostPage = memo(() => {
                       <ImageError>Failed to load image: {post.titleImage}</ImageError>
                     )}
                    </AccessibleZoom>
+                    </Suspense>
                   <figcaption>Image related to {post.title}</figcaption>
                 </figure>
               )}
@@ -711,6 +713,7 @@ const PostPage = memo(() => {
                   <SubtitleHeader id={`subtitle-${index}-heading`}>{parseLinks(subtitle.title, post.category)}</SubtitleHeader>
                   {subtitle.image && (
                     <figure>
+                      <Suspense fallback={<div>Loading image zoom...</div>}>
                       <AccessibleZoom>
                         <img
                           src={subtitle.image}
@@ -726,6 +729,7 @@ const PostPage = memo(() => {
                           <ImageError>Failed to load image: {subtitle.image}</ImageError>
                         )}
                       </AccessibleZoom>
+                        </Suspense>
                       <figcaption>{subtitle.title}</figcaption>
                     </figure>
                   )}
@@ -750,6 +754,7 @@ const PostPage = memo(() => {
                         <span>{parseLinks(point.text, post.category)}</span>
                         {point.image && (
                           <figure>
+                            <Suspense fallback={<div>Loading image zoom...</div>}>
                             <AccessibleZoom>
                               <img
                                 src={point.image}
@@ -764,6 +769,7 @@ const PostPage = memo(() => {
                                 <ImageError>Failed to load image: {point.image}</ImageError>
                               )}
                             </AccessibleZoom>
+                              </Suspense>
                             <figcaption>Example for {point.text}</figcaption>
                           </figure>
                         )}
