@@ -22,23 +22,20 @@ import { addNotification } from './notificationActions';
 
 const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
 
-export const fetchPostBySlug = (slug) => async (dispatch, getState) => {
+export const fetchPostBySlug = (slug) => async dispatch => {
+    console.log('[fetchPostBySlug] Fetching post by slug:', slug);
     try {
-      const { postReducer } = getState();
-      // Check if post is already cached
-      if (postReducer.post && postReducer.post.slug === slug) {
-        return; // Skip fetch if post is already in state
-      }
-      const response = await fetch(`${API_BASE_URL}/${slug}`);
-      const postData = await response.json();
-      dispatch({
-        type: 'FETCH_POST_SUCCESS',
-        payload: postData,
-      });
+        const res = await axios.get(`${API_BASE_URL}/post/${slug}`);
+        console.log('[fetchPostBySlug] Fetched post data:', res.data);
+        dispatch({ type: FETCH_POST_SUCCESS, payload: res.data });
     } catch (error) {
-      console.error('Error fetching post:', error);
+        console.error('[fetchPostBySlug] Error fetching post by slug:', {
+            message: error.message,
+            response: error.response ? error.response.data : 'No response'
+        });
     }
-  };
+};
+
 export const searchPosts = (query) => async dispatch => {
     console.log('[searchPosts] Searching posts with query:', query);
     try {
