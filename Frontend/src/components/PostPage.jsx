@@ -646,7 +646,7 @@ const PostPage = memo(() => {
         </Helmet>
         <Container>
           <MainContent role="main" aria-label="Main content">
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={null}>
               <Toast />
             </Suspense>
             <article>
