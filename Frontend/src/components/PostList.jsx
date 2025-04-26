@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import styled, { keyframes } from 'styled-components';
 const SearchBlog = lazy(() => import('./SearchBlog'));
-
+import { debounce } from 'lodash'; // Install lodash for debouncing
 // Styled Components
 const Container = styled.div`
   max-width: 1200px;
@@ -397,8 +397,8 @@ const PostList = () => {
       <Title>{searchResults.length > 0 ? 'Search Results' : 'Latest Posts'}</Title>
       <PostListContainer>
         {displayedPosts.slice(0, page * 5).map(post => (
-          <PostContainer key={post.postId}>
-            <Link to={`/post/${post.slug}`} aria-label={`View post: ${post.title}`}>
+          <PostContainer key={post.postId} onMouseEnter={() => handlePreload(post.slug)}>
+                      <Link to={`/post/${post.slug}`} aria-label={`View post: ${post.title}`}>
               <PostImage
                 src={post.titleImage || fallbackImage}
                 alt={`Featured image for ${post.title} on Zedemy`}
