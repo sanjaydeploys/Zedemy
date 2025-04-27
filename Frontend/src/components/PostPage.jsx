@@ -7,30 +7,24 @@ import styled from 'styled-components';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import DOMPurify from 'dompurify';
 import { RingLoader } from 'react-spinners';
+import { createSelector } from 'reselect';
 
 // Lazy-loaded components
-const Toast = React.lazy(() => import('react-toastify').then(module => ({
-  default: module.ToastContainer,
-  toast: module.toast,
-})));
-const SyntaxHighlighter = React.lazy(() => import('react-syntax-highlighter').then(module => ({ default: module.Prism })));
-const Zoom = React.lazy(() => import('react-medium-image-zoom'));
+const Highlight = React.lazy(() => import('highlight.js').then(module => ({ default: module.default })));
 const Sidebar = React.lazy(() => import('./Sidebar'));
 const RelatedPosts = React.lazy(() => import('./RelatedPosts'));
 const AccessibleZoom = React.lazy(() => import('./AccessibleZoom'));
 
 // Minimal CSS imports
-import 'react-toastify/dist/ReactToastify.min.css';
-import 'react-medium-image-zoom/dist/styles.css';
-import { vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import 'highlight.js/styles/vs.css'; // Lightweight code highlighting
 
 // Slugify utility
 const slugify = text => text?.toLowerCase().replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-').replace(/-+/g, '-') || '';
 
 // Shared styles
 const sharedSectionStyles = `
-  margin-top: 1.5rem;
-  padding: 1.5rem;
+  margin-top: 1rem;
+  padding: 1rem;
   background: #f9f9f9;
   border-radius: 0.375rem;
 `;
@@ -44,10 +38,10 @@ const Container = styled.div`
 
 const MainContent = styled.main`
   flex: 1;
-  padding: 1.5rem;
+  padding: 1rem;
   background: #f4f4f9;
   contain: paint;
-  @media (max-width: 768px) { padding: 1rem; }
+  @media (max-width: 768px) { padding: 0.75rem; }
 `;
 
 const LoadingOverlay = styled.div`
@@ -61,29 +55,29 @@ const LoadingOverlay = styled.div`
 `;
 
 const PostHeader = styled.h1`
-  font-size: 2.5rem;
+  font-size: 2.25rem;
   color: #111827;
-  margin: 1rem 0 1.5rem;
+  margin: 0.75rem 0 1rem;
   font-weight: 800;
   line-height: 1.2;
-  @media (max-width: 768px) { font-size: 2rem; }
-  @media (max-width: 480px) { font-size: 1.5rem; }
+  @media (max-width: 768px) { font-size: 1.75rem; }
+  @media (max-width: 480px) { font-size: 1.25rem; }
 `;
 
 const SubtitleHeader = styled.h2`
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   color: #011020;
-  margin: 1.25rem 0 1rem;
+  margin: 1rem 0 0.75rem;
   font-weight: 600;
   border-left: 4px solid #34db58;
-  padding-left: 0.75rem;
-  @media (max-width: 768px) { font-size: 1.25rem; }
-  @media (max-width: 480px) { font-size: 1rem; }
+  padding-left: 0.5rem;
+  @media (max-width: 768px) { font-size: 1rem; }
+  @media (max-width: 480px) { font-size: 0.875rem; }
 `;
 
 const CodeSnippetContainer = styled.div`
   position: relative;
-  margin: 1.5rem 0;
+  margin: 1rem 0;
   background: #1e1e1e;
   border-radius: 0.375rem;
   overflow: hidden;
@@ -99,7 +93,7 @@ const CopyButton = styled.button`
   padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   &:hover { background: #0056b3; }
 `;
 
@@ -107,28 +101,38 @@ const CompleteButton = styled.button`
   position: sticky;
   bottom: 1rem;
   align-self: flex-end;
-  margin: 1rem;
-  padding: 0.75rem 1.5rem;
+  margin: 1rem 0;
+  padding: 0.5rem 1rem;
   background: ${({ isCompleted }) => (isCompleted ? '#27ae60' : '#2c3e50')};
   color: #ecf0f1;
   border: none;
   border-radius: 0.375rem;
   cursor: ${({ isCompleted }) => (isCompleted ? 'not-allowed' : 'pointer')};
-  font-size: 1rem;
+  font-size: 0.875rem;
   &:hover { background: ${({ isCompleted }) => (isCompleted ? '#27ae60' : '#34495e')}; }
-  @media (max-width: 480px) { font-size: 0.875rem; padding: 0.5rem 1rem; }
+  @media (max-width: 480px) { font-size: 0.75rem; padding: 0.5rem 0.75rem; }
 `;
 
 const ImageContainer = styled.figure`
   width: 100%;
-  margin: 1.5rem 0;
+  margin: 0.75rem 0;
   aspect-ratio: 16 / 9;
+  @media (max-width: 768px) { margin: 1rem 0; }
 `;
 
 const VideoContainer = styled.figure`
   width: 100%;
-  margin: 1.5rem 0;
+  margin: 0.75rem 0;
   aspect-ratio: 16 / 9;
+  @media (max-width: 768px) { margin: 1rem 0; }
+`;
+
+const FigCaption = styled.figcaption`
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 0.25rem;
+  line-height: 1.2;
+  text-align: center;
 `;
 
 const Placeholder = styled.div`
@@ -140,7 +144,7 @@ const Placeholder = styled.div`
   justify-content: center;
   color: #666;
   border-radius: 0.375rem;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
 `;
 
 const ComparisonTableContainer = styled.section`
@@ -155,22 +159,22 @@ const ResponsiveContent = styled.div`
 const ResponsiveTable = styled.table`
   border-collapse: collapse;
   width: 100%;
-  min-width: 600px;
+  min-width: 500px;
 `;
 
 const ResponsiveHeader = styled.th`
   background: #34495e;
   color: #ecf0f1;
-  padding: 0.75rem;
+  padding: 0.5rem;
   border: 1px solid #34495e;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
 `;
 
 const ResponsiveCell = styled.td`
   border: 1px solid #34495e;
-  padding: 0.75rem;
+  padding: 0.5rem;
   vertical-align: top;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   white-space: normal;
 `;
 
@@ -184,27 +188,28 @@ const ReferenceLink = styled.a`
   text-decoration: none;
   margin: 0.25rem 0;
   padding: 0.25rem 0;
+  font-size: 0.875rem;
   &:hover { text-decoration: underline; }
-  @media (max-width: 480px) { font-size: 0.875rem; }
+  @media (max-width: 480px) { font-size: 0.75rem; }
 `;
 
 const NavigationLinks = styled.nav`
-  margin: 1.5rem 0;
+  margin: 1rem 0;
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
 `;
 
 // Critical CSS
 const criticalCSS = `
 html{font-family:'Roboto',system-ui,sans-serif;font-size:16px}
-h1{font-size:2.5rem;color:#111827;font-weight:800;margin:1rem 0 1.5rem}
-h2{font-size:1.5rem;color:#011020;font-weight:600;margin:1.25rem 0 1rem}
-main{flex:1;padding:1.5rem;background:#f4f4f9}
-figure{width:100%;margin:1.5rem 0;aspect-ratio:16/9}
-@media (max-width:768px){h1{font-size:2rem}h2{font-size:1.25rem}main{padding:1rem}}
-@media (max-width:480px){h1{font-size:1.5rem}h2{font-size:1rem}}
+h1{font-size:2.25rem;color:#111827;font-weight:800;margin:0.75rem 0 1rem}
+h2{font-size:1.25rem;color:#011020;font-weight:600;margin:1rem 0 0.75rem}
+main{flex:1;padding:1rem;background:#f4f4f9}
+figure{width:100%;margin:0.75rem 0;aspect-ratio:16/9}
+@media (max-width:768px){h1{font-size:1.75rem}h2{font-size:1rem}main{padding:0.75rem}figure{margin:1rem 0}}
+@media (max-width:480px){h1{font-size:1.25rem}h2{font-size:0.875rem}}
 `;
 
 // Utility functions
@@ -294,24 +299,50 @@ const ErrorBoundary = ({ children }) => {
   return <React.Fragment unstable_onError={() => setHasError(true)}>{children}</React.Fragment>;
 };
 
+// Memoized selectors
+const selectPostReducer = state => state.postReducer;
+const selectPost = createSelector([selectPostReducer], postReducer => postReducer.post);
+const selectPosts = createSelector([selectPostReducer], postReducer => postReducer.posts || []);
+const selectCompletedPosts = createSelector([selectPostReducer], postReducer => postReducer.completedPosts || []);
+
+// Code Highlighting Component
+const CodeHighlighter = memo(({ code, language = 'javascript' }) => {
+  const [highlighted, setHighlighted] = useState('');
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    import('highlight.js')
+      .then(hljs => {
+        const result = hljs.default.highlight(code, { language });
+        setHighlighted(result.value);
+      })
+      .catch(() => {
+        setError(true);
+      });
+  }, [code, language]);
+
+  if (error) {
+    return <pre><code>{code}</code></pre>;
+  }
+
+  return <pre><code className={`hljs language-${language}`} dangerouslySetInnerHTML={{ __html: highlighted }} /></pre>;
+});
+
 // PostPage Component
 const PostPage = memo(() => {
   const { slug } = useParams();
   const dispatch = useDispatch();
-  const post = useSelector(state => state.postReducer.post);
-  const posts = useSelector(state => state.postReducer.posts || []);
-  const completedPosts = useSelector(state => state.postReducer.completedPosts || []);
+  const post = useSelector(selectPost);
+  const posts = useSelector(selectPosts);
+  const completedPosts = useSelector(selectCompletedPosts);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [imageErrors, setImageErrors] = useState({});
   const [activeSection, setActiveSection] = useState(null);
   const subtitlesListRef = useRef(null);
-  const [toast, setToast] = useState(null);
+  const [hasFetched, setHasFetched] = useState(false);
 
   useEffect(() => {
-    import('react-toastify').then(module => setToast(() => module.toast));
-  }, []);
-
-  useEffect(() => {
+    if (hasFetched) return;
     const fetchData = async () => {
       try {
         await Promise.all([
@@ -319,17 +350,20 @@ const PostPage = memo(() => {
           dispatch(fetchPostBySlug(slug)),
           dispatch(fetchCompletedPosts()),
         ]);
+        setHasFetched(true);
       } catch (error) {
-        toast?.error('Failed to load data');
+        console.error('Failed to load data:', error);
       }
     };
     fetchData();
-  }, [dispatch, slug, toast]);
+  }, [dispatch, slug, hasFetched]);
 
   const subtitleSlugs = useMemo(() => {
     if (!post?.subtitles) return {};
     const slugs = {};
-    post.subtitles.forEach((s, i) => { slugs[`subtitle-${i}`] = slugify(s.title); });
+    post.subtitles.forEach((s, i) => {
+      slugs[`subtitle-${i}`] = slugify(s.title);
+    });
     if (post.summary) slugs.summary = 'summary';
     return slugs;
   }, [post]);
@@ -371,8 +405,8 @@ const PostPage = memo(() => {
             });
           }
         });
-      }, 200),
-      { root: null, rootMargin: '-20% 0px', threshold: 0.6 }
+      }, 300),
+      { root: null, rootMargin: '-20% 0px', threshold: 0.7 }
     );
     document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
     return () => observer.disconnect();
@@ -381,13 +415,12 @@ const PostPage = memo(() => {
   useEffect(() => {
     if (post?.titleImage) {
       const img = new Image();
-      img.src = `${post.titleImage}?w=800&format=webp`;
+      img.src = `${post.titleImage}?w=640&format=webp`;
     }
   }, [post?.titleImage]);
 
   const handleMarkAsCompleted = useCallback(async () => {
     if (!post || completedPosts.some(p => p.postId === post.postId)) {
-      toast?.info('Post already completed');
       return;
     }
     try {
@@ -398,30 +431,28 @@ const PostPage = memo(() => {
       const data = await response.json();
       if (!response.ok) {
         if (response.status === 400 && data.msg === 'Post already marked as completed') {
-          toast?.info('Post already completed');
-          dispatch({ type: 'FETCH_COMPLETED_POSTS_SUCCESS', payload: await (await fetch(
-            'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed',
-            { headers: { 'x-auth-token': localStorage.getItem('token') } }
-          )).json() });
+          dispatch({
+            type: 'FETCH_COMPLETED_POSTS_SUCCESS',
+            payload: await (await fetch(
+              'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed',
+              { headers: { 'x-auth-token': localStorage.getItem('token') } }
+            )).json()
+          });
           return;
         }
         throw new Error(data.msg || 'Failed to mark as completed');
       }
-      toast?.success('Post marked as completed!');
-      if (data.certificateUrl) {
-        toast?.success(`Certificate issued: ${data.certificateUrl}`, {
-          autoClose: 5000,
-          onClick: () => window.open(data.certificateUrl, '_blank')
-        });
-      }
-      dispatch({ type: 'FETCH_COMPLETED_POSTS_SUCCESS', payload: await (await fetch(
-        'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed',
-        { headers: { 'x-auth-token': localStorage.getItem('token') } }
-      )).json() });
+      dispatch({
+        type: 'FETCH_COMPLETED_POSTS_SUCCESS',
+        payload: await (await fetch(
+          'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed',
+          { headers: { 'x-auth-token': localStorage.getItem('token') } }
+        )).json()
+      });
     } catch (error) {
-      toast?.error(`Error: ${error.message}`);
+      console.error('Error marking post as completed:', error);
     }
-  }, [post, dispatch, toast, completedPosts]);
+  }, [post, dispatch, completedPosts]);
 
   const scrollToSection = useCallback((id, updateUrl = true) => {
     const section = document.getElementById(id);
@@ -451,8 +482,8 @@ const PostPage = memo(() => {
   }, []);
 
   const handleCopyCode = useCallback(() => {
-    toast?.success('Code copied!', { position: 'top-right', autoClose: 1500 });
-  }, [toast]);
+    // No toast notification; silently handle copy
+  }, []);
 
   const handleImageError = useCallback(url => {
     setImageErrors(prev => ({ ...prev, [url]: true }));
@@ -461,7 +492,7 @@ const PostPage = memo(() => {
   if (!post) {
     return (
       <LoadingOverlay aria-live="polite">
-        <RingLoader color="#2c3e50" size={80} />
+        <RingLoader color="#2c3e50" size={60} />
       </LoadingOverlay>
     );
   }
@@ -513,7 +544,12 @@ const PostPage = memo(() => {
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://learnx24.vercel.app/' },
         { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://learnx24.vercel.app/explore' },
-        { '@type': 'ListItem', position: 3, name: post.category || 'Tech Tutorials', item: `https://learnx24.vercel.app/category/${post.category?.toLowerCase() || 'blog'}` },
+        {
+          '@type': 'ListItem',
+          position: 3,
+          name: post.category || 'Tech Tutorials',
+          item: `https://learnx24.vercel.app/category/${post.category?.toLowerCase() || 'blog'}`
+        },
         { '@type': 'ListItem', position: 4, name: post.title, item: canonicalUrl }
       ]
     },
@@ -543,7 +579,7 @@ const PostPage = memo(() => {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="canonical" href={canonicalUrl} />
         {post.titleImage && (
-          <link rel="preload" as="image" href={`${post.titleImage}?w=800&format=webp`} fetchpriority="high" />
+          <link rel="preload" as="image" href={`${post.titleImage}?w=640&format=webp`} fetchpriority="high" />
         )}
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDescription} />
@@ -557,19 +593,21 @@ const PostPage = memo(() => {
         <meta name="twitter:description" content={pageDescription} />
         <meta name="twitter:image" content={ogImage} />
         <style>{criticalCSS}</style>
-        <link rel="preload" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;600&display=swap" as="style" onload="this.rel='stylesheet'" />
+        <link
+          rel="preload"
+          href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;600&display=swap&subset=latin,latin-ext"
+          as="style"
+          onload="this.rel='stylesheet'"
+        />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
       <Container>
         <ErrorBoundary>
           <MainContent role="main" aria-label="Main content">
-            <Suspense fallback={null}>
-              <Toast />
-            </Suspense>
             <article>
               <header>
                 <PostHeader>{parsedTitle}</PostHeader>
-                <div style={{ marginBottom: '0.75rem', color: '#666', fontSize: '0.875rem' }}>
+                <div style={{ marginBottom: '0.5rem', color: '#666', fontSize: '0.75rem' }}>
                   Read time: {readTime} min
                 </div>
                 <NavigationLinks aria-label="Page navigation">
@@ -588,7 +626,7 @@ const PostPage = memo(() => {
                   <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
                     <AccessibleZoom>
                       <img
-                        src={`${post.titleImage}?w=800&format=webp`}
+                        src={`${post.titleImage}?w=640&format=webp`}
                         srcSet={`
                           ${post.titleImage}?w=320&format=webp 320w,
                           ${post.titleImage}?w=640&format=webp 640w,
@@ -597,16 +635,15 @@ const PostPage = memo(() => {
                         `}
                         sizes="(max-width: 480px) 320px, (max-width: 768px) 640px, (max-width: 1024px) 800px, 1200px"
                         alt={`Illustration for ${post.title}`}
-                        style={{ width: '100%', height: 'auto', aspectRatio: '16 / 9' }}
+                        style={{ width: '100%', height: 'auto', aspectRatio: '16 / 9', display: 'block' }}
                         fetchpriority="high"
+                        loading="eager"
                         decoding="async"
                         onError={() => handleImageError(post.titleImage)}
                       />
                     </AccessibleZoom>
                   </Suspense>
-                  <figcaption style={{ fontSize: '0.875rem', color: '#666' }}>
-                    Image for {post.title}
-                  </figcaption>
+                  <FigCaption>Image for {post.title}</FigCaption>
                 </ImageContainer>
               )}
 
@@ -615,35 +652,32 @@ const PostPage = memo(() => {
                   <video
                     controls
                     preload="metadata"
-                    style={{ width: '100%', height: 'auto', aspectRatio: '16 / 9' }}
+                    style={{ width: '100%', height: 'auto', aspectRatio: '16 / 9', display: 'block' }}
                     fetchpriority="high"
+                    loading="eager"
                     decoding="async"
                     aria-label={`Video for ${post.title}`}
                   >
                     <source src={post.titleVideo} type="video/mp4" />
                   </video>
-                  <figcaption style={{ fontSize: '0.875rem', color: '#666' }}>
-                    Video for {post.title}
-                  </figcaption>
+                  <FigCaption>Video for {post.title}</FigCaption>
                 </VideoContainer>
               )}
 
               <p style={{ fontSize: '0.875rem' }}>
                 <time dateTime={post.date}>{post.date}</time> | Author: {post.author}
               </p>
-              <section style={{ fontSize: '1rem' }}>{parsedContent}</section>
+              <section style={{ fontSize: '0.875rem' }}>{parsedContent}</section>
 
               {post.subtitles.map((subtitle, i) => (
                 <section key={i} id={`subtitle-${i}`} aria-labelledby={`subtitle-${i}-heading`}>
-                  <SubtitleHeader id={`subtitle-${i}-heading`}>
-                    {parseLinks(subtitle.title, post.category)}
-                  </SubtitleHeader>
+                  <SubtitleHeader id={`subtitle-${i}-heading`}>{parseLinks(subtitle.title, post.category)}</SubtitleHeader>
                   {subtitle.image && (
                     <ImageContainer>
                       <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
                         <AccessibleZoom>
                           <img
-                            src={`${subtitle.image}?w=800&format=webp`}
+                            src={`${subtitle.image}?w=640&format=webp`}
                             srcSet={`
                               ${subtitle.image}?w=320&format=webp 320w,
                               ${subtitle.image}?w=640&format=webp 640w,
@@ -652,45 +686,41 @@ const PostPage = memo(() => {
                             `}
                             sizes="(max-width: 480px) 320px, (max-width: 768px) 640px, (max-width: 1024px) 800px, 1200px"
                             alt={subtitle.title}
-                            style={{ width: '100%', height: 'auto', aspectRatio: '16 / 9' }}
+                            style={{ width: '100%', height: 'auto', aspectRatio: '16 / 9', display: 'block' }}
                             loading="lazy"
                             decoding="async"
                             onError={() => handleImageError(subtitle.image)}
                           />
                         </AccessibleZoom>
                       </Suspense>
-                      <figcaption style={{ fontSize: '0.875rem', color: '#666' }}>
-                        {subtitle.title}
-                      </figcaption>
+                      <FigCaption>{subtitle.title}</FigCaption>
                     </ImageContainer>
                   )}
                   {subtitle.video && (
                     <VideoContainer>
                       <video
                         controls
-                        preload="metadata"
-                        style={{ width: '100%', height: 'auto', aspectRatio: '16 / 9' }}
+                        preload="none"
+                        style={{ width: '100%', height: 'auto', aspectRatio: '16 / 9', display: 'block' }}
                         loading="lazy"
                         decoding="async"
                         aria-label={`Video for ${subtitle.title}`}
                       >
                         <source src={subtitle.video} type="video/mp4" />
                       </video>
-                      <figcaption style={{ fontSize: '0.875rem', color: '#666' }}>
-                        Video for {subtitle.title}
-                      </figcaption>
+                      <FigCaption>Video for {subtitle.title}</FigCaption>
                     </VideoContainer>
                   )}
-                  <ul style={{ paddingLeft: '1.5rem', fontSize: '1rem' }}>
+                  <ul style={{ paddingLeft: '1.25rem', fontSize: '0.875rem' }}>
                     {subtitle.bulletPoints.map((point, j) => (
-                      <li key={j} style={{ marginBottom: '0.75rem' }}>
+                      <li key={j} style={{ marginBottom: '0.5rem' }}>
                         {parseLinks(point.text, post.category)}
                         {point.image && (
                           <ImageContainer>
                             <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
                               <AccessibleZoom>
                                 <img
-                                  src={`${point.image}?w=800&format=webp`}
+                                  src={`${point.image}?w=640&format=webp`}
                                   srcSet={`
                                     ${point.image}?w=320&format=webp 320w,
                                     ${point.image}?w=640&format=webp 640w,
@@ -699,33 +729,29 @@ const PostPage = memo(() => {
                                   `}
                                   sizes="(max-width: 480px) 320px, (max-width: 768px) 640px, (max-width: 1024px) 800px, 1200px"
                                   alt={`Example for ${point.text}`}
-                                  style={{ width: '100%', height: 'auto', aspectRatio: '16 / 9' }}
+                                  style={{ width: '100%', height: 'auto', aspectRatio: '16 / 9', display: 'block' }}
                                   loading="lazy"
                                   decoding="async"
                                   onError={() => handleImageError(point.image)}
                                 />
                               </AccessibleZoom>
-                              <figcaption style={{ fontSize: '0.875rem', color: '#666' }}>
-                                Example for {point.text}
-                              </figcaption>
                             </Suspense>
+                            <FigCaption>Example for {point.text}</FigCaption>
                           </ImageContainer>
                         )}
                         {point.video && (
                           <VideoContainer>
                             <video
                               controls
-                              preload="metadata"
-                              style={{ width: '100%', height: 'auto', aspectRatio: '16 / 9' }}
+                              preload="none"
+                              style={{ width: '100%', height: 'auto', aspectRatio: '16 / 9', display: 'block' }}
                               loading="lazy"
                               decoding="async"
                               aria-label={`Video example for ${point.text}`}
                             >
                               <source src={point.video} type="video/mp4" />
                             </video>
-                            <figcaption style={{ fontSize: '0.875rem', color: '#666' }}>
-                              Video example for {point.text}
-                            </figcaption>
+                            <FigCaption>Video example for {point.text}</FigCaption>
                           </VideoContainer>
                         )}
                         {point.codeSnippet && (
@@ -734,9 +760,7 @@ const PostPage = memo(() => {
                               <CopyButton aria-label="Copy code">Copy</CopyButton>
                             </CopyToClipboard>
                             <Suspense fallback={<Placeholder>Loading code...</Placeholder>}>
-                              <SyntaxHighlighter language="javascript" style={vs}>
-                                {sanitizeCode(point.codeSnippet)}
-                              </SyntaxHighlighter>
+                              <CodeHighlighter code={sanitizeCode(point.codeSnippet)} />
                             </Suspense>
                           </CodeSnippetContainer>
                         )}
@@ -746,46 +770,74 @@ const PostPage = memo(() => {
                 </section>
               ))}
 
-              {post.superTitles?.some(st => st.superTitle.trim() && st.attributes?.some(attr => attr.attribute.trim() && attr.items?.some(item => item.title.trim() || item.bulletPoints?.some(p => p.trim())))) && (
+              {post.superTitles?.some(
+                st =>
+                  st.superTitle.trim() &&
+                  st.attributes?.some(attr => attr.attribute.trim() && attr.items?.some(item => item.title.trim() || item.bulletPoints?.some(p => p.trim())))
+              ) && (
                 <ComparisonTableContainer aria-labelledby="comparison-heading">
                   <SubtitleHeader id="comparison-heading">Comparison</SubtitleHeader>
                   <ResponsiveContent>
                     <ResponsiveTable>
-                      <caption style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>
+                      <caption style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>
                         Comparison of {post.category} features
                       </caption>
                       <thead>
                         <tr>
                           <ResponsiveHeader scope="col">Attribute</ResponsiveHeader>
-                          {post.superTitles.map((st, i) => st.superTitle.trim() && (
-                            <ResponsiveHeader
-                              key={i}
-                              scope="col"
-                              dangerouslySetInnerHTML={{ __html: parseLinksForHtml(st.superTitle, post.category) }}
-                            />
-                          ))}
+                          {post.superTitles.map(
+                            (st, i) =>
+                              st.superTitle.trim() && (
+                                <ResponsiveHeader
+                                  key={i}
+                                  scope="col"
+                                  dangerouslySetInnerHTML={{ __html: parseLinksForHtml(st.superTitle, post.category) }}
+                                />
+                              )
+                          )}
                         </tr>
                       </thead>
                       <tbody>
-                        {post.superTitles[0]?.attributes?.map((attr, attrIdx) => attr.attribute.trim() && attr.items?.some(item => item.title.trim() || item.bulletPoints?.some(p => p.trim())) && (
-                          <tr key={attrIdx}>
-                            <ResponsiveCell scope="row" dangerouslySetInnerHTML={{ __html: parseLinksForHtml(attr.attribute, post.category) }} />
-                            {post.superTitles.map((st, stIdx) => st.attributes[attrIdx]?.items && (
-                              <ResponsiveCell key={stIdx}>
-                                {st.attributes[attrIdx].items.map((item, itemIdx) => (item.title.trim() || item.bulletPoints?.some(p => p.trim())) && (
-                                  <div key={itemIdx}>
-                                    <strong dangerouslySetInnerHTML={{ __html: parseLinksForHtml(item.title, post.category) }} />
-                                    <ul style={{ paddingLeft: '1.5rem' }}>
-                                      {item.bulletPoints?.map((point, pIdx) => point.trim() && (
-                                        <li key={pIdx} dangerouslySetInnerHTML={{ __html: parseLinksForHtml(point, post.category) }} />
-                                      ))}
-                                    </ul>
-                                  </div>
-                                ))}
-                              </ResponsiveCell>
-                            ))}
-                          </tr>
-                        ))}
+                        {post.superTitles[0]?.attributes?.map(
+                          (attr, attrIdx) =>
+                            attr.attribute.trim() &&
+                            attr.items?.some(item => item.title.trim() || item.bulletPoints?.some(p => p.trim())) && (
+                              <tr key={attrIdx}>
+                                <ResponsiveCell
+                                  scope="row"
+                                  dangerouslySetInnerHTML={{ __html: parseLinksForHtml(attr.attribute, post.category) }}
+                                />
+                                {post.superTitles.map(
+                                  (st, stIdx) =>
+                                    st.attributes[attrIdx]?.items && (
+                                      <ResponsiveCell key={stIdx}>
+                                        {st.attributes[attrIdx].items.map(
+                                          (item, itemIdx) =>
+                                            (item.title.trim() || item.bulletPoints?.some(p => p.trim())) && (
+                                              <div key={itemIdx}>
+                                                <strong
+                                                  dangerouslySetInnerHTML={{ __html: parseLinksForHtml(item.title, post.category) }}
+                                                />
+                                                <ul style={{ paddingLeft: '1.25rem' }}>
+                                                  {item.bulletPoints?.map(
+                                                    (point, pIdx) =>
+                                                      point.trim() && (
+                                                        <li
+                                                          key={pIdx}
+                                                          dangerouslySetInnerHTML={{ __html: parseLinksForHtml(point, post.category) }}
+                                                        />
+                                                      )
+                                                  )}
+                                                </ul>
+                                              </div>
+                                            )
+                                        )}
+                                      </ResponsiveCell>
+                                    )
+                                )}
+                              </tr>
+                            )
+                        )}
                       </tbody>
                     </ResponsiveTable>
                   </ResponsiveContent>
@@ -795,7 +847,7 @@ const PostPage = memo(() => {
               {post.summary && (
                 <section id="summary" aria-labelledby="summary-heading">
                   <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
-                  <p style={{ fontSize: '1rem' }}>{parsedSummary}</p>
+                  <p style={{ fontSize: '0.875rem' }}>{parsedSummary}</p>
                 </section>
               )}
 
