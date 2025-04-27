@@ -1,90 +1,113 @@
-import { useRef, useEffect, Suspense, lazy } from 'react';
-import styled from 'styled-components';
-import LazyLoad from 'react-lazyload';
+import { useRef, useCallback, Suspense } from 'react';
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 
-const Zoom = lazy(() => import('react-medium-image-zoom'));
+const ZoomWrapper = ({ children, caption, ...props }) => {
+  const wrapperRef = useRef(null);
 
-const ZoomWrapper = styled.div`
-  display: inline-block;
-  margin: 5px 0;
-  padding: 6px; 
-  min-height: 20px;
-  width: 100%;
-  max-width: 600px;
-
-  img {
-    width: 100%;
-    max-width: 600px;
-    display: block;
-    touch-action: pinch-zoom; 
-  }
-
-  @media (max-width: 768px) {
-    padding: 6px;
-    margin: 10px 0;
-  }
-
-  @media (max-width: 480px) {
-    padding: 4px;
-    margin: 8px 0;
-  }
-`;
-
-const Caption = styled.figcaption`
-  font-size: 0.875rem;
-  color: #333;
-  margin-top: 8px;
-  text-align: center;
-`;
-
-const AccessibleZoom = ({ children, caption, ...props }) => {
-  const ref = useRef(null);
-
-  useEffect(() => {
-    if (!ref.current) return;
-
-    const removeAriaOwns = () => {
-      const wrappers = ref.current.querySelectorAll('[data-rmiz]');
-      wrappers.forEach((wrapper) => {
-        if (wrapper.hasAttribute('aria-owns')) {
-          wrapper.removeAttribute('aria-owns');
-        }
-      });
-    };
-
-    removeAriaOwns();
-
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'aria-owns') {
-          removeAriaOwns();
-        }
-      });
-    });
-
-    const wrapper = ref.current.querySelector('[data-rmiz]');
-    if (wrapper) {
-      observer.observe(wrapper, { attributes: true, subtree: true });
+  const handleKeyDown = useCallback((event) => {
+    if (event.key === 'Escape') {
+      wrapperRef.current?.resetTransform();
     }
-
-    return () => observer.disconnect();
   }, []);
 
   return (
-    <LazyLoad
-      height={200} 
-      offset={100} 
-      once 
-      placeholder={<div style={{ height: '200px', background: '#f0f0f0' }}>Loading image...</div>}
+    <div
+      ref={wrapperRef}
+      role="figure"
+      aria-label={caption || 'Zoomable image'}
+      style={{
+        width: '100%',
+        display: 'block',
+        margin: '0.5rem 0',
+      }}
     >
-      <ZoomWrapper ref={ref} role="figure" aria-label={caption || 'Zoomable image'}>
-        <Suspense fallback={<div>Loading zoom...</div>}>
-          <Zoom {...props}>{children}</Zoom>
-          {caption && <Caption>{caption}</Caption>}
-        </Suspense>
-      </ZoomWrapper>
-    </LazyLoad>
+      <Suspense fallback={<div style={{ height: '200px', background: '#f0f0f0' }}>Loading image...</div>}>
+        <TransformWrapper
+          initialScale={1}
+          minScale={1}
+          maxScale={3}
+          wheel={{ step: 0.1 }}
+          pinch={{ step: 5 }}
+          doubleClick={{ step: 0.5 }}
+          {...props}
+        >
+          {({ zoomIn, zoomOut, resetTransform }) => (
+            <>
+              <TransformComponent>
+                {children}
+              </TransformComponent>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '0.5rem',
+                  justifyContent: 'center',
+                  marginTop: '0.25rem',
+                }}
+              >
+                <button
+                  onClick={() => zoomIn()}
+                  aria-label="Zoom in"
+                  style={{
+                    padding: '0.25rem 0.5rem',
+                    fontSize: '0.75rem',
+                    background: '#007bff',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '0.25rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  +
+                </button>
+                <button
+                  onClick={() => zoomOut()}
+                  aria-label="Zoom out"
+                  style={{
+                    padding: '0.25rem 0.5rem',
+                    fontSize: '0.75rem',
+                    background: '#007bff',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '0.25rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  -
+                </button>
+                <button
+                  onClick={() => resetTransform()}
+                  aria-label="Reset zoom"
+                  style={{
+                    padding: '0.25rem 0.5rem',
+                    fontSize: '0.75rem',
+                    background: '#007bff',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '0.25rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Reset
+                </button>
+              </div>
+            </>
+          )}
+        </TransformWrapper>
+        {caption && (
+          <figcaption
+            style={{
+              fontSize: '0.75rem',
+              color: '#666',
+              textAlign: 'center',
+              marginTop: '0.25rem',
+            }}
+          >
+            {caption}
+          </figcaption>
+        )}
+      </Suspense>
+    </div>
   );
 };
 
-export default AccessibleZoom;
+export default ZoomWrapper;
