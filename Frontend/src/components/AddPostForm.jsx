@@ -373,11 +373,13 @@ const AddPostForm = () => {
     }
 
     const previewUrl = URL.createObjectURL(compressedFile);
-    if (setImage === setTitleImage) {
-      setTitleImagePreview(previewUrl);
-      setTitleImage(compressedFile);
-    } else {
+
+    // For subtitle or bullet point images, update state immediately with preview
+    if (setImage !== setTitleImage) {
       setImage({ url: null, preview: previewUrl, file: compressedFile });
+    } else {
+      setTitleImagePreview(previewUrl);
+      setTitleImage(null); // Clear until upload is complete
     }
 
     let attempt = 1;
@@ -422,10 +424,13 @@ const AddPostForm = () => {
           throw new Error(`S3 URL not accessible: ${response.status}`);
         }
 
+        // Set the final URL and hash in a single state update
         if (setImage === setTitleImage) {
           setTitleImage(publicUrl);
+          setTitleImagePreview(previewUrl);
         } else {
-          setImage({ url: publicUrl, preview: previewUrl, file: compressedFile });
+          // For subtitles and bullet points, set only the URL
+          setImage(publicUrl);
         }
         setImageHash(fileHash);
         console.log('Image uploaded:', { filePath: publicUrl, fileHash });
@@ -469,11 +474,13 @@ const AddPostForm = () => {
     }
 
     const previewUrl = URL.createObjectURL(file);
-    if (setVideo === setVideo) {
-      setVideoPreview(previewUrl);
-      setVideo(file);
-    } else {
+
+    // For subtitle or bullet point videos, update state immediately with preview
+    if (setVideo !== setVideo) {
       setVideo({ url: null, preview: previewUrl, file });
+    } else {
+      setVideoPreview(previewUrl);
+      setVideo(null); // Clear until upload is complete
     }
 
     let attempt = 1;
@@ -518,10 +525,13 @@ const AddPostForm = () => {
           throw new Error(`S3 URL not accessible: ${response.status}`);
         }
 
+        // Set the final URL and hash in a single state update
         if (setVideo === setVideo) {
           setVideo(publicUrl);
+          setVideoPreview(previewUrl);
         } else {
-          setVideo({ url: publicUrl, preview: previewUrl, file });
+          // For bullet points, set only the URL
+          setVideo(publicUrl);
         }
         setVideoHash(fileHash);
         console.log('Video uploaded:', { filePath: publicUrl, fileHash });
@@ -633,6 +643,37 @@ const AddPostForm = () => {
     setSubtitles(newSubtitles);
   };
 
+  // Validate media fields before submission
+  const validateMediaFields = () => {
+    for (let i = 0; i < subtitles.length; i++) {
+      const sub = subtitles[i];
+      if (sub.image && typeof sub.image !== 'string') {
+        setError(`Subtitle ${i + 1} image upload incomplete or invalid`);
+        return false;
+      }
+      for (let j = 0; j < sub.bulletPoints.length; j++) {
+        const point = sub.bulletPoints[j];
+        if (point.image && typeof point.image !== 'string') {
+          setError(`Subtitle ${i + 1}, bullet point ${j + 1} image upload incomplete or invalid`);
+          return false;
+        }
+        if (point.video && typeof point.video !== 'string') {
+          setError(`Subtitle ${i + 1}, bullet point ${j + 1} video upload incomplete or invalid`);
+          return false;
+        }
+      }
+    }
+    if (titleImage && typeof titleImage !== 'string') {
+      setError('Title image upload incomplete or invalid');
+      return false;
+    }
+    if (video && typeof video !== 'string') {
+      setError('Video upload incomplete or invalid');
+      return false;
+    }
+    return true;
+  };
+
   async function handleSubmit(event) {
     event.preventDefault();
     if (!user) {
@@ -644,35 +685,35 @@ const AddPostForm = () => {
       setError('Please select a category');
       return;
     }
+    if (!validateMediaFields()) {
+      console.error('Media field validation failed');
+      return;
+    }
     try {
+      console.log('Subtitles before submission:', JSON.stringify(subtitles, null, 2));
+
       const processedSubtitles = subtitles.map((sub) => ({
-        ...sub,
-        title: sub.title,
-        isFAQ: sub.isFAQ,
-        // Transform subtitle.image to use the URL string or null
-        image: sub.image?.url || null,
+        title: sub.title || '',
+        isFAQ: sub.isFAQ || false,
+        image: sub.image || null,
         imageHash: sub.imageHash || null,
         bulletPoints: sub.bulletPoints.map((point) => ({
-          ...point,
-          text: point.text,
-          codeSnippet: sanitizeCodeSnippet(point.codeSnippet),
-          image: point.image?.url || null,
+          text: point.text || '',
+          codeSnippet: sanitizeCodeSnippet(point.codeSnippet || ''),
+          image: point.image || null,
           imageHash: point.imageHash || null,
-          video: point.video?.url || null,
+          video: point.video || null,
           videoHash: point.videoHash || null,
         })),
       }));
 
       const processedSuperTitles = superTitles.map((superTitle) => ({
-        ...superTitle,
-        superTitle: superTitle.superTitle,
+        superTitle: superTitle.superTitle || '',
         attributes: superTitle.attributes.map((attr) => ({
-          ...attr,
-          attribute: attr.attribute,
+          attribute: attr.attribute || '',
           items: attr.items.map((item) => ({
-            ...item,
-            title: item.title,
-            bulletPoints: item.bulletPoints,
+            title: item.title || '',
+            bulletPoints: item.bulletPoints || [],
           })),
         })),
       }));
@@ -684,20 +725,24 @@ const AddPostForm = () => {
         summary,
         subtitles: processedSubtitles,
         superTitles: processedSuperTitles,
+        titleImage,
+        video,
+        titleImageHash,
+        videoHash,
       });
 
-      dispatch(
+      await dispatch(
         addPost(
           title,
           content,
           category,
           processedSubtitles,
           summary,
-          titleImage?.url || titleImage || null, // Ensure titleImage is a string or null
+          titleImage || null,
           processedSuperTitles,
-          video?.url || video || null, // Ensure video is a string or null
-          titleImageHash,
-          videoHash
+          video || null,
+          titleImageHash || null,
+          videoHash || null
         )
       );
 
@@ -832,26 +877,30 @@ const AddPostForm = () => {
                     onChange={(e) =>
                       handleImageUpload(
                         e,
-                        (data) => {
-                          const newSubtitles = [...subtitles];
-                          newSubtitles[index].image = data;
-                          setSubtitles(newSubtitles);
+                        (url) => {
+                          setSubtitles((prev) => {
+                            const newSubtitles = [...prev];
+                            newSubtitles[index].image = url;
+                            return newSubtitles;
+                          });
                         },
                         (hash) => {
-                          const newSubtitles = [...subtitles];
-                          newSubtitles[index].imageHash = hash;
-                          setSubtitles(newSubtitles);
+                          setSubtitles((prev) => {
+                            const newSubtitles = [...prev];
+                            newSubtitles[index].imageHash = hash;
+                            return newSubtitles;
+                          });
                         },
                         category
                       )
                     }
                   />
-                  {subtitle.image?.preview && (
+                  {subtitle.image && (
                     <PreviewImage
-                      src={subtitle.image.preview}
+                      src={typeof subtitle.image === 'string' ? subtitle.image : subtitle.image.preview}
                       alt="Subtitle preview"
                       onError={(e) => {
-                        console.error('Failed to load subtitle image:', subtitle.image.preview);
+                        console.error('Failed to load subtitle image:', subtitle.image);
                         setError('Failed to preview subtitle image');
                       }}
                     />
@@ -877,26 +926,30 @@ const AddPostForm = () => {
                         onChange={(e) =>
                           handleImageUpload(
                             e,
-                            (data) => {
-                              const newSubtitles = [...subtitles];
-                              newSubtitles[index].bulletPoints[pointIndex].image = data;
-                              setSubtitles(newSubtitles);
+                            (url) => {
+                              setSubtitles((prev) => {
+                                const newSubtitles = [...prev];
+                                newSubtitles[index].bulletPoints[pointIndex].image = url;
+                                return newSubtitles;
+                              });
                             },
                             (hash) => {
-                              const newSubtitles = [...subtitles];
-                              newSubtitles[index].bulletPoints[pointIndex].imageHash = hash;
-                              setSubtitles(newSubtitles);
+                              setSubtitles((prev) => {
+                                const newSubtitles = [...prev];
+                                newSubtitles[index].bulletPoints[pointIndex].imageHash = hash;
+                                return newSubtitles;
+                              });
                             },
                             category
                           )
                         }
                       />
-                      {point.image?.preview && (
+                      {point.image && (
                         <PreviewImage
-                          src={point.image.preview}
+                          src={typeof point.image === 'string' ? point.image : point.image.preview}
                           alt="Bullet point preview"
                           onError={(e) => {
-                            console.error('Failed to load bullet point image:', point.image.preview);
+                            console.error('Failed to load bullet point image:', point.image);
                             setError('Failed to preview bullet point image');
                           }}
                         />
@@ -905,31 +958,35 @@ const AddPostForm = () => {
                     <FormGroup>
                       <Label>Bullet Point Video</Label>
                       <Input
-                        type="file"
+                        Wtype="file"
                         accept="video/mp4,video/mpeg,video/webm"
                         onChange={(e) =>
                           handleVideoUpload(
                             e,
-                            (data) => {
-                              const newSubtitles = [...subtitles];
-                              newSubtitles[index].bulletPoints[pointIndex].video = data;
-                              setSubtitles(newSubtitles);
+                            (url) => {
+                              setSubtitles((prev) => {
+                                const newSubtitles = [...prev];
+                                newSubtitles[index].bulletPoints[pointIndex].video = url;
+                                return newSubtitles;
+                              });
                             },
                             (hash) => {
-                              const newSubtitles = [...subtitles];
-                              newSubtitles[index].bulletPoints[pointIndex].videoHash = hash;
-                              setSubtitles(newSubtitles);
+                              setSubtitles((prev) => {
+                                const newSubtitles = [...prev];
+                                newSubtitles[index].bulletPoints[pointIndex].videoHash = hash;
+                                return newSubtitles;
+                              });
                             },
                             category
                           )
                         }
                       />
-                      {point.video?.preview && (
+                      {point.video && (
                         <PreviewVideo
-                          src={point.video.preview}
+                          src={typeof point.video === 'string' ? point.video : point.video.preview}
                           controls
                           onError={(e) => {
-                            console.error('Failed to load bullet point video:', point.video.preview);
+                            console.error('Failed to load bullet point video:', point.video);
                             setError('Failed to preview bullet point video');
                           }}
                         />
@@ -1044,4 +1101,5 @@ const AddPostForm = () => {
     </FormContainer>
   );
 };
+
 export default AddPostForm;
