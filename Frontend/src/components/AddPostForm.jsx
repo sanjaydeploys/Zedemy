@@ -1038,5 +1038,4 @@ const AddPostForm = () => {
     </FormContainer>
   );
 };
-
 export default AddPostForm;
