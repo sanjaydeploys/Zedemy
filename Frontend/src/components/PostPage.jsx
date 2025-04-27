@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, memo, useMemo, useCallback, Suspense, useDeferredValue } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchPostBySlug, fetchCompletedPosts, fetchPosts } from '../actions/postActions';
+import { fetchPostBySlug, fetchCompletedPosts, fetchPosts, markPostAsCompleted } from '../actions/postActions';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import styled from 'styled-components';
@@ -68,7 +68,7 @@ const LoadingOverlay = styled.div`
 
 const SkeletonHeader = styled.div`
   width: 60%;
-  height: 2.25rem;
+  height: 2rem;
   background: #e0e0e0;
   border-radius: 0.375rem;
   margin: 0.75rem 0 1rem;
@@ -76,39 +76,27 @@ const SkeletonHeader = styled.div`
 
 const SkeletonText = styled.div`
   width: ${(props) => props.width || '100%'};
-  height: 1rem;
+  height: 0.875rem;
   background: #e0e0e0;
   border-radius: 0.25rem;
   margin: 0.5rem 0;
 `;
 
 const PostHeader = styled.h1`
-  font-size: 2.25rem;
+  font-size: clamp(1.5rem, 5vw, 2rem);
   color: #111827;
   margin: 0.75rem 0 1rem;
   font-weight: 800;
   line-height: 1.2;
-  @media (max-width: 768px) {
-    font-size: 1.75rem;
-  }
-  @media (max-width: 480px) {
-    font-size: 1.25rem;
-  }
 `;
 
 const SubtitleHeader = styled.h2`
-  font-size: 1.25rem;
+  font-size: clamp(1rem, 4vw, 1.25rem);
   color: #011020;
   margin: 1rem 0 0.75rem;
   font-weight: 600;
   border-left: 4px solid #34db58;
   padding-left: 0.5rem;
-  @media (max-width: 768px) {
-    font-size: 1rem;
-  }
-  @media (max-width: 480px) {
-    font-size: 0.875rem;
-  }
 `;
 
 const CodeSnippetContainer = styled.div`
@@ -160,11 +148,34 @@ const CompleteButton = styled.button`
 
 const ImageContainer = styled.figure`
   width: 100%;
+  max-width: 100%;
+  margin: 0.75rem 0;
+  overflow: hidden;
+`;
+
+const PostImage = styled.img`
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  border-radius: 0.375rem;
+  aspect-ratio: 16 / 9;
 `;
 
 const VideoContainer = styled.figure`
   width: 100%;
+  max-width: 100%;
   margin: 0.75rem 0;
+`;
+
+const PostVideo = styled.video`
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  max-height: 60vh;
+  border-radius: 0.375rem;
+  aspect-ratio: 16 / 9;
 `;
 
 const Placeholder = styled.div`
@@ -254,7 +265,7 @@ const criticalCSS = `
     font-size: 16px;
   }
   h1 {
-    font-size: 2.25rem;
+    font-size: clamp(1.5rem, 5vw, 2rem);
     color: #111827;
     font-weight: 800;
     margin: 0.75rem 0 1rem;
@@ -264,17 +275,18 @@ const criticalCSS = `
     padding: 1rem;
     background: #f4f4f9;
   }
+  img, video {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+    max-height: 60vh;
+    object-fit: contain;
+    border-radius: 0.375rem;
+    aspect-ratio: 16 / 9;
+  }
   @media (max-width: 768px) {
-    h1 {
-      font-size: 1.75rem;
-    }
     main {
       padding: 0.75rem;
-    }
-  }
-  @media (max-width: 480px) {
-    h1 {
-      font-size: 1.25rem;
     }
   }
 `;
@@ -404,10 +416,10 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
         <ImageContainer>
           <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
             <AccessibleZoom caption={subtitle.title || ''}>
-              <img
-                src={`${subtitle.image}?w=320&format=webp`}
-                srcSet={`${subtitle.image}?w=320&format=webp 320w, ${subtitle.image}?w=640&format=webp 640w, ${subtitle.image}?w=800&format=webp 800w, ${subtitle.image}?w=1200&format=webp 1200w`}
-                sizes="(max-width: 480px) 320px, (max-width: 768px) 640px, (max-width: 1024px) 800px, 1200px"
+              <PostImage
+                src={`${subtitle.image}?w=480&format=webp&q=75`}
+                srcSet={`${subtitle.image}?w=480&format=webp&q=75 480w, ${subtitle.image}?w=768&format=webp&q=75 768w, ${subtitle.image}?w=1024&format=webp&q=75 1024w`}
+                sizes="(max-width: 480px) 480px, (max-width: 768px) 768px, 1024px"
                 alt={subtitle.title || 'Subtitle image'}
                 loading="lazy"
                 decoding="async"
@@ -419,16 +431,15 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
       )}
       {subtitle.video && (
         <VideoContainer>
-          <video
+          <PostVideo
             controls
             preload="none"
-            style={{ width: '100%', height: 'auto' }}
             loading="lazy"
             decoding="async"
             aria-label={`Video for ${subtitle.title || 'subtitle'}`}
           >
-            <source src={subtitle.video} type="video/mp4" />
-          </video>
+            <source src={`${subtitle.video}#t=0.1`} type="video/mp4" />
+          </PostVideo>
         </VideoContainer>
       )}
       <ul style={{ paddingLeft: '1.25rem', fontSize: '0.875rem' }}>
@@ -439,10 +450,10 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
               <ImageContainer>
                 <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
                   <AccessibleZoom caption={`Example for ${point.text || ''}`}>
-                    <img
-                      src={`${point.image}?w=320&format=webp`}
-                      srcSet={`${point.image}?w=320&format=webp 320w, ${point.image}?w=640&format=webp 640w, ${point.image}?w=800&format=webp 800w, ${point.image}?w=1200&format=webp 1200w`}
-                      sizes="(max-width: 480px) 320px, (max-width: 768px) 640px, (max-width: 1024px) 800px, 1200px"
+                    <PostImage
+                      src={`${point.image}?w=480&format=webp&q=75`}
+                      srcSet={`${point.image}?w=480&format=webp&q=75 480w, ${point.image}?w=768&format=webp&q=75 768w, ${point.image}?w=1024&format=webp&q=75 1024w`}
+                      sizes="(max-width: 480px) 480px, (max-width: 768px) 768px, 1024px"
                       alt={`Example for ${point.text || 'bullet point'}`}
                       loading="lazy"
                       decoding="async"
@@ -454,16 +465,15 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
             )}
             {point.video && (
               <VideoContainer>
-                <video
+                <PostVideo
                   controls
                   preload="none"
-                  style={{ width: '100%', height: 'auto' }}
                   loading="lazy"
                   decoding="async"
                   aria-label={`Video example for ${point.text || 'bullet point'}`}
                 >
-                  <source src={point.video} type="video/mp4" />
-                </video>
+                  <source src={`${point.video}#t=0.1`} type="video/mp4" />
+                </PostVideo>
               </VideoContainer>
             )}
             {point.codeSnippet && (
@@ -580,44 +590,14 @@ const PostPage = memo(() => {
   useEffect(() => {
     if (post?.titleImage) {
       const img = new Image();
-      img.src = `${post.titleImage}?w=320&format=webp`;
+      img.src = `${post.titleImage}?w=480&format=webp&q=75`;
     }
   }, [post?.titleImage]);
 
-  const handleMarkAsCompleted = useCallback(async () => {
-    if (!post || completedPosts.some((p) => p.postId === post.postId)) return;
-    try {
-      const response = await fetch(
-        `https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/complete/${post.postId}`,
-        { method: 'PUT', headers: { 'x-auth-token': localStorage.getItem('token') || '' } }
-      );
-      const data = await response.json();
-      if (!response.ok) {
-        if (response.status === 400 && data.msg === 'Post already marked as completed') {
-          dispatch({
-            type: 'FETCH_COMPLETED_POSTS_SUCCESS',
-            payload: await (
-              await fetch('https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed', {
-                headers: { 'x-auth-token': localStorage.getItem('token') || '' },
-              })
-            ).json(),
-          });
-          return;
-        }
-        throw new Error(data.msg || 'Failed to mark as completed');
-      }
-      dispatch({
-        type: 'FETCH_COMPLETED_POSTS_SUCCESS',
-        payload: await (
-          await fetch('https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed', {
-            headers: { 'x-auth-token': localStorage.getItem('token') || '' },
-          })
-        ).json(),
-      });
-    } catch (error) {
-      console.error('Error marking post as completed:', error);
-    }
-  }, [post, dispatch, completedPosts]);
+  const handleMarkAsCompleted = useCallback(() => {
+    if (!post) return;
+    dispatch(markPostAsCompleted(post.postId));
+  }, [dispatch, post]);
 
   const scrollToSection = useCallback(
     (id, updateUrl = true) => {
@@ -762,7 +742,14 @@ const PostPage = memo(() => {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
         {post.titleImage && (
-          <link rel="preload" as="image" href={`${post.titleImage}?w=320&format=webp`} fetchpriority="high" />
+          <link
+            rel="preload"
+            as="image"
+            href={`${post.titleImage}?w=480&format=webp&q=75`}
+            fetchpriority="high"
+            imagesrcset={`${post.titleImage}?w=480&format=webp&q=75 480w, ${post.titleImage}?w=768&format=webp&q=75 768w, ${post.titleImage}?w=1024&format=webp&q=75 1024w`}
+            imagesizes="(max-width: 480px) 480px, (max-width: 768px) 768px, 1024px"
+          />
         )}
         <meta property="og:title" content={`${post.title} | Zedemy`} />
         <meta property="og:description" content={truncateText(post.summary || post.content, 160)} />
@@ -771,6 +758,8 @@ const PostPage = memo(() => {
           content={post.titleImage || 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
         />
         <meta property="og:image:alt" content={`${post.title} tutorial`} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="675" />
         <meta property="og:url" content={`https://zedemy.vercel.app/post/${slug}`} />
         <meta property="og:type" content="article" />
         <meta property="og:site_name" content="Zedemy" />
@@ -782,11 +771,6 @@ const PostPage = memo(() => {
           content={post.titleImage || 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
         />
         <style>{criticalCSS}</style>
-        <link
-          rel="preload"
-          as="style"
-          onload="this.rel='stylesheet'"
-        />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
       <Container>
@@ -816,14 +800,16 @@ const PostPage = memo(() => {
               <ImageContainer>
                 <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
                   <AccessibleZoom caption={`Illustration for ${post.title}`}>
-                    <img
-                      src={`${post.titleImage}?w=320&format=webp`}
-                      srcSet={`${post.titleImage}?w=320&format=webp 320w, ${post.titleImage}?w=640&format=webp 640w, ${post.titleImage}?w=800&format=webp 800w, ${post.titleImage}?w=1200&format=webp 1200w`}
-                      sizes="(max-width: 480px) 320px, (max-width: 768px) 640px, (max-width: 1024px) 800px, 1200px"
+                    <PostImage
+                      src={`${post.titleImage}?w=480&format=webp&q=75`}
+                      srcSet={`${post.titleImage}?w=480&format=webp&q=75 480w, ${post.titleImage}?w=768&format=webp&q=75 768w, ${post.titleImage}?w=1024&format=webp&q=75 1024w`}
+                      sizes="(max-width: 480px) 480px, (max-width: 768px) 768px, 1024px"
                       alt={`Illustration for ${post.title}`}
                       fetchpriority="high"
                       loading="eager"
                       decoding="async"
+                      width="1200"
+                      height="675"
                       onError={() => handleImageError(post.titleImage)}
                     />
                   </AccessibleZoom>
@@ -833,16 +819,15 @@ const PostPage = memo(() => {
 
             {post.titleVideo && (
               <VideoContainer>
-                <video
+                <PostVideo
                   controls
                   preload="metadata"
-                  style={{ width: '100%', height: 'auto' }}
                   loading="eager"
                   decoding="async"
                   aria-label={`Video for ${post.title}`}
                 >
-                  <source src={post.titleVideo} type="video/mp4" />
-                </video>
+                  <source src={`${post.titleVideo}#t=0.1`} type="video/mp4" />
+                </PostVideo>
               </VideoContainer>
             )}
 
