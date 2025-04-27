@@ -7,7 +7,7 @@ import DOMPurify from 'dompurify';
 import styled from 'styled-components';
 import { Tooltip } from '@material-ui/core';
 
-// Styled Components (unchanged)
+// Styled Components
 const FormContainer = styled.div`
   max-width: 1200px;
   margin: 20px auto;
@@ -81,6 +81,8 @@ const Button = styled.button`
   border-radius: 5px;
   cursor: pointer;
   margin-top: 10px;
+  opacity: ${(props) => (props.disabled ? 0.6 : 1)};
+  pointer-events: ${(props) => (props.disabled ? 'none' : 'auto')};
 
   &:hover {
     background-color: #0056b3;
@@ -141,6 +143,7 @@ const AddPostForm = () => {
   const [videoHash, setVideoHash] = useState(null);
   const [videoPreview, setVideoPreview] = useState(null);
   const [error, setError] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
   const { user } = useSelector((state) => state.auth);
   const categories = [
     'VS Code', 'HTML', 'CSS', 'JavaScript', 'Node.js', 'React', 'Angular', 'Vue.js', 'Next.js', 'Nuxt.js',
@@ -150,8 +153,6 @@ const AddPostForm = () => {
   const [superTitles, setSuperTitles] = useState([
     { superTitle: '', attributes: [{ attribute: '', items: [{ title: '', bulletPoints: [''] }] }] },
   ]);
-
-
 
   // Sanitization configuration for code snippets
   const codeSanitizeConfig = {
@@ -167,18 +168,17 @@ const AddPostForm = () => {
   // File validation
   async function validateFile(file, type) {
     if (!file) return 'No file selected';
-  
-    const maxSize = type === 'image' ? 10 * 1024 * 1024 : 50 * 1024 * 1024; // Increased image size limit to 10MB
+
+    const maxSize = type === 'image' ? 10 * 1024 * 1024 : 50 * 1024 * 1024;
     if (file.size > maxSize) return `File size exceeds ${type === 'image' ? '10MB' : '50MB'}`;
-  
+
     const validImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff'];
     const validVideoTypes = ['video/mp4', 'video/mpeg', 'video/webm'];
     const validTypes = type === 'image' ? validImageTypes : validVideoTypes;
-  
+
     if (!validTypes.includes(file.type)) return `Invalid ${type} format: ${file.type}`;
-  
+
     if (type === 'image') {
-      // Validate image dimensions and integrity
       try {
         const img = new Image();
         const objectUrl = URL.createObjectURL(file);
@@ -204,7 +204,7 @@ const AddPostForm = () => {
         return err.message;
       }
     }
-  
+
     return '';
   }
 
@@ -220,9 +220,8 @@ const AddPostForm = () => {
     }
   }
 
-// In AddPostForm.jsx, replace compressAndConvertToWebP with:
-async function compressAndConvertToWebP(file, targetSizeKB = 50) {
-    // Detect WebP support
+  // Compress and convert to WebP
+  async function compressAndConvertToWebP(file, targetSizeKB = 50) {
     async function supportsWebP() {
       return new Promise((resolve) => {
         const img = new Image();
@@ -231,29 +230,27 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
         img.src = 'data:image/webp;base64,UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEADsD+JaQAA3AAAAAA';
       });
     }
-  
+
     return new Promise((resolve, reject) => {
       const img = new Image();
       const reader = new FileReader();
-  
+
       function handleReaderLoad(event) {
         img.src = event.target.result;
-  
+
         async function handleImageLoad() {
           try {
-            // Check WebP support
             const useWebP = await supportsWebP();
             const format = useWebP ? 'image/webp' : 'image/jpeg';
             const extension = useWebP ? '.webp' : '.jpg';
-  
+
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             if (!ctx) {
               throw new Error('Failed to get canvas context');
             }
-  
-            // Cap maximum dimensions to prevent memory issues
-            const maxDimension = 1920; // Max width/height
+
+            const maxDimension = 1920;
             let width = img.width;
             let height = img.height;
             if (width > maxDimension || height > maxDimension) {
@@ -266,19 +263,18 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
                 width = Math.round(maxDimension * aspectRatio);
               }
             }
-  
+
             canvas.width = width;
             canvas.height = height;
-  
-            // Preserve transparency for PNG/GIF
+
             if (file.type === 'image/png' || file.type === 'image/gif') {
               ctx.globalCompositeOperation = 'copy';
             }
             ctx.drawImage(img, 0, 0, width, height);
-  
+
             let quality = 0.9;
             let blob;
-  
+
             while (quality > 0.1) {
               blob = await new Promise((resolveBlob) => {
                 canvas.toBlob(
@@ -287,28 +283,26 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
                   quality
                 );
               });
-  
+
               if (!blob) {
                 throw new Error(`Failed to create ${format} blob`);
               }
-  
+
               const sizeKB = blob.size / 1024;
               if (sizeKB <= targetSizeKB * 1.2) {
                 break;
               }
-  
-              // Reduce dimensions if still too large
+
               width *= 0.9;
               height *= 0.9;
               canvas.width = width;
               canvas.height = height;
               ctx.drawImage(img, 0, 0, width, height);
-  
+
               quality -= 0.1;
             }
-  
+
             if (!blob) {
-              // Fallback to JPEG with lower quality
               blob = await new Promise((resolveBlob) => {
                 canvas.toBlob(
                   (b) => resolveBlob(b),
@@ -328,7 +322,7 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
               resolve(jpegFile);
               return;
             }
-  
+
             const compressedFile = new File(
               [blob],
               file.name.replace(/\.[^/.]+$/, extension),
@@ -339,11 +333,11 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
             reject(new Error(`Image processing failed for ${file.name}: ${err.message}`));
           }
         }
-  
+
         img.onload = handleImageLoad;
         img.onerror = () => reject(new Error(`Failed to load image: ${file.name}`));
       }
-  
+
       reader.onload = handleReaderLoad;
       reader.onerror = () => reject(new Error(`Failed to read file: ${file.name}`));
       reader.readAsDataURL(file);
@@ -360,14 +354,14 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
       setIsUploading(false);
       return;
     }
-  
+
     const validationError = await validateFile(file, 'image');
     if (validationError) {
       setError(validationError);
       setIsUploading(false);
       return;
     }
-  
+
     let compressedFile;
     try {
       compressedFile = await compressAndConvertToWebP(file, 50);
@@ -377,7 +371,7 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
       setIsUploading(false);
       return;
     }
-  
+
     const previewUrl = URL.createObjectURL(compressedFile);
     if (setImage === setTitleImage) {
       setTitleImagePreview(previewUrl);
@@ -385,7 +379,7 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
     } else {
       setImage({ url: null, preview: previewUrl, file: compressedFile });
     }
-  
+
     let attempt = 1;
     while (attempt <= retries) {
       try {
@@ -395,7 +389,7 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
           size: compressedFile.size,
           category: categoryOverride,
         });
-  
+
         const res = await axios.post(
           'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/get-presigned-url',
           {
@@ -405,13 +399,13 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
           }
         );
         const { signedUrl, publicUrl, key } = res.data;
-  
+
         await axios.put(signedUrl, compressedFile, {
           headers: { 'Content-Type': compressedFile.type },
         });
-  
+
         const fileHash = await generateFileHash(compressedFile);
-  
+
         await axios.post(
           'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
           {
@@ -422,12 +416,12 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
             userId: user?.id || 'anonymous',
           }
         );
-  
+
         const response = await fetch(publicUrl);
         if (!response.ok) {
           throw new Error(`S3 URL not accessible: ${response.status}`);
         }
-  
+
         if (setImage === setTitleImage) {
           setTitleImage(publicUrl);
         } else {
@@ -455,7 +449,8 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
       }
     }
   }
-  
+
+  // Handle video upload
   async function handleVideoUpload(event, setVideo, setVideoHash, categoryOverride = category, retries = 3) {
     const file = event.target.files[0];
     setError('');
@@ -465,14 +460,14 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
       setIsUploading(false);
       return;
     }
-  
+
     const validationError = await validateFile(file, 'video');
     if (validationError) {
       setError(validationError);
       setIsUploading(false);
       return;
     }
-  
+
     const previewUrl = URL.createObjectURL(file);
     if (setVideo === setVideo) {
       setVideoPreview(previewUrl);
@@ -480,7 +475,7 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
     } else {
       setVideo({ url: null, preview: previewUrl, file });
     }
-  
+
     let attempt = 1;
     while (attempt <= retries) {
       try {
@@ -490,7 +485,7 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
           size: file.size,
           category: categoryOverride,
         });
-  
+
         const res = await axios.post(
           'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/get-presigned-url',
           {
@@ -500,13 +495,13 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
           }
         );
         const { signedUrl, publicUrl, key } = res.data;
-  
+
         await axios.put(signedUrl, file, {
           headers: { 'Content-Type': file.type },
         });
-  
+
         const fileHash = await generateFileHash(file);
-  
+
         await axios.post(
           'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
           {
@@ -517,12 +512,12 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
             userId: user?.id || 'anonymous',
           }
         );
-  
+
         const response = await fetch(publicUrl);
         if (!response.ok) {
           throw new Error(`S3 URL not accessible: ${response.status}`);
         }
-  
+
         if (setVideo === setVideo) {
           setVideo(publicUrl);
         } else {
@@ -658,8 +653,8 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
           ...point,
           text: point.text,
           codeSnippet: sanitizeCodeSnippet(point.codeSnippet),
-          image: typeof point.image === 'object' ? point.image?.url : point.image,
-          video: typeof point.video === 'object' ? point.video?.url : point.video,
+          image: point.image?.url || point.image,
+          video: point.video?.url || point.video,
         })),
       }));
 
@@ -693,9 +688,9 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
           category,
           processedSubtitles,
           summary,
-          typeof titleImage === 'object' ? titleImage?.url : titleImage,
+          titleImage?.url || titleImage,
           processedSuperTitles,
-          typeof video === 'object' ? video?.url : video,
+          video?.url || video,
           titleImageHash,
           videoHash
         )
@@ -758,7 +753,7 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
                 <Label>Title Image</Label>
                 <Input
                   type="file"
-                  accept="image/jpeg,image/png,image/gif"
+                  accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/tiff"
                   onChange={(e) => handleImageUpload(e, setTitleImage, setTitleImageHash, category)}
                 />
                 {titleImagePreview && (
@@ -827,13 +822,13 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
                   <Label>Subtitle Image</Label>
                   <Input
                     type="file"
-                    accept="image/jpeg,image/png,image/gif"
+                    accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/tiff"
                     onChange={(e) =>
                       handleImageUpload(
                         e,
-                        (url) => {
+                        (data) => {
                           const newSubtitles = [...subtitles];
-                          newSubtitles[index].image = url;
+                          newSubtitles[index].image = data;
                           setSubtitles(newSubtitles);
                         },
                         (hash) => {
@@ -845,6 +840,16 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
                       )
                     }
                   />
+                  {subtitle.image?.preview && (
+                    <PreviewImage
+                      src={subtitle.image.preview}
+                      alt="Subtitle preview"
+                      onError={(e) => {
+                        console.error('Failed to load subtitle image:', subtitle.image.preview);
+                        setError('Failed to preview subtitle image');
+                      }}
+                    />
+                  )}
                 </FormGroup>
                 {subtitle.bulletPoints.map((point, pointIndex) => (
                   <div key={pointIndex}>
@@ -862,13 +867,13 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
                       <Label>Bullet Point Image</Label>
                       <Input
                         type="file"
-                        accept="image/jpeg,image/png,image/gif"
+                        accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/tiff"
                         onChange={(e) =>
                           handleImageUpload(
                             e,
-                            (url) => {
+                            (data) => {
                               const newSubtitles = [...subtitles];
-                              newSubtitles[index].bulletPoints[pointIndex].image = url;
+                              newSubtitles[index].bulletPoints[pointIndex].image = data;
                               setSubtitles(newSubtitles);
                             },
                             (hash) => {
@@ -880,6 +885,16 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
                           )
                         }
                       />
+                      {point.image?.preview && (
+                        <PreviewImage
+                          src={point.image.preview}
+                          alt="Bullet point preview"
+                          onError={(e) => {
+                            console.error('Failed to load bullet point image:', point.image.preview);
+                            setError('Failed to preview bullet point image');
+                          }}
+                        />
+                      )}
                     </FormGroup>
                     <FormGroup>
                       <Label>Bullet Point Video</Label>
@@ -889,9 +904,9 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
                         onChange={(e) =>
                           handleVideoUpload(
                             e,
-                            (url) => {
+                            (data) => {
                               const newSubtitles = [...subtitles];
-                              newSubtitles[index].bulletPoints[pointIndex].video = url;
+                              newSubtitles[index].bulletPoints[pointIndex].video = data;
                               setSubtitles(newSubtitles);
                             },
                             (hash) => {
@@ -903,12 +918,12 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
                           )
                         }
                       />
-                      {point.video && (
+                      {point.video?.preview && (
                         <PreviewVideo
-                          src={typeof point.video === 'object' ? point.video.preview : point.video}
+                          src={point.video.preview}
                           controls
                           onError={(e) => {
-                            console.error('Failed to load bullet point video:', point.video);
+                            console.error('Failed to load bullet point video:', point.video.preview);
                             setError('Failed to preview bullet point video');
                           }}
                         />
@@ -1015,7 +1030,9 @@ async function compressAndConvertToWebP(file, targetSizeKB = 50) {
             </FormGroup>
           </Section>
 
-          <Button type="submit">Add Post</Button>
+          <Button type="submit" disabled={isUploading}>
+            {isUploading ? 'Uploading...' : 'Add Post'}
+          </Button>
         </form>
       </FullWidthSection>
     </FormContainer>
