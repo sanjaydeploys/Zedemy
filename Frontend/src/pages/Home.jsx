@@ -440,7 +440,7 @@ const Home = memo(() => {
 
   const handleCertificatePreview = () => {
     window.open(
-      'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/certificates/Zedemy_by_HogwartsEdx_VS%20Code_2025-04-20_5c0f2f41-57cb-46ce-89ef-0a89298b002a.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIA5BQ4NJCXBUCDIMHH%2F20250423%2Fap-south-1%2Fs3%2Faws4_request&X-Amz-Date=20250423T095231Z&X-Amz-Expires=60&X-Amz-Signature=870f6be370cb38e4bc51daef097ad46803530cc7f90851f1f128aff0279fdef3&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject',
+      'https://Zedemy-media-2025.s3.ap-south-1.amazonaws.com/certificates/Zedemy_by_HogwartsEdx_VS%20Code_2025-04-20_5c0f2f41-57cb-46ce-89ef-0a89298b002a.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIA5BQ4NJCXBUCDIMHH%2F20250423%2Fap-south-1%2Fs3%2Faws4_request&X-Amz-Date=20250423T095231Z&X-Amz-Expires=60&X-Amz-Signature=870f6be370cb38e4bc51daef097ad46803530cc7f90851f1f128aff0279fdef3&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject',
       '_blank'
     );
   };
@@ -524,7 +524,7 @@ const Home = memo(() => {
       name: 'How can I join Zedemy’s tech community?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Visit zedemy.vercel.app to sign up, learn, create courses, and connect with a global community of tech enthusiasts and educators.',
+        text: 'Visit Zedemy.vercel.app to sign up, learn, create courses, and connect with a global community of tech enthusiasts and educators.',
       },
     },
     {
@@ -591,12 +591,12 @@ const Home = memo(() => {
         name: 'Zedemy',
         logo: {
           '@type': 'ImageObject',
-          url: 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png',
+          url: 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png',
         },
       },
       image: {
         '@type': 'ImageObject',
-        url: 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png',
+        url: 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png',
       },
       inLanguage: 'en',
     },
@@ -607,7 +607,7 @@ const Home = memo(() => {
       url: 'https://zedemy.vercel.app/',
       logo: {
         '@type': 'ImageObject',
-        url: 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png',
+        url: 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png',
       },
       founder: {
         '@type': 'Person',
@@ -618,7 +618,7 @@ const Home = memo(() => {
         'https://www.linkedin.com/in/sanjay-patidar/',
         'https://twitter.com/sanjaypatidar',
         'https://www.instagram.com/sanjaypatidar_/',
-        'https://www.facebook.com/zedemy',
+        'https://www.facebook.com/Zedemy',
       ],
     },
     {
@@ -666,10 +666,10 @@ const Home = memo(() => {
     <>
       <Helmet>
         <html lang="en" />
-        <title>Zedemy | Learn & Build Tech Skills | Sanjay Patidar</title>
+        <title>Zedemy: Courses, Code & Certificates by Sanjay Patidar</title>
         <meta
           name="description"
-          content="Zedemy, founded by Sanjay Patidar, offers online tech courses, certificate verification, and in-browser coding. Learn web development, AI, and more."
+          content="Zedemy by Sanjay Patidar: Category-based courses, certificates and code formatting. Master skills with Indian-rooted online learning platform for career growth!"
         />
         <meta
           name="keywords"
@@ -678,9 +678,9 @@ const Home = memo(() => {
         <meta name="author" content="Sanjay Patidar" />
         <meta name="robots" content="index, follow, max-image-preview:large" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="icon" type="image/svg+xml" href="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
+        <link rel="icon" type="image/svg+xml" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
         <link rel="canonical" href="https://zedemy.vercel.app/" />
-        <link rel="preload" as="image" href="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
+        <link rel="preload" as="image" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
         <link
           rel="preload"
           as="image"
@@ -691,14 +691,14 @@ const Home = memo(() => {
           media="print"
           onload="this.media='all'"
         />
-        <meta property="og:title" content="Zedemy | Learn & Build Tech Skills | Sanjay Patidar" />
+        <meta property="og:title" content="Zedemy: Courses, Code & Certificates by Sanjay Patidar" />
         <meta
           property="og:description"
-          content="Zedemy, founded by Sanjay Patidar, offers online tech courses, certificate verification, and in-browser coding. Learn web development, AI, and more."
+          content="Zedemy by Sanjay Patidar: Category-based courses, certificates and code formatting. Master skills with Indian-rooted online learning platform for career growth!"
         />
         <meta
           property="og:image"
-          content="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png"
+          content="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png"
         />
         <meta property="og:image:alt" content="Zedemy Tech Education Platform Logo" />
         <meta property="og:image:width" content="1200" />
@@ -707,14 +707,14 @@ const Home = memo(() => {
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Zedemy" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Zedemy | Learn & Build Tech Skills | Sanjay Patidar" />
+        <meta name="twitter:title" content="Zedemy: Courses, Code & Certificates by Sanjay Patidar" />
         <meta
           name="twitter:description"
-          content="Zedemy, founded by Sanjay Patidar, offers online tech courses, certificate verification, and in-browser coding. Learn web development, AI, and more."
+          content="Zedemy by Sanjay Patidar: Category-based courses, certificates and code formatting. Master skills with Indian-rooted online learning platform for career growth!"
         />
         <meta
           name="twitter:image"
-          content="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png"
+          content="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png"
         />
         <meta name="twitter:image:alt" content="Zedemy Tech Education Platform Logo" />
         <meta name="twitter:site" content="@sanjaypatidar" />
@@ -733,7 +733,8 @@ const Home = memo(() => {
           <TextContainer>
             <StyledText>
               <H3>
-                Welcome to <span className="eduxcel-text">Hog<span className="x-letter">W</span>arts<span className="x-letter">E</span>dx</span>{' '}
+              <span className="eduxcel-text">Learn<span className="x-letter">X</span></span> {}{'by'} {}
+                 <span className="eduxcel-text">Hog<span className="x-letter">W</span>arts<span className="x-letter">E</span>dx</span>{' '}
               </H3>
             </StyledText>
             <Subtitle>Experience the future of tech education with intelligent features</Subtitle>
