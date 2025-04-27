@@ -7,21 +7,21 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
   plugins: [
     react({
-      jsxRuntime: 'automatic', // Optimize JSX runtime
+      jsxRuntime: 'automatic',
       fastRefresh: true,
     }),
     viteCompression({
-      algorithm: 'brotliCompress', // Better compression than gzip
+      algorithm: 'brotliCompress',
       ext: '.br',
       threshold: 1024,
     }),
     viteCompression({
-      algorithm: 'gzip', // Fallback for browsers without Brotli
+      algorithm: 'gzip',
       ext: '.gz',
       threshold: 1024,
     }),
     visualizer({
-      open: false, // Avoid auto-opening in CI
+      open: false,
       filename: 'dist/stats.html',
       gzipSize: true,
       brotliSize: true,
@@ -46,6 +46,25 @@ export default defineConfig({
             handler: 'StaleWhileRevalidate',
             options: { cacheName: 'google-fonts', cacheableResponse: { statuses: [0, 200] } },
           },
+          {
+            urlPattern: /^https:\/\/se3fw2nzc2\.execute-api\.ap-south-1\.amazonaws\.com/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              expiration: { maxEntries: 100, maxAgeSeconds: 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+              networkTimeoutSeconds: 5,
+            },
+          },
+          {
+            urlPattern: /^https:\/\/d2rq30ca0zyvzp\.cloudfront\.net/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'cloudfront-assets',
+              expiration: { maxEntries: 50, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
         ],
       },
       manifest: {
@@ -53,10 +72,8 @@ export default defineConfig({
         short_name: 'LearnX',
         description: 'Tech tutorials for Indian students',
         theme_color: '#2c3e50',
-        icons: [
-          { src: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
-        ],
+        // No static icons since content is dynamic
+        icons: [], 
       },
     }),
   ],
@@ -69,7 +86,7 @@ export default defineConfig({
   },
   build: {
     minify: 'esbuild',
-    sourcemap: false, // Disable in production for smaller bundles
+    sourcemap: false,
     target: 'esnext',
     rollupOptions: {
       output: {
@@ -82,8 +99,8 @@ export default defineConfig({
     },
     outDir: 'dist',
     assetsDir: 'assets',
-    assetsInlineLimit: 4096, // Inline small assets
-    chunkSizeWarningLimit: 1000, // Warn for large chunks
+    assetsInlineLimit: 4096,
+    chunkSizeWarningLimit: 800, // Lowered to catch large chunks
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
