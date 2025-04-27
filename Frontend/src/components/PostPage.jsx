@@ -655,14 +655,14 @@ const PostPage = memo(() => {
 
   const structuredData = useMemo(() => {
     if (!post) return [];
-    const pageTitle = `${post.title} | LearnX, India`;
+    const pageTitle = `${post.title} | Zedemy, India`;
     const pageDescription =
-      truncateText(post.summary || post.content, 160) || `Learn ${post.title?.toLowerCase() || ''} with LearnX's tutorials.`;
+      truncateText(post.summary || post.content, 160) || `Learn ${post.title?.toLowerCase() || ''} with Zedemy's tutorials.`;
     const pageKeywords = post.keywords
-      ? `${post.keywords}, learnx, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`
-      : `learnx, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`;
-    const canonicalUrl = `https://learnx24.vercel.app/post/${slug}`;
-    const ogImage = post.titleImage || 'https://d2rq30ca0zyvzp.cloudfront.net/images/default.webp';
+      ? `${post.keywords}, Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`
+      : `Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`;
+    const canonicalUrl = `https://zedemy.vercel.app/post/${slug}`;
+    const ogImage = post.titleImage || 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
     const faqData = (post.subtitles || [])
       .filter((s) => s.isFAQ)
       .map((s) => ({
@@ -680,10 +680,10 @@ const PostPage = memo(() => {
         description: pageDescription,
         keywords: pageKeywords.split(', ').filter(Boolean),
         articleSection: post.category || 'Tech Tutorials',
-        author: { '@type': 'Person', name: post.author || 'LearnX Team' },
+        author: { '@type': 'Person', name: post.author || 'Zedemy Team' },
         publisher: {
           '@type': 'Organization',
-          name: 'LearnX',
+          name: 'Zedemy',
           logo: { '@type': 'ImageObject', url: ogImage },
         },
         datePublished: post.date || '',
@@ -694,19 +694,19 @@ const PostPage = memo(() => {
         timeRequired: `PT${readTime}M`,
         wordCount,
         inLanguage: 'en',
-        isPartOf: { '@type': 'WebSite', name: 'LearnX', url: 'https://learnx24.vercel.app' },
+        isPartOf: { '@type': 'WebSite', name: 'Zedemy', url: 'https://zedemy.vercel.app/' },
       },
       {
         '@context': 'https://schema.org',
         '@type': 'BreadcrumbList',
         itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://learnx24.vercel.app/' },
-          { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://learnx24.vercel.app/explore' },
+          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://zedemy.vercel.app/' },
+          { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://zedemy.vercel.app/explore' },
           {
             '@type': 'ListItem',
             position: 3,
             name: post.category || 'Tech Tutorials',
-            item: `https://learnx24.vercel.app/category/${post.category?.toLowerCase() || 'blog'}`,
+            item: `https://zedemy.vercel.app/category/${post.category?.toLowerCase() || 'blog'}`,
           },
           { '@type': 'ListItem', position: 4, name: post.title || '', item: canonicalUrl },
         ],
@@ -715,11 +715,11 @@ const PostPage = memo(() => {
       {
         '@context': 'https://schema.org',
         '@type': 'WebSite',
-        name: 'LearnX',
-        url: 'https://learnx24.vercel.app',
+        name: 'Zedemy',
+        url: 'https://zedemy.vercel.app/',
         potentialAction: {
           '@type': 'SearchAction',
-          target: 'https://learnx24.vercel.app/explore?search={search_term_string}',
+          target: 'https://zedemy.vercel.app/explore?search={search_term_string}',
           'query-input': 'required name=search_term_string',
         },
       },
@@ -751,40 +751,39 @@ const PostPage = memo(() => {
     <HelmetProvider>
       <Helmet>
         <html lang="en" />
-        <title>{`${post.title} | LearnX, India`}</title>
+        <title>{`${post.title} | Zedemy`}</title>
         <meta name="description" content={truncateText(post.summary || post.content, 160)} />
         <meta
           name="keywords"
-          content={post.keywords ? `${post.keywords}, learnx, ${post.category || ''}` : `learnx, ${post.category || ''}`}
+          content={post.keywords ? `${post.keywords}, Zedemy, ${post.category || ''}` : `Zedemy, ${post.category || ''}`}
         />
-        <meta name="author" content={post.author || 'LearnX Team'} />
+        <meta name="author" content={post.author || 'Zedemy Team'} />
         <meta name="robots" content="index, follow, max-image-preview:large" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="canonical" href={`https://learnx24.vercel.app/post/${slug}`} />
+        <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
         {post.titleImage && (
           <link rel="preload" as="image" href={`${post.titleImage}?w=320&format=webp`} fetchpriority="high" />
         )}
-        <meta property="og:title" content={`${post.title} | LearnX, India`} />
+        <meta property="og:title" content={`${post.title} | Zedemy`} />
         <meta property="og:description" content={truncateText(post.summary || post.content, 160)} />
         <meta
           property="og:image"
-          content={post.titleImage || 'https://d2rq30ca0zyvzp.cloudfront.net/images/default.webp'}
+          content={post.titleImage || 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
         />
         <meta property="og:image:alt" content={`${post.title} tutorial`} />
-        <meta property="og:url" content={`https://learnx24.vercel.app/post/${slug}`} />
+        <meta property="og:url" content={`https://zedemy.vercel.app/post/${slug}`} />
         <meta property="og:type" content="article" />
-        <meta property="og:site_name" content="LearnX" />
+        <meta property="og:site_name" content="Zedemy" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={`${post.title} | LearnX, India`} />
+        <meta name="twitter:title" content={`${post.title} | Zedemy`} />
         <meta name="twitter:description" content={truncateText(post.summary || post.content, 160)} />
         <meta
           name="twitter:image"
-          content={post.titleImage || 'https://d2rq30ca0zyvzp.cloudfront.net/images/default.webp'}
+          content={post.titleImage || 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
         />
         <style>{criticalCSS}</style>
         <link
           rel="preload"
-          href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;600&display=swap&subset=latin,latin-ext&display=swap"
           as="style"
           onload="this.rel='stylesheet'"
         />
@@ -848,7 +847,7 @@ const PostPage = memo(() => {
             )}
 
             <p style={{ fontSize: '0.875rem' }}>
-              <time dateTime={post.date}>{post.date}</time> | Author: {post.author || 'LearnX Team'}
+              <time dateTime={post.date}>{post.date}</time> | Author: {post.author || 'Zedemy Team'}
             </p>
             <section style={{ fontSize: '0.875rem' }}>{parsedContent}</section>
 
