@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, memo, useMemo, useCallback, Suspense, useDeferredValue } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPostBySlug, fetchCompletedPosts, fetchPosts } from '../actions/postActions';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import styled from 'styled-components';
 import DOMPurify from 'dompurify';
@@ -40,6 +40,10 @@ const Container = styled.div`
   display: flex;
   min-height: 100vh;
   font-family: 'Roboto', system-ui, sans-serif;
+  flex-direction: column;
+  @media (min-width: 769px) {
+    flex-direction: row;
+  }
 `;
 
 const MainContent = styled.main`
@@ -126,6 +130,7 @@ const CopyButton = styled.button`
   border-radius: 0.25rem;
   cursor: pointer;
   font-size: 0.75rem;
+  touch-action: manipulation;
   &:hover {
     background: #0056b3;
   }
@@ -143,6 +148,7 @@ const CompleteButton = styled.button`
   border-radius: 0.375rem;
   cursor: ${({ isCompleted }) => (isCompleted ? 'not-allowed' : 'pointer')};
   font-size: 0.875rem;
+  touch-action: manipulation;
   &:hover {
     background: ${({ isCompleted }) => (isCompleted ? '#27ae60' : '#34495e')};
   }
@@ -215,6 +221,9 @@ const ReferenceLink = styled.a`
   margin: 0.25rem 0;
   padding: 0.25rem 0;
   font-size: 0.875rem;
+  min-height: 44px;
+  line-height: 1.5;
+  touch-action: manipulation;
   &:hover {
     text-decoration: underline;
   }
@@ -229,6 +238,13 @@ const NavigationLinks = styled.nav`
   gap: 0.75rem;
   flex-wrap: wrap;
   font-size: 0.75rem;
+  & a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem;
+    touch-action: manipulation;
+  }
 `;
 
 // Critical CSS
@@ -481,6 +497,7 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
 const PostPage = memo(() => {
   const { slug } = useParams();
   const dispatch = useDispatch();
+  const location = useLocation();
   const post = useSelector(selectPost);
   const relatedPosts = useSelector(selectRelatedPosts);
   const completedPosts = useSelector(selectCompletedPosts);
@@ -491,8 +508,16 @@ const PostPage = memo(() => {
   const subtitlesListRef = useRef(null);
   const [hasFetched, setHasFetched] = useState(false);
 
+  // Reset state and scroll to top on slug change
   useEffect(() => {
-    if (hasFetched) return;
+    setHasFetched(false);
+    setImageErrors({});
+    setActiveSection(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [slug]);
+
+  // Fetch data when slug changes or hasFetched is false
+  useEffect(() => {
     const fetchData = async () => {
       try {
         await dispatch(fetchPostBySlug(slug));
@@ -502,7 +527,9 @@ const PostPage = memo(() => {
         console.error('Failed to load data:', error);
       }
     };
-    fetchData();
+    if (!hasFetched) {
+      fetchData();
+    }
   }, [dispatch, slug, hasFetched]);
 
   const subtitleSlugs = useMemo(() => {
