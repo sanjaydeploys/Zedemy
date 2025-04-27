@@ -3,13 +3,31 @@ import react from '@vitejs/plugin-react';
 import { visualizer } from 'rollup-plugin-visualizer';
 import viteCompression from 'vite-plugin-compression';
 import { VitePWA } from 'vite-plugin-pwa';
+
 export default defineConfig({
   plugins: [
-    react(),
-    viteCompression({ algorithm: 'brotliCompress', ext: '.br' }),
-    viteCompression({ algorithm: 'gzip', ext: '.gz' }),
-    visualizer({ open: true, filename: 'dist/stats.html' }),
+    react({
+      jsxRuntime: 'automatic', // Optimize JSX runtime
+      fastRefresh: true,
+    }),
+    viteCompression({
+      algorithm: 'brotliCompress', // Better compression than gzip
+      ext: '.br',
+      threshold: 1024,
+    }),
+    viteCompression({
+      algorithm: 'gzip', // Fallback for browsers without Brotli
+      ext: '.gz',
+      threshold: 1024,
+    }),
+    visualizer({
+      open: false, // Avoid auto-opening in CI
+      filename: 'dist/stats.html',
+      gzipSize: true,
+      brotliSize: true,
+    }),
     VitePWA({
+      registerType: 'autoUpdate',
       includeAssets: ['**/*.{js,css,html,png,jpg,jpeg,gif,webp,mp4,webm}'],
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,jpg,jpeg,gif,webp,mp4,webm}'],
@@ -18,19 +36,26 @@ export default defineConfig({
             urlPattern: /\.(?:png|jpg|jpeg|gif|webp|mp4|webm)$/,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'media-cache',
+              cacheName: 'media-assets',
               expiration: { maxEntries: 50, maxAgeSeconds: 30 * 24 * 60 * 60 },
               cacheableResponse: { statuses: [0, 200] },
             },
           },
           {
-            urlPattern: /\.(?:js|css)$/,
+            urlPattern: /^https:\/\/fonts\.googleapis\.com/,
             handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'asset-cache',
-              expiration: { maxEntries: 20, maxAgeSeconds: 7 * 24 * 60 * 60 },
-            },
+            options: { cacheName: 'google-fonts', cacheableResponse: { statuses: [0, 200] } },
           },
+        ],
+      },
+      manifest: {
+        name: 'LearnX',
+        short_name: 'LearnX',
+        description: 'Tech tutorials for Indian students',
+        theme_color: '#2c3e50',
+        icons: [
+          { src: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
         ],
       },
     }),
@@ -44,50 +69,28 @@ export default defineConfig({
   },
   build: {
     minify: 'esbuild',
-    sourcemap: true,
+    sourcemap: false, // Disable in production for smaller bundles
+    target: 'esnext',
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
-          codemirror: [
-            '@uiw/react-codemirror',
-            '@codemirror/lang-javascript',
-            '@codemirror/lang-python',
-            '@codemirror/lang-css',
-            '@codemirror/lang-html',
-            '@codemirror/lang-markdown',
-            '@codemirror/commands',
-            '@codemirror/view',
-            '@codemirror/autocomplete',
-            '@codemirror/theme-one-dark',
-            '@uiw/codemirror-theme-dracula',
-          ],
-          animations: ['framer-motion'],
-          syntax: ['react-syntax-highlighter'],
-          toast: ['react-toastify'],
-          zoom: ['react-medium-image-zoom'],
-        },
-        assetFileNames: (assetInfo) => {
-          if (/\.(png|jpe?g|gif|webp|mp4|webm)$/.test(assetInfo.name)) {
-            return 'assets/media/[name]-[hash][extname]';
-          }
-          return 'assets/[name]-[hash][extname]';
+          utilities: ['react-helmet-async', 'dompurify', 'react-copy-to-clipboard'],
+          heavy: ['react-syntax-highlighter', 'react-medium-image-zoom'],
         },
       },
     },
     outDir: 'dist',
     assetsDir: 'assets',
-    commonjsOptions: { transformMixedEsModules: true },
+    assetsInlineLimit: 4096, // Inline small assets
+    chunkSizeWarningLimit: 1000, // Warn for large chunks
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
     force: true,
   },
-  esbuild: {
-    jsxFactory: 'React.createElement',
-    jsxFragment: 'React.Fragment',
-  },
   server: {
     fs: { allow: ['.'] },
+    hmr: { overlay: true },
   },
 });
