@@ -6,21 +6,29 @@ import { Helmet, HelmetProvider } from 'react-helmet-async';
 import styled, { css } from 'styled-components';
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 import DOMPurify from 'dompurify';
-import LazyLoad from 'react-lazyload';
 import { RingLoader } from 'react-spinners';
-const Toast = lazy(() => import('react-toastify').then(module => ({
-  default: module.ToastContainer,
-  toast: module.toast
-})));
-const SyntaxHighlighter = lazy(() => import('react-syntax-highlighter').then(module => ({ default: module.Prism })));
+
+// Lazy-loaded components
+const Toast = lazy(() =>
+  import('react-toastify').then(module => ({
+    default: module.ToastContainer,
+    toast: module.toast,
+  }))
+);
+const SyntaxHighlighter = lazy(() =>
+  import('react-syntax-highlighter').then(module => ({ default: module.Prism }))
+);
 const Zoom = lazy(() => import('react-medium-image-zoom'));
-import { vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import 'react-toastify/dist/ReactToastify.css';
-import 'react-medium-image-zoom/dist/styles.css';
 const Sidebar = lazy(() => import('./Sidebar'));
 const RelatedPosts = lazy(() => import('./RelatedPosts'));
 const AccessibleZoom = lazy(() => import('./AccessibleZoom'));
 
+// CSS imports (inlined critical CSS below)
+import 'react-toastify/dist/ReactToastify.css';
+import 'react-medium-image-zoom/dist/styles.css';
+import { vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
+
+// Slugify utility
 const slugify = (text) => {
   if (!text) return '';
   return text
@@ -31,6 +39,7 @@ const slugify = (text) => {
     .replace(/-+/g, '-');
 };
 
+// Shared styles
 const sharedSectionStyles = css`
   margin-top: 20px;
   padding: 20px;
@@ -38,11 +47,14 @@ const sharedSectionStyles = css`
   border-radius: 5px;
 `;
 
+// Styled components
 const Container = styled.div`
   display: flex;
   flex-direction: row;
   min-height: 100vh;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 `;
+
 const MainContent = styled.main`
   flex: 1;
   padding: 20px;
@@ -50,6 +62,7 @@ const MainContent = styled.main`
   background-color: #f4f4f9;
   contain: layout;
 `;
+
 const LoadingOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -62,15 +75,16 @@ const LoadingOverlay = styled.div`
   background-color: rgba(92, 6, 6, 0.7);
   z-index: 9999;
 `;
+
 const PostHeader = styled.h1`
   font-size: 2.8rem;
-  color: #111827; 
+  color: #111827;
   text-align: left;
   margin: 1rem 0 1.5rem;
-  font-weight: 800; 
+  font-weight: 800;
   line-height: 1.3;
   letter-spacing: -0.5px;
-  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  will-change: transform;
   @media (max-width: 768px) {
     font-size: 2rem;
     margin: 0.75rem 0 1.25rem;
@@ -79,28 +93,30 @@ const PostHeader = styled.h1`
     font-size: 1.6rem;
   }
 `;
+
 const SubtitleHeader = styled.h2`
   font-size: 1.75rem;
-  color:rgb(1, 16, 32);
+  color: rgb(1, 16, 32);
   margin: 1.5rem 0 1rem;
   font-weight: 600;
-  border-left: 4px solid#34db58;
+  border-left: 4px solid #34db58;
   padding-left: 1rem;
   letter-spacing: 0.5px;
   transition: all 0.3s ease;
+  will-change: transform;
   @media (max-width: 768px) {
     font-size: 1.5rem;
     margin: 0.75rem 0 1.25rem;
   }
-
   @media (max-width: 480px) {
     font-size: 1.2rem;
   }
-  
 `;
+
 const SummaryContainer = styled.section`
   margin-top: 20px;
 `;
+
 const CodeSnippetContainer = styled.div`
   position: relative;
   margin: 20px 0;
@@ -108,6 +124,7 @@ const CodeSnippetContainer = styled.div`
   border-radius: 5px;
   overflow: hidden;
 `;
+
 const CopyButton = styled.button`
   position: absolute;
   top: 10px;
@@ -122,6 +139,7 @@ const CopyButton = styled.button`
     background: #0056b3;
   }
 `;
+
 const CompleteButton = styled.button`
   position: sticky;
   bottom: 20px;
@@ -140,23 +158,29 @@ const CompleteButton = styled.button`
     background-color: ${({ isCompleted }) => (isCompleted ? '#27ae60' : '#34495e')};
   }
 `;
+
 const ImageError = styled.div`
   color: red;
   margin: 10px 0;
 `;
+
 const ComparisonTableContainer = styled.section`
   ${sharedSectionStyles}
   overflow-x: auto;
+  min-height: 200px; /* Prevent collapse during loading */
 `;
+
 const ResponsiveContent = styled.div`
   overflow: auto;
   white-space: nowrap;
 `;
+
 const ResponsiveTable = styled.table`
   border-collapse: collapse;
   width: auto;
   min-width: 800px;
 `;
+
 const ResponsiveHeader = styled.th`
   background-color: #34495e;
   color: #ecf0f1;
@@ -164,6 +188,7 @@ const ResponsiveHeader = styled.th`
   border: 1px solid #34495e;
   min-width: 150px;
 `;
+
 const ResponsiveCell = styled.td`
   border: 1px solid #34495e;
   padding: 15px;
@@ -183,29 +208,72 @@ const ReferenceLink = styled.a`
   display: block;
   color: #0645ad;
   text-decoration: none;
-  margin: 3px 0; 
-  padding: 5px 0; 
-  min-height: 2px; 
+  margin: 3px 0;
+  padding: 5px 0;
+  min-height: 22px;
   &:hover {
     text-decoration: underline;
   }
-
   @media (max-width: 768px) {
     padding: 10px 0;
     margin: 8px 0;
   }
-
   @media (max-width: 480px) {
     padding: 8px 0;
     margin: 8px 0;
   }
 `;
+
 const NavigationLinks = styled.nav`
   margin: 20px 0;
   display: flex;
   gap: 20px;
   flex-wrap: wrap;
 `;
+
+const ImageContainer = styled.div`
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 20px 0;
+  aspect-ratio: 16 / 9; /* Default aspect ratio */
+`;
+
+const VideoContainer = styled.div`
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  margin: 20px 0;
+  aspect-ratio: 16 / 9;
+`;
+
+const Placeholder = styled.div`
+  width: 100%;
+  height: 200px; /* Fixed height for placeholders */
+  background-color: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  border-radius: 5px;
+`;
+
+// Inlined critical CSS (extracted and minified)
+const criticalCSS = `
+  html{font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px}
+  h1{font-size:2.8rem;color:#111827;font-weight:800;margin:1rem 0 1.5rem}
+  h2{font-size:1.75rem;color:rgb(1,16,32);font-weight:600;margin:1.5rem 0 1rem}
+  main{flex:1;padding:20px;background:#f4f4f9}
+  @media (max-width:768px){
+    h1{font-size:2rem;margin:0.75rem 0 1.25rem}
+    h2{font-size:1.5rem}
+  }
+  @media (max-width:480px){
+    h1{font-size:1.6rem}
+    h2{font-size:1.2rem}
+  }
+`;
+
 // Utility functions
 export const parseLinks = (text, category) => {
   if (!text) return [text];
@@ -271,12 +339,11 @@ export const parseLinksForHtml = (text, category) => {
 
 const calculateReadTimeAndWordCount = (post) => {
   if (!post) return { readTime: 0, wordCount: 0 };
-  const textContent = (
+  const textContent =
     (post.title || '') +
     (post.content || '') +
     (post.summary || '') +
-    post.subtitles.map(s => (s.title || '') + s.bulletPoints.map(b => b.text || '').join('')).join('')
-  );
+    post.subtitles.map(s => (s.title || '') + s.bulletPoints.map(b => b.text || '').join('')).join('');
   const words = textContent.split(/\s+/).filter(word => word.length > 0);
   const wordCount = words.length;
   const readTime = Math.ceil(wordCount / 200);
@@ -314,6 +381,24 @@ const debounce = (func, wait) => {
     timeout = setTimeout(() => func(...args), wait);
   };
 };
+
+// Error Boundary Component
+const ErrorBoundary = ({ children }) => {
+  const [hasError, setHasError] = useState(false);
+  if (hasError) {
+    return <div>Something went wrong. Please try again later.</div>;
+  }
+  return (
+    <React.Fragment
+      unstable_onError={() => {
+        setHasError(true);
+      }}
+    >
+      {children}
+    </React.Fragment>
+  );
+};
+
 const PostPage = memo(() => {
   const { slug } = useParams();
   const dispatch = useDispatch();
@@ -333,14 +418,14 @@ const PostPage = memo(() => {
     });
   }, []);
 
-  // Combined API calls
+  // Combined API calls with caching
   useEffect(() => {
     const fetchData = async () => {
       try {
         await Promise.all([
           dispatch(fetchPosts()),
           dispatch(fetchPostBySlug(slug)),
-          dispatch(fetchCompletedPosts())
+          dispatch(fetchCompletedPosts()),
         ]);
       } catch (error) {
         if (toast) {
@@ -366,9 +451,7 @@ const PostPage = memo(() => {
   useEffect(() => {
     const hash = window.location.hash.replace('#', '');
     if (hash) {
-      const sectionId = Object.keys(subtitleSlugs).find(
-        (id) => subtitleSlugs[id] === hash
-      );
+      const sectionId = Object.keys(subtitleSlugs).find(id => subtitleSlugs[id] === hash);
       if (sectionId) {
         setTimeout(() => {
           scrollToSection(sectionId, false);
@@ -412,23 +495,37 @@ const PostPage = memo(() => {
     return () => sections.forEach(section => observer.unobserve(section));
   }, [post]);
 
+  // Eagerly load LCP image
+  useEffect(() => {
+    if (post?.titleImage) {
+      const img = new Image();
+      img.src = `${post.titleImage}?w=600&format=webp`;
+    }
+  }, [post?.titleImage]);
+
   const handleMarkAsCompleted = useCallback(async () => {
     if (!post) {
       toast?.error('No post data available');
       return;
     }
     try {
-      const response = await fetch(`https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/complete/${post.postId}`, {
-        method: 'PUT',
-        headers: { 'x-auth-token': localStorage.getItem('token') }
-      });
+      const response = await fetch(
+        `https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/complete/${post.postId}`,
+        {
+          method: 'PUT',
+          headers: { 'x-auth-token': localStorage.getItem('token') },
+        }
+      );
       const data = await response.json();
       if (!response.ok) {
         if (response.status === 400 && data.msg === 'Post already marked as completed') {
           toast?.info('This post is already marked as completed');
-          const completedResponse = await fetch('https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/pro/api/posts/completed', {
-            headers: { 'x-auth-token': localStorage.getItem('token') }
-          });
+          const completedResponse = await fetch(
+            'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/pro/api/posts/completed',
+            {
+              headers: { 'x-auth-token': localStorage.getItem('token') },
+            }
+          );
           const updatedCompletedPosts = await completedResponse.json();
           dispatch({ type: 'FETCH_COMPLETED_POSTS_SUCCESS', payload: updatedCompletedPosts });
           return;
@@ -439,12 +536,15 @@ const PostPage = memo(() => {
       if (data.certificateUrl) {
         toast?.success(`Category completed! Certificate issued: ${data.certificateUrl}`, {
           autoClose: 5000,
-          onClick: () => window.open(data.certificateUrl, '_blank')
+          onClick: () => window.open(data.certificateUrl, '_blank'),
         });
       }
-      const completedResponse = await fetch('https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed', {
-        headers: { 'x-auth-token': localStorage.getItem('token') }
-      });
+      const completedResponse = await fetch(
+        'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed',
+        {
+          headers: { 'x-auth-token': localStorage.getItem('token') },
+        }
+      );
       const updatedCompletedPosts = await completedResponse.json();
       dispatch({ type: 'FETCH_COMPLETED_POSTS_SUCCESS', payload: updatedCompletedPosts });
     } catch (error) {
@@ -452,18 +552,21 @@ const PostPage = memo(() => {
     }
   }, [post, dispatch, toast]);
 
-  const scrollToSection = useCallback((id, updateUrl = true) => {
-    const section = document.getElementById(id);
-    if (section) {
-      section.scrollIntoView({ behavior: 'smooth' });
-      setActiveSection(id);
-      if (isSidebarOpen) setSidebarOpen(false);
-      if (updateUrl && subtitleSlugs[id]) {
-        const fragment = subtitleSlugs[id];
-        window.history.pushState(null, '', `#${fragment}`);
+  const scrollToSection = useCallback(
+    (id, updateUrl = true) => {
+      const section = document.getElementById(id);
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth' });
+        setActiveSection(id);
+        if (isSidebarOpen) setSidebarOpen(false);
+        if (updateUrl && subtitleSlugs[id]) {
+          const fragment = subtitleSlugs[id];
+          window.history.pushState(null, '', `#${fragment}`);
+        }
       }
-    }
-  }, [isSidebarOpen, subtitleSlugs]);
+    },
+    [isSidebarOpen, subtitleSlugs]
+  );
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -472,13 +575,14 @@ const PostPage = memo(() => {
         window.gtag('event', 'section_view', {
           event_category: 'Navigation',
           event_label: hash,
-          page_path: window.location.pathname + window.location.hash
+          page_path: window.location.pathname + window.location.hash,
         });
       }
     };
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
+
   const handleCopyCode = useCallback(() => {
     toast?.success('Code copied to clipboard!', {
       position: 'top-right',
@@ -486,13 +590,16 @@ const PostPage = memo(() => {
       hideProgressBar: true,
       closeOnClick: true,
       pauseOnHover: true,
-      draggable: true
+      draggable: true,
     });
   }, [toast]);
 
-  const handleImageError = useCallback((url) => {
-    setImageErrors(prev => ({ ...prev, [url]: true }));
-  }, []);
+  const handleImageError = useCallback(
+    url => {
+      setImageErrors(prev => ({ ...prev, [url]: true }));
+    },
+    []
+  );
 
   if (!post) {
     return (
@@ -501,31 +608,35 @@ const PostPage = memo(() => {
       </LoadingOverlay>
     );
   }
-  const pageTitle = `${post.title} | Zedemy, India`;
+
+  const pageTitle = `${post.title} | LearnX, India`;
   const pageDescription = post.summary
     ? truncateText(post.summary, 160)
-    : (post.content
-        ? truncateText(post.content, 160)
-        : `Learn ${post.title.toLowerCase()} with Zedemy's expert-led tutorials for Indian students.`);
+    : post.content
+      ? truncateText(post.content, 160)
+      : `Learn ${post.title.toLowerCase()} with LearnX's expert-led tutorials for Indian students.`;
   const pageKeywords = post.keywords
-    ? `${post.keywords}, online tech tutorials India, learn coding India, tech education India, Zedemy, ${post.category}, ${post.title.toLowerCase()}`
-    : `${post.title}, online tech tutorials India, learn coding India, tech education India, Zedemy, ${post.category}`;
-  const canonicalUrl = `https://zedemy.vercel.app/post/${slug}`;
-  const ogImage = post.titleImage || 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
-    const faqData = post.subtitles
-  .filter(subtitle => subtitle.isFAQ)
-  .map((subtitle, index) => ({
-    '@type': 'Question',
-    name: subtitle.title,
-    acceptedAnswer: {
-      '@type': 'Answer',
-      text: subtitle.bulletPoints.map(point => point.text).join(' ')
-    },
-    mainEntityOfPage: {
-      '@type': 'WebPage',
-      '@id': `${canonicalUrl}#${slugify(subtitle.title)}`
-    }
-  }));
+    ? `${post.keywords}, online tech tutorials India, learn coding India, tech education India, LearnX, ${post.category}, ${post.title.toLowerCase()}`
+    : `${post.title}, online tech tutorials India, learn coding India, tech education India, LearnX, ${post.category}`;
+  const canonicalUrl = `https://learnx24.vercel.app/post/${slug}`;
+  const ogImage =
+    post.titleImage || 'https://d2rq30ca0zyvzp.cloudfront.net/images/css_2025-04-26_d65add64-ba4f-44a1-a1cc-7b7f29fe1b2a.webp';
+
+  const faqData = post.subtitles
+    .filter(subtitle => subtitle.isFAQ)
+    .map((subtitle, index) => ({
+      '@type': 'Question',
+      name: subtitle.title,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: subtitle.bulletPoints.map(point => point.text).join(' '),
+      },
+      mainEntityOfPage: {
+        '@type': 'WebPage',
+        '@id': `${canonicalUrl}#${slugify(subtitle.title)}`,
+      },
+    }));
+
   const structuredData = [
     {
       '@context': 'https://schema.org',
@@ -536,15 +647,15 @@ const PostPage = memo(() => {
       articleSection: post.category || 'Tech Tutorials',
       author: {
         '@type': 'Person',
-        name: post.author || 'Zedemy Team'
+        name: post.author || 'LearnX Team',
       },
       publisher: {
         '@type': 'Organization',
-        name: 'Zedemy',
+        name: 'LearnX',
         logo: {
           '@type': 'ImageObject',
-          url: 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png'
-        }
+          url: 'https://d2rq30ca0zyvzp.cloudfront.net/images/css_2025-04-26_d65add64-ba4f-44a1-a1cc-7b7f29fe1b2a.webp',
+        },
       },
       datePublished: post.date,
       dateModified: post.date,
@@ -552,21 +663,21 @@ const PostPage = memo(() => {
       url: canonicalUrl,
       mainEntityOfPage: {
         '@type': 'WebPage',
-        '@id': canonicalUrl
+        '@id': canonicalUrl,
       },
       timeRequired: `PT${readTime}M`,
       wordCount: wordCount,
       inLanguage: 'en',
       isPartOf: {
         '@type': 'WebSite',
-        name: 'Zedemy',
-        url: 'https://zedemy.vercel.app'
+        name: 'LearnX',
+        url: 'https://learnx24.vercel.app',
       },
       relatedLink: relatedPosts.map(relatedPost => ({
         '@type': 'CreativeWork',
         name: relatedPost.title,
-        url: `https://zedemy.vercel.app/post/${relatedPost.slug}`
-      }))
+        url: `https://learnx24.vercel.app/post/${relatedPost.slug}`,
+      })),
     },
     {
       '@context': 'https://schema.org',
@@ -576,75 +687,95 @@ const PostPage = memo(() => {
           '@type': 'ListItem',
           position: 1,
           name: 'Home',
-          item: 'https://zedemy.vercel.app/'
+          item: 'https://learnx24.vercel.app/',
         },
         {
           '@type': 'ListItem',
           position: 2,
           name: 'Blog',
-          item: 'https://zedemy.vercel.app/explore'
+          item: 'https://learnx24.vercel.app/explore',
         },
         {
           '@type': 'ListItem',
           position: 3,
           name: post.category || 'Tech Tutorials',
-          item: `https://zedemy.vercel.app/category/${post.category?.toLowerCase() || 'blog'}`
+          item: `https://learnx24.vercel.app/category/${post.category?.toLowerCase() || 'blog'}`,
         },
         {
           '@type': 'ListItem',
           position: 4,
           name: post.title,
-          item: canonicalUrl
-        }
-      ]
+          item: canonicalUrl,
+        },
+      ],
     },
-    ...(faqData.length > 0 ? [{
-      '@context': 'https://schema.org',
-      '@type': 'FAQPage',
-      mainEntity: faqData
-    }] : []),
+    ...(faqData.length > 0
+      ? [
+          {
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: faqData,
+          },
+        ]
+      : []),
     {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
-      name: 'Zedemy',
-      url: 'https://zedemy.vercel.app',
+      name: 'LearnX',
+      url: 'https://learnx24.vercel.app',
       potentialAction: {
         '@type': 'SearchAction',
-        target: 'https://zedemy.vercel.app/explore?search={search_term_string}',
-        'query-input': 'required name=search_term_string'
-      }
-    }
+        target: 'https://learnx24.vercel.app/explore?search={search_term_string}',
+        'query-input': 'required name=search_term_string',
+      },
+    },
   ];
 
   return (
-      <HelmetProvider>
-        <Helmet>
-          <html lang="en" />
-          <title>{pageTitle}</title>
-          <meta name="description" content={pageDescription} />
-          <meta name="keywords" content={pageKeywords} />
-          <meta name="author" content={post.author || 'Zedemy Team'} />
-          <meta name="robots" content="index, follow, max-image-preview:large" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <link rel="canonical" href={canonicalUrl} />
-          {post.titleImage && <link rel="preload" as="image" href={post.titleImage} />}
-          <meta property="og:title" content={pageTitle} />
-          <meta property="og:description" content={pageDescription} />
-          <meta property="og:image" content={ogImage} />
-          <meta property="og:image:alt" content={`${post.title} tutorial on Zedemy`} />
-          <meta property="og:url" content={canonicalUrl} />
-          <meta property="og:type" content="article" />
-          <meta property="og:site_name" content="Zedemy" />
-          <meta name="twitter:card" content="summary_large_image" />
-          <meta name="twitter:title" content={pageTitle} />
-          <meta name="twitter:description" content={pageDescription} />
-          <meta name="twitter:image" content={ogImage} />
-          <meta name="twitter:image:alt" content={`${post.title} tutorial on Zedemy`} />
-          <meta name="twitter:site" content="@sanjaypatidar" />
-          <meta name="twitter:creator" content="@sanjaypatidar" />
-          <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
-        </Helmet>
-        <Container>
+    <HelmetProvider>
+      <Helmet>
+        <html lang="en" />
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta name="keywords" content={pageKeywords} />
+        <meta name="author" content={post.author || 'LearnX Team'} />
+        <meta name="robots" content="index, follow, max-image-preview:large" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="canonical" href={canonicalUrl} />
+        {post.titleImage && (
+          <link
+            rel="preload"
+            as="image"
+            href={`${post.titleImage}?w=600&format=webp`}
+            fetchpriority="high"
+          />
+        )}
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:image" content={ogImage} />
+        <meta property="og:image:alt" content={`${post.title} tutorial on LearnX`} />
+        <meta property="og:url" content={canonicalUrl} />
+        <meta property="og:type" content="article" />
+        <meta property="og:site_name" content="LearnX" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        <meta name="twitter:image" content={ogImage} />
+        <meta name="twitter:image:alt" content={`${post.title} tutorial on LearnX`} />
+        <meta name="twitter:site" content="@sanjaypatidar" />
+        <meta name="twitter:creator" content="@sanjaypatidar" />
+        <style type="text/css">{criticalCSS}</style>
+        <link
+          rel="preload"
+          as="font"
+          href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;600;800&display=swap"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
+        <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
+      </Helmet>
+      <Container>
+        <ErrorBoundary>
           <MainContent role="main" aria-label="Main content">
             <Suspense fallback={null}>
               <Toast />
@@ -656,95 +787,125 @@ const PostPage = memo(() => {
                   Estimated read time: {readTime} min
                 </div>
                 <NavigationLinks aria-label="Page navigation">
-                  <Link to="/explore" aria-label="Back to all blog posts">Back to Blog</Link>
+                  <Link to="/explore" aria-label="Back to all blog posts">
+                    Back to Blog
+                  </Link>
                   {post.category && (
-                    <Link to={`/category/${post.category.toLowerCase()}`} aria-label={`Explore more in ${post.category}`}>
+                    <Link
+                      to={`/category/${post.category.toLowerCase()}`}
+                      aria-label={`Explore more in ${post.category}`}
+                    >
                       Explore {post.category}
                     </Link>
                   )}
-                  <Link to="/" aria-label="Go to homepage">Home</Link>
+                  <Link to="/" aria-label="Go to homepage">
+                    Home
+                  </Link>
                 </NavigationLinks>
               </header>
 
               {post.titleImage && (
                 <figure>
-                  <Suspense fallback={<div>Loading image zoom...</div>}>
-                 <AccessibleZoom>
-                    <img
-                      src={post.titleImage}
-                      srcSet={`${post.titleImage}?w=300 300w, ${post.titleImage}?w=600 600w`}
-                      sizes="(max-width: 600px) 300px, 600px"
-                      alt={`Illustration for ${post.title} tutorial`}
-                      style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
-                      loading="lazy"
-                      onError={() => handleImageError(post.titleImage)}
-                    />
-                    {imageErrors[post.titleImage] && (
-                      <ImageError>Failed to load image: {post.titleImage}</ImageError>
-                    )}
-                   </AccessibleZoom>
+                  <ImageContainer>
+                    <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
+                      <AccessibleZoom>
+                        <img
+                          src={`${post.titleImage}?w=600&format=webp`}
+                          srcSet={`${post.titleImage}?w=300&format=webp 300w, ${post.titleImage}?w=600&format=webp 600w`}
+                          sizes="(max-width: 600px) 300px, 600px"
+                          alt={`Illustration for ${post.title} tutorial`}
+                          width="600"
+                          height="337"
+                          fetchpriority="high"
+                          decoding="async"
+                          onError={() => handleImageError(post.titleImage)}
+                        />
+                        {imageErrors[post.titleImage] && (
+                          <ImageError>Failed to load image: {post.titleImage}</ImageError>
+                        )}
+                      </AccessibleZoom>
                     </Suspense>
+                  </ImageContainer>
                   <figcaption>Image related to {post.title}</figcaption>
                 </figure>
               )}
               {post.titleVideo && (
                 <figure>
-                  <video
-                    controls
-                    preload="metadata"
-                    style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
-                    loading="lazy"
-                    aria-label={`Video tutorial for ${post.title}`}
-                  >
-                    <source src={post.titleVideo} type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
+                  <VideoContainer>
+                    <video
+                      controls
+                      preload="metadata"
+                      width="600"
+                      height="337"
+                      fetchpriority="high"
+                      decoding="async"
+                      aria-label={`Video tutorial for ${post.title}`}
+                    >
+                      <source src={post.titleVideo} type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
+                  </VideoContainer>
                   <figcaption>Video tutorial for {post.title}</figcaption>
                 </figure>
               )}
-              <p><time dateTime={post.date}>Date Published: {post.date}</time></p>
+              <p>
+                <time dateTime={post.date}>Date Published: {post.date}</time>
+              </p>
               <p>Author: {post.author}</p>
               <section>
                 <p>{parsedContent}</p>
               </section>
 
               {post.subtitles.map((subtitle, index) => (
-                <section key={index} id={`subtitle-${index}`} aria-labelledby={`subtitle-${index}-heading`}>
-                  <SubtitleHeader id={`subtitle-${index}-heading`}>{parseLinks(subtitle.title, post.category)}</SubtitleHeader>
+                <section
+                  key={index}
+                  id={`subtitle-${index}`}
+                  aria-labelledby={`subtitle-${index}-heading`}
+                >
+                  <SubtitleHeader id={`subtitle-${index}-heading`}>
+                    {parseLinks(subtitle.title, post.category)}
+                  </SubtitleHeader>
                   {subtitle.image && (
                     <figure>
-                      <Suspense fallback={<div>Loading image zoom...</div>}>
-                      <AccessibleZoom>
-                        <img
-                          src={subtitle.image}
-                          srcSet={`${subtitle.image}?w=300 300w, ${subtitle.image}?w=600 600w`}
-                          sizes="(max-width: 600px) 300px, 600px"
-                          alt={`Image for ${subtitle.title}`}
-                          aria-label={subtitle.title}
-                          loading="lazy"
-                          style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
-                          onError={() => handleImageError(subtitle.image)}
-                        />
-                        {imageErrors[subtitle.image] && (
-                          <ImageError>Failed to load image: {subtitle.image}</ImageError>
-                        )}
-                      </AccessibleZoom>
+                      <ImageContainer>
+                        <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
+                          <AccessibleZoom>
+                            <img
+                              src={`${subtitle.image}?w=600&format=webp`}
+                              srcSet={`${subtitle.image}?w=300&format=webp 300w, ${subtitle.image}?w=600&format=webp 600w`}
+                              sizes="(max-width: 600px) 300px, 600px"
+                              alt={`Image for ${subtitle.title}`}
+                              width="600"
+                              height="337"
+                              loading="lazy"
+                              decoding="async"
+                              onError={() => handleImageError(subtitle.image)}
+                            />
+                            {imageErrors[subtitle.image] && (
+                              <ImageError>Failed to load image: {subtitle.image}</ImageError>
+                            )}
+                          </AccessibleZoom>
                         </Suspense>
+                      </ImageContainer>
                       <figcaption>{subtitle.title}</figcaption>
                     </figure>
                   )}
                   {subtitle.video && (
                     <figure>
-                      <video
-                        controls
-                        preload="metadata"
-                        style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
-                        loading="lazy"
-                        aria-label={`Video for ${subtitle.title}`}
-                      >
-                        <source src={subtitle.video} type="video/mp4" />
-                        Your browser does not support the video tag.
-                      </video>
+                      <VideoContainer>
+                        <video
+                          controls
+                          preload="metadata"
+                          width="600"
+                          height="337"
+                          loading="lazy"
+                          decoding="async"
+                          aria-label={`Video for ${subtitle.title}`}
+                        >
+                          <source src={subtitle.video} type="video/mp4" />
+                          Your browser does not support the video tag.
+                        </video>
+                      </VideoContainer>
                       <figcaption>Video for {subtitle.title}</figcaption>
                     </figure>
                   )}
@@ -754,37 +915,45 @@ const PostPage = memo(() => {
                         <span>{parseLinks(point.text, post.category)}</span>
                         {point.image && (
                           <figure>
-                            <Suspense fallback={<div>Loading image zoom...</div>}>
-                            <AccessibleZoom>
-                              <img
-                                src={point.image}
-                                srcSet={`${point.image}?w=300 300w, ${point.image}?w=600 600w`}
-                                sizes="(max-width: 600px) 300px, 600px"
-                                alt={`Example image for ${point.text}`}
-                                loading="lazy"
-                                style={{ width: '100%', maxWidth: '600px', margin: '20px 0' }}
-                                onError={() => handleImageError(point.image)}
-                              />
-                              {imageErrors[point.image] && (
-                                <ImageError>Failed to load image: {point.image}</ImageError>
-                              )}
-                            </AccessibleZoom>
+                            <ImageContainer>
+                              <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
+                                <AccessibleZoom>
+                                  <img
+                                    src={`${point.image}?w=600&format=webp`}
+                                    srcSet={`${point.image}?w=300&format=webp 300w, ${point.image}?w=600&format=webp 600w`}
+                                    sizes="(max-width: 600px) 300px, 600px"
+                                    alt={`Example image for ${point.text}`}
+                                    width="600"
+                                    height="337"
+                                    loading="lazy"
+                                    decoding="async"
+                                    onError={() => handleImageError(point.image)}
+                                  />
+                                  {imageErrors[point.image] && (
+                                    <ImageError>Failed to load image: {point.image}</ImageError>
+                                  )}
+                                </AccessibleZoom>
                               </Suspense>
+                            </ImageContainer>
                             <figcaption>Example for {point.text}</figcaption>
                           </figure>
                         )}
                         {point.video && (
                           <figure>
-                            <video
-                              controls
-                              preload="metadata"
-                              style={{ width: '100%', maxWidth: '400px', margin: '10px 0' }}
-                              loading="lazy"
-                              aria-label={`Video example for ${point.text}`}
-                            >
-                              <source src={point.video} type="video/mp4" />
-                              Your browser does not support the video tag.
-                            </video>
+                            <VideoContainer>
+                              <video
+                                controls
+                                preload="metadata"
+                                width="400"
+                                height="225"
+                                loading="lazy"
+                                decoding="async"
+                                aria-label={`Video example for ${point.text}`}
+                              >
+                                <source src={point.video} type="video/mp4" />
+                                Your browser does not support the video tag.
+                              </video>
+                            </VideoContainer>
                             <figcaption>Video example for {point.text}</figcaption>
                           </figure>
                         )}
@@ -793,7 +962,7 @@ const PostPage = memo(() => {
                             <CopyToClipboard text={point.codeSnippet} onCopy={handleCopyCode}>
                               <CopyButton aria-label="Copy code to clipboard">Copy</CopyButton>
                             </CopyToClipboard>
-                            <Suspense fallback={<div>Loading code...</div>}>
+                            <Suspense fallback={<Placeholder>Loading code...</Placeholder>}>
                               <SyntaxHighlighter language="javascript" style={vs}>
                                 {sanitizeCodeSnippet(point.codeSnippet)}
                               </SyntaxHighlighter>
@@ -812,16 +981,18 @@ const PostPage = memo(() => {
                   superTitle.superTitle.trim() !== '' &&
                   superTitle.attributes &&
                   superTitle.attributes.length > 0 &&
-                  superTitle.attributes.some(attr =>
-                    attr.attribute.trim() !== '' &&
-                    attr.items &&
-                    attr.items.length > 0 &&
-                    attr.items.some(item =>
-                      item.title.trim() !== '' &&
-                      item.bulletPoints &&
-                      item.bulletPoints.length > 0 &&
-                      item.bulletPoints.some(point => point.trim() !== '')
-                    )
+                  superTitle.attributes.some(
+                    attr =>
+                      attr.attribute.trim() !== '' &&
+                      attr.items &&
+                      attr.items.length > 0 &&
+                      attr.items.some(
+                        item =>
+                          item.title.trim() !== '' &&
+                          item.bulletPoints &&
+                          item.bulletPoints.length > 0 &&
+                          item.bulletPoints.some(point => point.trim() !== '')
+                      )
                   )
                 ) && (
                   <ComparisonTableContainer aria-labelledby="comparison-heading">
@@ -832,39 +1003,82 @@ const PostPage = memo(() => {
                         <thead>
                           <tr>
                             <ResponsiveHeader scope="col">Attribute</ResponsiveHeader>
-                            {post.superTitles.map((superTitle, index) => (
-                              superTitle.superTitle.trim() !== '' && superTitle.attributes && superTitle.attributes.length > 0 && (
-                                <ResponsiveHeader key={index} scope="col" dangerouslySetInnerHTML={{ __html: parseLinksForHtml(superTitle.superTitle, post.category) }} />
-                              )
-                            ))}
+                            {post.superTitles.map(
+                              (superTitle, index) =>
+                                superTitle.superTitle.trim() !== '' &&
+                                superTitle.attributes &&
+                                superTitle.attributes.length > 0 && (
+                                  <ResponsiveHeader
+                                    key={index}
+                                    scope="col"
+                                    dangerouslySetInnerHTML={{
+                                      __html: parseLinksForHtml(superTitle.superTitle, post.category),
+                                    }}
+                                  />
+                                )
+                            )}
                           </tr>
                         </thead>
                         <tbody>
-                          {post.superTitles[0].attributes.map((attr, attrIndex) => (
-                            attr.attribute.trim() !== '' && attr.items && attr.items.length > 0 && attr.items.some(item => item.title.trim() !== '' || (item.bulletPoints && item.bulletPoints.length > 0 && item.bulletPoints.some(point => point.trim() !== ''))) && (
-                              <tr key={attrIndex}>
-                                <ResponsiveCell scope="row" dangerouslySetInnerHTML={{ __html: parseLinksForHtml(attr.attribute, post.category) }} />
-                                {post.superTitles.map((superTitle, superIndex) => (
-                                  superTitle.attributes[attrIndex] && superTitle.attributes[attrIndex].items && superTitle.attributes[attrIndex].items.length > 0 && (
-                                    <ResponsiveCell key={superIndex}>
-                                      {superTitle.attributes[attrIndex].items.map((item, itemIndex) => (
-                                        (item.title.trim() !== '' || (item.bulletPoints && item.bulletPoints.length > 0 && item.bulletPoints.some(point => point.trim() !== ''))) && (
-                                          <div key={itemIndex}>
-                                            <strong dangerouslySetInnerHTML={{ __html: parseLinksForHtml(item.title, post.category) }} />
-                                            <ul>
-                                              {item.bulletPoints.map((point, pointIndex) => (
-                                                point.trim() !== '' && <li key={pointIndex} dangerouslySetInnerHTML={{ __html: parseLinksForHtml(point, post.category) }} />
-                                              ))}
-                                            </ul>
-                                          </div>
-                                        )
-                                      ))}
-                                    </ResponsiveCell>
-                                  )
-                                ))}
-                              </tr>
-                            )
-                          ))}
+                          {post.superTitles[0].attributes.map(
+                            (attr, attrIndex) =>
+                              attr.attribute.trim() !== '' &&
+                              attr.items &&
+                              attr.items.length > 0 &&
+                              attr.items.some(
+                                item =>
+                                  item.title.trim() !== '' ||
+                                  (item.bulletPoints &&
+                                    item.bulletPoints.length > 0 &&
+                                    item.bulletPoints.some(point => point.trim() !== ''))
+                              ) && (
+                                <tr key={attrIndex}>
+                                  <ResponsiveCell
+                                    scope="row"
+                                    dangerouslySetInnerHTML={{
+                                      __html: parseLinksForHtml(attr.attribute, post.category),
+                                    }}
+                                  />
+                                  {post.superTitles.map(
+                                    (superTitle, superIndex) =>
+                                      superTitle.attributes[attrIndex] &&
+                                      superTitle.attributes[attrIndex].items &&
+                                      superTitle.attributes[attrIndex].items.length > 0 && (
+                                        <ResponsiveCell key={superIndex}>
+                                          {superTitle.attributes[attrIndex].items.map(
+                                            (item, itemIndex) =>
+                                              (item.title.trim() !== '' ||
+                                                (item.bulletPoints &&
+                                                  item.bulletPoints.length > 0 &&
+                                                  item.bulletPoints.some(point => point.trim() !== ''))) && (
+                                                <div key={itemIndex}>
+                                                  <strong
+                                                    dangerouslySetInnerHTML={{
+                                                      __html: parseLinksForHtml(item.title, post.category),
+                                                    }}
+                                                  />
+                                                  <ul>
+                                                    {item.bulletPoints.map(
+                                                      (point, pointIndex) =>
+                                                        point.trim() !== '' && (
+                                                          <li
+                                                            key={pointIndex}
+                                                            dangerouslySetInnerHTML={{
+                                                              __html: parseLinksForHtml(point, post.category),
+                                                            }}
+                                                          />
+                                                        )
+                                                    )}
+                                                  </ul>
+                                                </div>
+                                              )
+                                          )}
+                                        </ResponsiveCell>
+                                      )
+                                  )}
+                                </tr>
+                              )
+                          )}
                         </tbody>
                       </ResponsiveTable>
                     </ResponsiveContent>
@@ -880,13 +1094,17 @@ const PostPage = memo(() => {
                 onClick={handleMarkAsCompleted}
                 disabled={completedPosts.some(p => p.postId === post.postId)}
                 isCompleted={completedPosts.some(p => p.postId === post.postId)}
-                aria-label={completedPosts.some(p => p.postId === post.postId) ? 'Post already completed' : 'Mark post as completed'}
+                aria-label={
+                  completedPosts.some(p => p.postId === post.postId)
+                    ? 'Post already completed'
+                    : 'Mark post as completed'
+                }
               >
                 {completedPosts.some(p => p.postId === post.postId) ? 'Completed' : 'Mark as Completed'}
               </CompleteButton>
 
               <section aria-labelledby="related-posts-heading">
-                <Suspense fallback={<div>Loading related posts...</div>}>
+                <Suspense fallback={<Placeholder>Loading related posts...</Placeholder>}>
                   <RelatedPosts relatedPosts={relatedPosts} />
                 </Suspense>
               </section>
@@ -927,7 +1145,7 @@ const PostPage = memo(() => {
               </ReferencesSection>
             </article>
           </MainContent>
-          <Suspense fallback={<div>Loading sidebar...</div>}>
+          <Suspense fallback={<Placeholder>Loading sidebar...</Placeholder>}>
             <aside>
               <Sidebar
                 post={post}
@@ -939,8 +1157,10 @@ const PostPage = memo(() => {
               />
             </aside>
           </Suspense>
-        </Container>
-      </HelmetProvider>
+        </ErrorBoundary>
+      </Container>
+    </HelmetProvider>
   );
 });
+
 export default PostPage;
