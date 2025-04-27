@@ -649,12 +649,17 @@ const AddPostForm = () => {
         ...sub,
         title: sub.title,
         isFAQ: sub.isFAQ,
+        // Transform subtitle.image to use the URL string or null
+        image: sub.image?.url || null,
+        imageHash: sub.imageHash || null,
         bulletPoints: sub.bulletPoints.map((point) => ({
           ...point,
           text: point.text,
           codeSnippet: sanitizeCodeSnippet(point.codeSnippet),
-          image: point.image?.url || point.image,
-          video: point.video?.url || point.video,
+          image: point.image?.url || null,
+          imageHash: point.imageHash || null,
+          video: point.video?.url || null,
+          videoHash: point.videoHash || null,
         })),
       }));
 
@@ -688,14 +693,15 @@ const AddPostForm = () => {
           category,
           processedSubtitles,
           summary,
-          titleImage?.url || titleImage,
+          titleImage?.url || titleImage || null, // Ensure titleImage is a string or null
           processedSuperTitles,
-          video?.url || video,
+          video?.url || video || null, // Ensure video is a string or null
           titleImageHash,
           videoHash
         )
       );
 
+      // Reset form
       setTitle('');
       setTitleImage(null);
       setTitleImageHash(null);
