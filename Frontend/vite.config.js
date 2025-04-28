@@ -3,9 +3,7 @@ import react from '@vitejs/plugin-react';
 import { visualizer } from 'rollup-plugin-visualizer';
 import viteCompression from 'vite-plugin-compression';
 import { VitePWA } from 'vite-plugin-pwa';
-
-// Optional: Add legacy support if targeting older browsers
-// import legacy from '@vitejs/plugin-legacy';
+import dynamicImport from 'vite-plugin-dynamic-import';
 
 export default defineConfig(({ mode }) => ({
   plugins: [
@@ -13,14 +11,17 @@ export default defineConfig(({ mode }) => ({
       jsxRuntime: 'automatic',
       fastRefresh: true,
     }),
-    // Removed dynamicImport plugin as Vite handles dynamic imports well natively
+    dynamicImport(), // Optimize dynamic imports
     viteCompression({
       algorithm: 'brotliCompress',
       ext: '.br',
       threshold: 512,
-      // Prioritize Brotli; most modern browsers support it
     }),
-    // Removed gzip compression to avoid redundant assets (Brotli is sufficient)
+    viteCompression({
+      algorithm: 'gzip',
+      ext: '.gz',
+      threshold: 512,
+    }),
     visualizer({
       open: false,
       filename: 'dist/stats.html',
@@ -29,9 +30,9 @@ export default defineConfig(({ mode }) => ({
     }),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['**/*.{js,css,html,png,jpg,jpeg,gif,webp}'],
+      includeAssets: ['**/*.{js,css,html,png,jpg,jpeg,gif,webp,mp4,webm}'],
       workbox: {
-        globPatterns: ['**/*.{js,css,html,png,jpg,jpeg,gif,webp}'],
+        globPatterns: ['**/*.{js,css,html,png,jpg,jpeg,gif,webp,mp4,webm}'],
         runtimeCaching: [
           {
             urlPattern: /\.(?:js|css)$/,
@@ -43,7 +44,16 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
-            urlPattern: /\.(?:png|jpg|jpeg|gif|webp)$/,
+            urlPattern: /\/_vite\/.*\.js$/, // Cache dynamic imports
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'dynamic-imports',
+              expiration: { maxEntries: 20, maxAgeSeconds: 7 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /\.(?:png|jpg|jpeg|gif|webp|mp4|webm)$/,
             handler: 'CacheFirst',
             options: {
               cacheName: 'media-assets',
@@ -54,10 +64,7 @@ export default defineConfig(({ mode }) => ({
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com/,
             handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'google-fonts',
-              cacheableResponse: { statuses: [0, 200] },
-            },
+            options: { cacheName: 'google-fonts', cacheableResponse: { statuses: [0, 200] } },
           },
           {
             urlPattern: /^https:\/\/se3fw2nzc2\.execute-api\.ap-south-1\.amazonaws\.com/,
@@ -85,42 +92,34 @@ export default defineConfig(({ mode }) => ({
         short_name: 'LearnX',
         description: 'Tech tutorials for Indian students',
         theme_color: '#2c3e50',
-        icons: [
-          {
-            src: '/assets/icon-192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
-          },
-          {
-            src: '/assets/icon-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-          },
-        ],
+        icons: [],
       },
     }),
-    // Optional: Uncomment for legacy browser support
-    // legacy({
-    //   targets: ['defaults', 'not IE 11'],
-    // }),
   ],
   resolve: {
     alias: {
       '@components': '/src/components',
       '@pages': '/src/pages',
       '@actions': '/src/actions',
-      // Use CDN for common dependencies to reduce bundle size
-      react: 'https://esm.sh/react@18',
-      'react-dom': 'https://esm.sh/react-dom@18',
     },
   },
   build: {
-    minify: 'esbuild', // Switch to esbuild for faster and efficient minification
-    sourcemap: true, // Enable source maps in both dev and prod for easier debugging
-    target: 'es2020', // Target modern browsers for smaller bundles
+    minify: 'terser', // Switch to terser for better compression
+    terserOptions: {
+      compress: {
+        drop_console: mode === 'production', // Remove console.logs in production
+        drop_debugger: true,
+        pure_funcs: ['console.info', 'console.debug', 'console.warn'], // Remove specific console methods
+        dead_code: true, // Enhance dead code elimination
+      },
+      mangle: true, // Mangle variable names for smaller output
+    },
+    sourcemap: mode !== 'production', // Disable sourcemaps in production
+    target: 'esnext',
     treeshake: {
-      preset: 'recommended', // Less aggressive than 'safest' for better optimization
-      moduleSideEffects: false, // Assume no side effects unless specified
+      preset: 'safest', // Strictest tree shaking
+      moduleSideEffects: 'no-external', // Assume no side effects for external modules
+      propertyReadSideEffects: false, // Optimize property reads
     },
     modulePreload: {
       polyfill: true,
@@ -128,69 +127,85 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // Core vendor dependencies
-          if (
-            id.includes('node_modules/react') ||
-            id.includes('node_modules/react-dom') ||
-            id.includes('node_modules/react-router-dom') ||
-            id.includes('node_modules/react-redux')
-          ) {
+          // Vendor dependencies
+          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom') ||
+              id.includes('node_modules/react-router-dom') || id.includes('node_modules/redux') ||
+              id.includes('node_modules/react-redux')) {
             return 'vendor';
           }
-          // Utilities and lightweight libraries
-          if (
-            id.includes('node_modules/axios') ||
-            id.includes('node_modules/dompurify') ||
-            id.includes('node_modules/react-helmet-async')
-          ) {
+          // Utility dependencies
+          if (id.includes('node_modules/react-helmet-async') || id.includes('node_modules/dompurify') ||
+              id.includes('node_modules/react-copy-to-clipboard')) {
             return 'utilities';
           }
-          // Heavy or specialized libraries
-          if (
-            id.includes('node_modules/react-syntax-highlighter') ||
-            id.includes('node_modules/@codemirror') ||
-            id.includes('node_modules/react-medium-image-zoom')
-          ) {
+          // Syntax highlighter dependencies
+          if (id.includes('node_modules/react-syntax-highlighter') || id.includes('node_modules/highlight.js')) {
+            return 'syntax_highlighter';
+          }
+          // CodeMirror dependencies
+          if (id.includes('node_modules/@codemirror')) {
+            return 'codemirror';
+          }
+          // Parse5
+          if (id.includes('node_modules/parse5')) {
+            return 'parse5';
+          }
+          // Lodash
+          if (id.includes('node_modules/lodash')) {
+            return 'lodash';
+          }
+          // Heavy dependencies
+          if (id.includes('node_modules/react-medium-image-zoom')) {
             return 'heavy';
           }
-          // Split highlight.js languages
+          // Split highlight.js languages into separate chunks
           if (id.includes('node_modules/highlight.js/lib/languages')) {
             const language = id.split('languages/')[1]?.split('.')[0];
             return `hljs-language-${language}`;
           }
-          // Group app components and pages
+          // Split large source files
           if (id.includes('/src/pages/') || id.includes('/src/components/')) {
-            return 'app';
+            const parts = id.split('/');
+            const fileName = parts[parts.length - 1].split('.')[0];
+            return `app-${fileName.toLowerCase()}`;
           }
         },
       },
     },
     outDir: 'dist',
     assetsDir: 'assets',
-    assetsInlineLimit: 8192, // Increased to inline small assets
-    chunkSizeWarningLimit: 1000, // Relaxed to reduce warnings
+    assetsInlineLimit: 4096,
+    chunkSizeWarningLimit: 800,
   },
   optimizeDeps: {
     include: [
       'react',
       'react-dom',
       'react-router-dom',
+      'redux',
       'react-redux',
-      'axios',
-      'dompurify',
       'react-helmet-async',
+      'dompurify',
+      'react-copy-to-clipboard',
       'react-syntax-highlighter',
       'react-medium-image-zoom',
     ],
-    // Simplified exclusions; Vite handles most dependencies automatically
-    exclude: ['highlight.js/lib/languages'],
+    exclude: [
+      'highlight.js/lib/languages', // Exclude language modules from pre-bundling
+      '@codemirror/view',
+      '@codemirror/state',
+      'parse5',
+      'lodash',
+    ],
+    entries: [
+      'src/main.jsx',
+      'src/pages/**/*.jsx',
+      'src/components/**/*.jsx',
+    ], // Scan all entry points for precise dependency detection
+    force: true,
   },
   server: {
     fs: { allow: ['.'] },
     hmr: { overlay: true },
-    // Pre-warm common dependencies for faster dev server startup
-    warmup: {
-      clientFiles: ['src/main.jsx', 'src/App.jsx'],
-    },
   },
 }));
