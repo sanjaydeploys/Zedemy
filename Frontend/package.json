@@ -78,7 +78,9 @@
     "terser": "^5.39.0",
     "typed.js": "^2.1.0",
     "vite-plugin-compression": "^0.5.1",
-    "vite-plugin-pwa": "^1.0.0"
+    "vite-plugin-pwa": "^1.0.0",
+        "vite-plugin-dynamic-import": "^1.6.0"
+
   },
   "devDependencies": {
     "@types/react": "^18.2.15",
