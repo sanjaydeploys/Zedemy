@@ -1,13 +1,19 @@
-import { useRef, useCallback, Suspense } from 'react';
+import { useRef, useEffect, Suspense } from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 
 const ZoomWrapper = ({ children, caption, ...props }) => {
   const wrapperRef = useRef(null);
 
-  const handleKeyDown = useCallback((event) => {
-    if (event.key === 'Escape') {
-      wrapperRef.current?.resetTransform();
-    }
+  // Add event listener for Escape key to reset zoom
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        wrapperRef.current?.instance?.resetTransform();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   return (
@@ -26,7 +32,7 @@ const ZoomWrapper = ({ children, caption, ...props }) => {
           initialScale={1}
           minScale={1}
           maxScale={3}
-          wheel={{ step: 0.1 }}
+          wheel={{ disabled: true }} // Disable zoom on scroll
           pinch={{ step: 5 }}
           doubleClick={{ step: 0.5 }}
           {...props}
