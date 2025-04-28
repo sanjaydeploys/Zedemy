@@ -9,7 +9,6 @@ import { RingLoader } from 'react-spinners';
 import { createSelector } from 'reselect';
 
 // Lazy-loaded components
-const Highlight = React.lazy(() => import('highlight.js'));
 const Sidebar = React.lazy(() => import('./Sidebar'));
 const RelatedPosts = React.lazy(() => import('./RelatedPosts'));
 const AccessibleZoom = React.lazy(() => import('./AccessibleZoom'));
@@ -83,7 +82,7 @@ const SkeletonText = styled.div`
 `;
 
 const PostHeader = styled.h1`
-  font-size: clamp(1.5rem, 5vw, 2rem);
+  font-size: clamp(3rem, 5vw, 2rem);
   color: #111827;
   margin: 0.75rem 0 1rem;
   font-weight: 800;
@@ -91,10 +90,10 @@ const PostHeader = styled.h1`
 `;
 
 const SubtitleHeader = styled.h2`
-  font-size: clamp(1rem, 4vw, 1.25rem);
+  font-size: clamp(2rem, 4vw, 1.25rem);
   color: #011020;
   margin: 1rem 0 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   border-left: 4px solid #34db58;
   padding-left: 0.5rem;
 `;
@@ -507,7 +506,6 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
 const PostPage = memo(() => {
   const { slug } = useParams();
   const dispatch = useDispatch();
-  const location = useLocation();
   const post = useSelector(selectPost);
   const relatedPosts = useSelector(selectRelatedPosts);
   const completedPosts = useSelector(selectCompletedPosts);
@@ -632,7 +630,6 @@ const PostPage = memo(() => {
   const handleImageError = useCallback((url) => {
     setImageErrors((prev) => ({ ...prev, [url]: true }));
   }, []);
-
   const structuredData = useMemo(() => {
     if (!post) return [];
     const pageTitle = `${post.title} | Zedemy, India`;
@@ -651,7 +648,6 @@ const PostPage = memo(() => {
         acceptedAnswer: { '@type': 'Answer', text: (s.bulletPoints || []).map((p) => p.text || '').join(' ') },
         mainEntityOfPage: { '@type': 'WebPage', '@id': `${canonicalUrl}#${slugify(s.title || '')}` },
       }));
-
     return [
       {
         '@context': 'https://schema.org',
@@ -718,7 +714,6 @@ const PostPage = memo(() => {
       </Container>
     );
   }
-
   if (!post) {
     return (
       <LoadingOverlay aria-live="polite">
@@ -726,7 +721,6 @@ const PostPage = memo(() => {
       </LoadingOverlay>
     );
   }
-
   return (
     <HelmetProvider>
       <Helmet>
@@ -816,7 +810,6 @@ const PostPage = memo(() => {
                 </Suspense>
               </ImageContainer>
             )}
-
             {post.titleVideo && (
               <VideoContainer>
                 <PostVideo
@@ -925,14 +918,12 @@ const PostPage = memo(() => {
                 </ResponsiveContent>
               </ComparisonTableContainer>
             )}
-
             {post.summary && (
               <section id="summary" aria-labelledby="summary-heading">
                 <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
                 <p style={{ fontSize: '0.875rem' }}>{parsedSummary}</p>
               </section>
             )}
-
             <CompleteButton
               onClick={handleMarkAsCompleted}
               disabled={completedPosts.some((p) => p.postId === post.postId)}
@@ -947,7 +938,6 @@ const PostPage = memo(() => {
                 <RelatedPosts relatedPosts={relatedPosts} />
               </Suspense>
             </section>
-
             <ReferencesSection aria-labelledby="references-heading">
               <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
               {post.references?.length > 0 ? (
@@ -1001,5 +991,4 @@ const PostPage = memo(() => {
     </HelmetProvider>
   );
 });
-
 export default PostPage;
