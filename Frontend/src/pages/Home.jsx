@@ -573,7 +573,7 @@ const Home = memo(() => {
     {
       '@context': 'https://schema.org',
       '@type': 'WebPage',
-      name: 'Zedemy | Online Tech Education Platform by Sanjay Patidar',
+      name: 'Zedemy: Courses, Code & Certificates by Sanjay Patidar',
       description:
         'Zedemy, founded by Sanjay Patidar, is a serverless platform offering tech courses, certificate verification, and in-browser coding. Learn coding and tech skills today.',
       url: 'https://zedemy.vercel.app/',
@@ -617,7 +617,7 @@ const Home = memo(() => {
       sameAs: [
         'https://www.linkedin.com/in/sanjay-patidar/',
         'https://twitter.com/sanjaypatidar',
-        'https://www.instagram.com/sanjaypatidar_/',
+        'https://www.instagram.com/patidarsanju.io_/',
         'https://www.facebook.com/Zedemy',
       ],
     },
@@ -733,7 +733,7 @@ const Home = memo(() => {
           <TextContainer>
             <StyledText>
               <H3>
-              <span className="eduxcel-text">Learn<span className="x-letter">X</span></span> {}{'by'} {}
+              <span className="eduxcel-text"><span className="x-letter">Z</span></span>edemy {}{'by'} {}
                  <span className="eduxcel-text">Hog<span className="x-letter">W</span>arts<span className="x-letter">E</span>dx</span>{' '}
               </H3>
             </StyledText>
