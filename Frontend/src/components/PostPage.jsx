@@ -82,7 +82,7 @@ const SkeletonText = styled.div`
 `;
 
 const PostHeader = styled.h1`
-  font-size: clamp(3rem, 5vw, 2rem);
+  font-size: clamp(2.5rem, 5vw, 2rem);
   color: #111827;
   margin: 0.75rem 0 1rem;
   font-weight: 800;
@@ -90,7 +90,7 @@ const PostHeader = styled.h1`
 `;
 
 const SubtitleHeader = styled.h2`
-  font-size: clamp(2rem, 4vw, 1.25rem);
+  font-size: clamp(1.8rem, 4vw, 1.25rem);
   color: #011020;
   margin: 1rem 0 0.75rem;
   font-weight: 700;
