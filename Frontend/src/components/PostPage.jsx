@@ -76,7 +76,7 @@
   `;
 
   const SkeletonText = styled.div`
-    width: ${(props) => propped.width || '100%'};
+    width: ${(props) => props.width || '100%'};
     height: 0.875rem;
     background: #e0e0e0;
     border-radius: 0.25rem;
