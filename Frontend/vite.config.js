@@ -13,12 +13,12 @@ export default defineConfig({
     viteCompression({
       algorithm: 'brotliCompress',
       ext: '.br',
-      threshold: 1024,
+      threshold: 512, // Lowered to compress smaller files
     }),
     viteCompression({
       algorithm: 'gzip',
       ext: '.gz',
-      threshold: 1024,
+      threshold: 512, // Lowered to compress smaller files
     }),
     visualizer({
       open: false,
@@ -32,6 +32,15 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,jpg,jpeg,gif,webp,mp4,webm}'],
         runtimeCaching: [
+          {
+            urlPattern: /\.(?:js|css)$/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'static-assets',
+              expiration: { maxEntries: 50, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
           {
             urlPattern: /\.(?:png|jpg|jpeg|gif|webp|mp4|webm)$/,
             handler: 'CacheFirst',
@@ -72,8 +81,7 @@ export default defineConfig({
         short_name: 'LearnX',
         description: 'Tech tutorials for Indian students',
         theme_color: '#2c3e50',
-        // No static icons since content is dynamic
-        icons: [], 
+        icons: [],
       },
     }),
   ],
@@ -88,22 +96,31 @@ export default defineConfig({
     minify: 'esbuild',
     sourcemap: true,
     target: 'esnext',
+    treeshake: 'recommended', // Enable aggressive tree shaking
+    modulePreload: {
+      polyfill: true, // Enable module preloading for dynamic imports
+    },
     rollupOptions: {
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
           utilities: ['react-helmet-async', 'dompurify', 'react-copy-to-clipboard'],
-          heavy: ['react-syntax-highlighter', 'react-medium-image-zoom'],
+          syntax_highlighter: ['react-syntax-highlighter', 'highlight.js'],
+          codemirror: ['@codemirror/view', '@codemirror/state'],
+          parse5: ['parse5'],
+          lodash: ['lodash'],
+          heavy: ['react-medium-image-zoom'],
         },
       },
     },
     outDir: 'dist',
     assetsDir: 'assets',
     assetsInlineLimit: 4096,
-    chunkSizeWarningLimit: 800, // Lowered to catch large chunks
+    chunkSizeWarningLimit: 800,
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
+    exclude: ['highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash'], // Exclude heavy deps from pre-bundling
     force: true,
   },
   server: {
