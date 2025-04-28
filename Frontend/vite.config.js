@@ -86,7 +86,7 @@ export default defineConfig({
   },
   build: {
     minify: 'esbuild',
-    sourcemap: false,
+    sourcemap: true,
     target: 'esnext',
     rollupOptions: {
       output: {
