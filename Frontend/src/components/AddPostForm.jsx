@@ -958,7 +958,7 @@ const AddPostForm = () => {
                     <FormGroup>
                       <Label>Bullet Point Video</Label>
                       <Input
-                        Wtype="file"
+                        type="file"
                         accept="video/mp4,video/mpeg,video/webm"
                         onChange={(e) =>
                           handleVideoUpload(
