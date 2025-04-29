@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useCallback, useState, memo, Suspense, lazy } from 'react';
+
+import React, { useRef, useEffect, useCallback, memo, Suspense, lazy } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { Helmet } from 'react-helmet';
@@ -12,35 +13,40 @@ const FAQ = lazy(() => import('../components/FAQ'));
 // Assets
 import CreaTeaImage from '../assets/tea.gif';
 
-// Styled Components
+// Styled Components (Optimized for minimal CSS and CLS prevention)
 const MainContainer = styled.main`
   display: flex;
   flex-direction: column;
   align-items: center;
-  background:rgb(1, 1, 19);
+  background: rgb(1, 1, 19);
   color: #e0e0e0;
   min-height: 100vh;
   padding: 2rem 5%;
-  font-family: 'Arial', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
   box-sizing: border-box;
 `;
 
-const NavBar = styled.nav`
+const NavBar = styled.header`
   display: flex;
+  justify-content:center;
   gap: 1rem;
   padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.05);
   border-radius: 5px;
   margin-bottom: 2rem;
+  width: 100%;
+  max-width: 1200px;
 
   a {
     color: #f4a261;
     text-decoration: none;
     font-size: 0.9rem;
-    transition: color 0.2s;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    transition: color 0.2s ease;
 
-    &:hover {
+    &:hover, &:focus {
       color: #e76f51;
+      outline: none;
     }
   }
 `;
@@ -52,30 +58,32 @@ const MainContent = styled.section`
   max-width: 1200px;
   gap: 2rem;
   align-items: start;
-  min-height: 400px; /* Reserve space to prevent CLS */
+  min-height: 400px;
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
     gap: 1.5rem;
-    min-height: 300px; /* Adjusted for mobile */
+    min-height: 300px;
   }
 `;
 
-const ImageSection = styled.div`
+const ImageSection = styled.figure`
   width: 100%;
-  aspect-ratio: 3 / 3;
+  aspect-ratio: 1 / 1;
   border-radius: 10px;
   overflow: hidden;
-
-  img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: 10px;
-  }
+  margin: 0;
 `;
 
-const TextSection = styled.div`
+const StyledImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+  display: block;
+`;
+
+const TextSection = styled.section`
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -87,7 +95,7 @@ const Title = styled.h1`
   font-size: 2rem;
   color: #f4a261;
   margin: 0 0 1rem;
-  font-weight: bold;
+  font-weight: 700;
 
   @media (max-width: 768px) {
     font-size: 1.5rem;
@@ -96,14 +104,13 @@ const Title = styled.h1`
 
 const Highlight = styled.span`
   color: #e76f51;
-  font-weight: bold;
 `;
 
 const Description = styled.p`
   font-size: 1rem;
   color: #b0b0b0;
   margin: 0 0 1.5rem;
-  line-height: 1.5;
+  line-height: 1.6;
 
   @media (max-width: 768px) {
     font-size: 0.9rem;
@@ -117,13 +124,14 @@ const ActionButton = styled.button`
   padding: 0.75rem 1.5rem;
   border-radius: 20px;
   font-size: 0.9rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
-  margin-bottom: 1rem;
+  transition: background 0.2s ease, transform 0.1s ease;
 
-  &:hover {
+  &:hover, &:focus {
     background: #f4a261;
     transform: translateY(-2px);
+    outline: none;
   }
 `;
 
@@ -134,11 +142,12 @@ const BlogLink = styled.p`
 
   a {
     color: #f4a261;
-    text-decoration: none;
-    transition: color 0.2s;
+    text-decoration: underline;
+    transition: color 0.2s ease;
 
-    &:hover {
+    &:hover, &:focus {
       color: #e76f51;
+      outline: none;
     }
   }
 
@@ -147,19 +156,20 @@ const BlogLink = styled.p`
   }
 `;
 
-const CertPreview = styled.div`
+const CertPreview = styled.article`
   background: #2a2a3e;
   padding: 1rem;
   border-radius: 8px;
   cursor: pointer;
   margin-bottom: 1rem;
-  transition: background 0.2s;
+  transition: background 0.2s ease;
 
-  &:hover {
+  &:hover, &:focus {
     background: #3a3a4e;
+    outline: none;
   }
 
-  h3 {
+  h2 {
     font-size: 1rem;
     color: #f4a261;
     margin: 0 0 0.5rem;
@@ -172,25 +182,30 @@ const CertPreview = styled.div`
   }
 `;
 
-const TypedSection = styled.div`
+const TypedSection = styled.section`
   width: 100%;
   max-width: 1200px;
   text-align: center;
   padding: 1rem 0;
   margin-top: 1rem;
+  min-height: 2rem; /* Reserve space for Typed.js to prevent CLS */
 `;
 
 const TypedContent = styled.span`
   font-size: 1.2rem;
-  font-weight: bold;
+  font-weight: 600;
   color: #e76f51;
+  display: inline-block; /* Ensure proper rendering */
+  min-width: 200px; /* Prevent text wrapping issues */
+  text-align: center;
 
   @media (max-width: 768px) {
     font-size: 1rem;
+    min-width: 150px;
   }
 `;
 
-const FaqSection = styled.div`
+const FaqSection = styled.section`
   width: 100%;
   max-width: 1200px;
   margin-top: 2rem;
@@ -200,13 +215,14 @@ const FaqLink = styled(Link)`
   display: block;
   text-align: center;
   color: #f4a261;
-  text-decoration: none;
+  text-decoration: underline;
   font-size: 0.9rem;
   margin-top: 1rem;
-  transition: color 0.2s;
+  transition: color 0.2s ease;
 
-  &:hover {
+  &:hover, &:focus {
     color: #e76f51;
+    outline: none;
   }
 `;
 
@@ -226,11 +242,12 @@ const FooterSection = styled.footer`
 
   a {
     color: #f4a261;
-    text-decoration: none;
-    transition: color 0.2s;
+    text-decoration: underline;
+    transition: color 0.2s ease;
 
-    &:hover {
+    &:hover, &:focus {
       color: #e76f51;
+      outline: none;
     }
   }
 
@@ -256,24 +273,27 @@ const MadeWith = styled.div`
     font-size: 0.9rem;
     color: #b0b0b0;
     margin: 0;
+    font-weight: 500;
   }
 
   img {
     width: 20px;
     height: 20px;
     border-radius: 50%;
+    display: block;
   }
 
   span {
     font-size: 0.9rem;
     color: #e0e0e0;
-    font-weight: bold;
+    font-weight: 600;
   }
 `;
 
 const PlaceholderBox = styled.div`
   width: 100%;
   height: 100%;
+  min-height: 100px;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 10px;
   display: flex;
@@ -286,12 +306,11 @@ const PlaceholderBox = styled.div`
 const Home = memo(() => {
   const navigate = useNavigate();
   const typedRef = useRef(null);
-  const typedInstance = useRef(null);
-  const [isVisible, setIsVisible] = useState(false);
 
-  const initializeTyped = useCallback(() => {
-    if (typedRef.current && !typedInstance.current) {
-      typedInstance.current = new Typed(typedRef.current, {
+  // Initialize Typed.js
+  useEffect(() => {
+    if (typedRef.current) {
+      const typed = new Typed(typedRef.current, {
         strings: [
           'AI-Powered Learning',
           'Real-Time Customization',
@@ -305,20 +324,18 @@ const Home = memo(() => {
         backDelay: 1500,
         loop: true,
       });
+
+      return () => {
+        typed.destroy();
+      };
     }
   }, []);
 
-  useEffect(() => {
-    setIsVisible(true);
-    requestAnimationFrame(() => {
-      initializeTyped();
-    });
-  }, [initializeTyped]);
-
   const handleCertificatePreview = useCallback(() => {
     window.open(
-      'https://Zedemy-media-2025.s3.ap-south-1.amazonaws.com/certificates/Zedemy_by_HogwartsEdx_VS%20Code_2025-04-20_5c0f2f41-57cb-46ce-89ef-0a89298b002a.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=AKIA5BQ4NJCXBUCDIMHH%2F20250423%2Fap-south-1%2Fs3%2Faws4_request&X-Amz-Date=20250423T095231Z&X-Amz-Expires=60&X-Amz-Signature=870f6be370cb38e4bc51daef097ad46803530cc7f90851f1f128aff0279fdef3&X-Amz-SignedHeaders=host&x-amz-checksum-mode=ENABLED&x-id=GetObject',
-      '_blank'
+      'https://Zedemy-media-2025.s3.ap-south-1.amazonaws.com/certificates/Zedemy_by_HogwartsEdx_VS%20Code_2025-04-20_5c0f2f41-57cb-46ce-89ef-0a89298b002a.pdf',
+      '_blank',
+      'noopener,noreferrer'
     );
   }, []);
 
@@ -364,7 +381,7 @@ const Home = memo(() => {
       },
       image: {
         '@type': 'ImageObject',
-        url: 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png',
+        url: 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy_header_image.webp',
       },
     },
     {
@@ -427,7 +444,7 @@ const Home = memo(() => {
         <title>Zedemy: Courses, Code & Certificates by Sanjay Patidar</title>
         <meta
           name="description"
-          content="Zedemy by Sanjay Patidar: Category-based courses, certificates and code formatting. Master skills with Indian-rooted online learning platform for career growth!"
+          content="Zedemy by Sanjay Patidar: Category-based courses, certificates, and in-browser coding. Master tech skills with an Indian-rooted online learning platform."
         />
         <meta
           name="keywords"
@@ -435,43 +452,44 @@ const Home = memo(() => {
         />
         <meta name="author" content="Sanjay Patidar" />
         <meta name="robots" content="index, follow" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <link rel="icon" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <link rel="icon" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png" type="image/png" />
         <link rel="canonical" href="https://zedemy.vercel.app/" />
-        <link rel="preload" as="image" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy_header_image.webp" />
-        <link rel="preload" as="image" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
-        <link rel="preconnect" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com" crossorigin />
+        <link rel="preload" fetchpriority="high" as="image" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy_header_image.webp" type="image/webp" />
+        <link rel="preload" as="image" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png" type="image/png" />
+        <link rel="preconnect" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com" crossorigin="anonymous" />
         <link rel="dns-prefetch" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com" />
-        <meta http-equiv="Cache-Control" content="public, max-age=31536000" />
+        <meta http-equiv="Cache-Control" content="public, max-age=31536000, immutable" />
         <meta property="og:title" content="Zedemy: Courses, Code & Certificates by Sanjay Patidar" />
         <meta
           property="og:description"
-          content="Zedemy by Sanjay Patidar: Category-based courses, certificates and code formatting. Master skills with Indian-rooted online learning platform for career growth!"
+          content="Zedemy by Sanjay Patidar: Category-based courses, certificates, and in-browser coding. Master tech skills with an Indian-rooted online learning platform."
         />
-        <meta
-          property="og:image"
-          content="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png"
-        />
+        <meta property="og:image" content="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy_header_image.webp" />
+        <meta property="og:image:alt" content="Zedemy tech learning platform logo" />
         <meta property="og:url" content="https://zedemy.vercel.app/" />
         <meta property="og:type" content="website" />
+        <meta property="og:locale" content="en_US" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Zedemy: Courses, Code & Certificates by Sanjay Patidar" />
         <meta
-          name="twitter:image"
-          content="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png"
+          name="twitter:description"
+          content="Zedemy by Sanjay Patidar: Category-based courses, certificates, and in-browser coding. Master tech skills with an Indian-rooted online learning platform."
         />
+        <meta name="twitter:image" content="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy_header_image.webp" />
+        <meta name="twitter:image:alt" content="Zedemy tech learning platform logo" />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
       <MainContainer role="main" aria-label="Zedemy Homepage">
-        <NavBar aria-label="Breadcrumb navigation">
-          <Link to="/">Home</Link>
-          <Link to="/explore">Explore New Blogs</Link>
+        <NavBar aria-label="Main navigation">
+          <Link to="/" aria-current="page">Home</Link>
+          <Link to="/explore">Explore Blogs</Link>
           <Link to="/faq">About Zedemy</Link>
         </NavBar>
-        <MainContent style={{ opacity: isVisible ? 1 : 0, transition: 'opacity 0.2s ease-in' }}>
+        <MainContent>
           <ImageSection>
-            <LazyLoad height="100%" offset={100} placeholder={<PlaceholderBox aria-hidden="true">Loading image...</PlaceholderBox>}>
-              <img
+            <LazyLoad height={400} offset={100} once>
+              <StyledImage
                 src="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy_header_image.webp"
                 srcSet="
                   https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy_header_image_320.webp 320w,
@@ -480,9 +498,10 @@ const Home = memo(() => {
                 "
                 sizes="(max-width: 600px) 320px, (max-width: 768px) 500px, 800px"
                 alt="Interactive tech learning experience on Zedemy"
-                width="400" /* Explicit dimensions to reserve space */
-                height="400" /* Matches aspect-ratio 3/3 */
-                loading="lazy"
+                width="400"
+                height="400"
+                loading="eager"
+                fetchpriority="high"
                 decoding="async"
               />
             </LazyLoad>
@@ -491,26 +510,32 @@ const Home = memo(() => {
             <Title>
               <Highlight>Z</Highlight>edemy by Hog<Highlight>W</Highlight>arts<Highlight>E</Highlight>dx
             </Title>
-            <Description>Experience the future of tech education with intelligent features</Description>
+            <Description>Master tech skills with intelligent, category-based learning</Description>
             <ActionButton onClick={() => navigate('/explore')} aria-label="Explore latest tech courses">
-              Explore New Blogs
+              Explore Blogs
             </ActionButton>
             <BlogLink>
-              Discover coding topics by category and dive deeper with hands-on tips in our{' '}
+              Discover coding topics and hands-on tips in our{' '}
               <Link to="/explore" aria-label="Visit blog posts">Blogs</Link>
             </BlogLink>
-            <CertPreview onClick={handleCertificatePreview} role="button" tabIndex={0} aria-label="View certificate preview">
-              <h3>Certificate Preview</h3>
+            <CertPreview
+              onClick={handleCertificatePreview}
+              onKeyDown={(e) => e.key === 'Enter' && handleCertificatePreview()}
+              role="button"
+              tabIndex={0}
+              aria-label="View certificate preview"
+            >
+              <h2>Certificate Preview</h2>
               <p>Earn your HogWartsEdx certificate in courses like Wizarding VS Code Mastery!</p>
             </CertPreview>
-            <Suspense fallback={<PlaceholderBox aria-hidden="true">Loading share buttons...</PlaceholderBox>}>
+            <Suspense fallback={<PlaceholderBox aria-hidden="true">Loading...</PlaceholderBox>}>
               <ShareButton url="https://zedemy.vercel.app/" title="Zedemy | Online Tech Education Platform" />
             </Suspense>
           </TextSection>
         </MainContent>
         <TypedSection>
           <TypedContent>
-            <span ref={typedRef} />
+            <span ref={typedRef} aria-live="polite" />
           </TypedContent>
         </TypedSection>
         <FaqSection>
@@ -525,7 +550,7 @@ const Home = memo(() => {
           <h2>Made With</h2>
           <h2>
             <span>Crea</span>
-            <img src={CreaTeaImage} alt="Creativity icon" loading="lazy" decoding="async" />
+            <img src={CreaTeaImage} alt="Creativity icon" loading="lazy" decoding="async" width="20" height="20" />
             <span>vity</span>
           </h2>
         </MadeWith>
@@ -550,11 +575,11 @@ const Home = memo(() => {
             <Link to="/certificate-verification" aria-label="Verify certificates">
               Verify Certificates
             </Link>
-            <span> | </span>
+            <span aria-hidden="true"> | </span>
             <Link to="/editor" aria-label="Try in-browser code editor">
               Code Editor
             </Link>
-            <span> | </span>
+            <span aria-hidden="true"> | </span>
             <Link to="/category/web-development" aria-label="Explore web development courses">
               Web Development
             </Link>
