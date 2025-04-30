@@ -5,7 +5,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import styled from 'styled-components';
 import DOMPurify from 'dompurify';
-import { RingLoader } from 'react-spinners';
+import { ClipLoader } from 'react-spinners';
 import { createSelector } from 'reselect';
 
 // Lazy-loaded components
@@ -16,7 +16,7 @@ const AccessibleZoom = React.lazy(() => import('./AccessibleZoom'));
 // Minimal CSS imports
 import 'highlight.js/styles/vs.css';
 
-// Custom debounce function
+// Debounce utility
 const debounce = (func, wait) => {
   let timeout;
   return (...args) => {
@@ -71,7 +71,7 @@ const LoadingOverlay = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  background: rgba(92, 6, 6, 0.7);
+  background: rgba(0, 0, 0, 0.5);
   z-index: 9999;
 `;
 
@@ -92,16 +92,15 @@ const SkeletonText = styled.div`
 `;
 
 const PostHeader = styled.h1`
-  font-size: clamp(2.2rem, 5vw, 2rem);
+  font-size: clamp(1.5rem, 4vw, 2rem);
   color: #111827;
   margin: 0.75rem 0 1rem;
   font-weight: 800;
   line-height: 1.2;
-  will-change: transform;
 `;
 
 const SubtitleHeader = styled.h2`
-  font-size: clamp(1.8rem, 4vw, 1.5rem);
+  font-size: clamp(1.25rem, 3vw, 1.5rem);
   color: #011020;
   margin: 1rem 0 0.75rem;
   font-weight: 700;
@@ -130,7 +129,6 @@ const CopyButton = styled.button`
   font-size: 0.75rem;
   min-width: 48px;
   min-height: 48px;
-  touch-action: manipulation;
   &:hover {
     background: #0056b3;
   }
@@ -140,7 +138,6 @@ const CompleteButton = styled.button`
   position: fixed;
   bottom: 1rem;
   right: 1rem;
-  margin: 1rem;
   padding: 0.5rem 1rem;
   background: ${({ isCompleted }) => (isCompleted ? '#27ae60' : '#2c3e50')};
   color: #ecf0f1;
@@ -150,7 +147,6 @@ const CompleteButton = styled.button`
   font-size: 0.875rem;
   min-width: 48px;
   min-height: 48px;
-  touch-action: manipulation;
   &:hover {
     background: ${({ isCompleted }) => (isCompleted ? '#27ae60' : '#34495e')};
   }
@@ -165,6 +161,7 @@ const ImageContainer = styled.figure`
   max-width: 100%;
   margin: 0.75rem 0;
   overflow: hidden;
+  min-height: 270px; /* Prevent CLS */
 `;
 
 const PostImage = styled.img`
@@ -181,6 +178,7 @@ const VideoContainer = styled.figure`
   width: 100%;
   max-width: 100%;
   margin: 0.75rem 0;
+  min-height: 270px; /* Prevent CLS */
 `;
 
 const PostVideo = styled.video`
@@ -194,7 +192,7 @@ const PostVideo = styled.video`
 
 const Placeholder = styled.div`
   width: 100%;
-  height: 50px; /* Simplified for faster rendering */
+  min-height: 50px;
   background: #e0e0e0;
   display: flex;
   align-items: center;
@@ -248,7 +246,6 @@ const ReferenceLink = styled.a`
   font-size: 0.875rem;
   min-height: 44px;
   line-height: 1.5;
-  touch-action: manipulation;
   &:hover {
     text-decoration: underline;
   }
@@ -268,30 +265,16 @@ const NavigationLinks = styled.nav`
     display: inline-flex;
     align-items: center;
     padding: 0.5rem;
-    touch-action: manipulation;
   }
 `;
 
 // Optimized Critical CSS
 const criticalCSS = `
-  html {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    font-size: 16px;
-  }
-  .container {
-    display: flex;
-    min-height: 100vh;
-  }
-  main {
-    flex: 1;
-    padding: 1rem;
-    background: #f4f4f9;
-  }
-  h1 {
-    font-size: clamp(1.5rem, 5vw, 2rem);
-    color: #111827;
-    font-weight: 800;
-  }
+  html { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; }
+  .container { display: flex; min-height: 100vh; }
+  main { flex: 1; padding: 1rem; background: #f4f4f9; }
+  h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; }
+  img, video { width: 100%; height: auto; }
 `;
 
 // Utility functions
@@ -379,7 +362,7 @@ const selectRelatedPosts = createSelector(
   { memoizeOptions: { resultEqualityCheck: (a, b) => JSON.stringify(a) === JSON.stringify(b) } }
 );
 
-// Code Highlighter Component with dynamic language import
+// Code Highlighter Component
 const CodeHighlighter = memo(({ code, language = 'javascript' }) => {
   const [highlighted, setHighlighted] = useState('');
   const [error, setError] = useState(false);
@@ -393,7 +376,6 @@ const CodeHighlighter = memo(({ code, language = 'javascript' }) => {
     const loadHighlighter = async () => {
       try {
         const hljs = await import('highlight.js/lib/core');
-        // Dynamically import the language module
         const langModule = await import(`highlight.js/lib/languages/${language}.js`);
         hljs.default.registerLanguage(language, langModule.default);
         const result = hljs.default.highlight(sanitizeCode(code), { language });
@@ -416,38 +398,6 @@ const CodeHighlighter = memo(({ code, language = 'javascript' }) => {
   );
 });
 
-// Placeholder for CodeMirror (if used elsewhere)
-const CodeMirrorEditor = memo(({ code }) => {
-  const [Editor, setEditor] = useState(null);
-
-  useEffect(() => {
-    const loadEditor = async () => {
-      try {
-        const { EditorView } = await import('@codemirror/view');
-        const { EditorState } = await import('@codemirror/state');
-        setEditor({ EditorView, EditorState });
-      } catch {
-        console.error('Failed to load CodeMirror');
-      }
-    };
-    loadEditor();
-  }, []);
-
-  if (!Editor) return <Placeholder>Loading editor...</Placeholder>;
-  return <div>{/* Implement CodeMirror if needed */}</div>;
-});
-
-// Placeholder for parse5 (if used elsewhere)
-const parseHtml = async (html) => {
-  try {
-    const { parse } = await import('parse5');
-    return parse(html);
-  } catch {
-    console.error('Failed to parse HTML');
-    return null;
-  }
-};
-
 // Subtitle Section Component
 const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) => {
   if (!subtitle) return null;
@@ -457,7 +407,7 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
       <SubtitleHeader id={`subtitle-${index}-heading`}>{parseLinks(subtitle.title || '', category)}</SubtitleHeader>
       {subtitle.image && (
         <ImageContainer>
-          <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
+          <Suspense fallback={<Placeholder minHeight="270px">Loading image...</Placeholder>}>
             <AccessibleZoom caption={subtitle.title || ''}>
               <PostImage
                 src={`${subtitle.image}?w=480&format=avif&q=75`}
@@ -465,11 +415,7 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
                   ${subtitle.image}?w=320&format=avif&q=75 320w,
                   ${subtitle.image}?w=480&format=avif&q=75 480w,
                   ${subtitle.image}?w=768&format=avif&q=75 768w,
-                  ${subtitle.image}?w=1024&format=avif&q=75 1024w,
-                  ${subtitle.image}?w=320&format=webp&q=75 320w,
-                  ${subtitle.image}?w=480&format=webp&q=75 480w,
-                  ${subtitle.image}?w=768&format=webp&q=75 768w,
-                  ${subtitle.image}?w=1024&format=webp&q=75 1024w
+                  ${subtitle.image}?w=1024&format=avif&q=75 1024w
                 `}
                 sizes="(max-width: 480px) 320px, (max-width: 768px) 480px, (max-width: 1024px) 768px, 1024px"
                 alt={subtitle.title || 'Subtitle image'}
@@ -505,7 +451,7 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
             {parseLinks(point.text || '', category)}
             {point.image && (
               <ImageContainer>
-                <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
+                <Suspense fallback={<Placeholder minHeight="270px">Loading image...</Placeholder>}>
                   <AccessibleZoom caption={`Example for ${point.text || ''}`}>
                     <PostImage
                       src={`${point.image}?w=480&format=avif&q=75`}
@@ -513,11 +459,7 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
                         ${point.image}?w=320&format=avif&q=75 320w,
                         ${point.image}?w=480&format=avif&q=75 480w,
                         ${point.image}?w=768&format=avif&q=75 768w,
-                        ${point.image}?w=1024&format=avif&q=75 1024w,
-                        ${point.image}?w=320&format=webp&q=75 320w,
-                        ${point.image}?w=480&format=webp&q=75 480w,
-                        ${point.image}?w=768&format=webp&q=75 768w,
-                        ${point.image}?w=1024&format=webp&q=75 1024w
+                        ${point.image}?w=1024&format=avif&q=75 1024w
                       `}
                       sizes="(max-width: 480px) 320px, (max-width: 768px) 480px, (max-width: 1024px) 768px, 1024px"
                       alt={`Example for ${point.text || 'bullet point'}`}
@@ -587,7 +529,7 @@ const LazySubtitleSection = memo(({ subtitle, index, category, handleImageError 
           observer.disconnect();
         }
       },
-      { rootMargin: '500px', threshold: 0.1 } // Adjusted for earlier loading
+      { rootMargin: '800px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
@@ -598,7 +540,7 @@ const LazySubtitleSection = memo(({ subtitle, index, category, handleImageError 
       {isVisible ? (
         <SubtitleSection subtitle={subtitle} index={index} category={category} handleImageError={handleImageError} />
       ) : (
-        <Placeholder>Loading section...</Placeholder>
+        <Placeholder minHeight="200px">Loading section...</Placeholder>
       )}
     </div>
   );
@@ -617,7 +559,7 @@ const LazyReferencesSection = memo(({ post, handleImageError }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '500px', threshold: 0.1 } // Adjusted for earlier loading
+      { rootMargin: '800px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
@@ -658,7 +600,7 @@ const LazyReferencesSection = memo(({ post, handleImageError }) => {
           )}
         </ReferencesSection>
       ) : (
-        <Placeholder>Loading references...</Placeholder>
+        <Placeholder minHeight="100px">Loading references...</Placeholder>
       )}
     </div>
   );
@@ -676,6 +618,16 @@ const PostPage = memo(() => {
   const [activeSection, setActiveSection] = useState(null);
   const subtitlesListRef = useRef(null);
   const [hasFetched, setHasFetched] = useState(false);
+
+  // Debug Comparison Table data
+  useEffect(() => {
+    if (post?.superTitles) {
+      console.log('SuperTitles Data:', post.superTitles);
+      post.superTitles.forEach((st, i) => {
+        console.log(`SuperTitle ${i}:`, st.superTitle, 'Attributes:', st.attributes);
+      });
+    }
+  }, [post]);
 
   // Debounced Intersection Observer
   const debouncedObserve = useMemo(
@@ -696,11 +648,11 @@ const PostPage = memo(() => {
             sidebarItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
           }
         }
-      }, 100),
+      }, 150),
     []
   );
 
-  // Reset state and scroll to top on slug change
+  // Reset state and scroll to top
   useEffect(() => {
     setHasFetched(false);
     setImageErrors({});
@@ -708,7 +660,7 @@ const PostPage = memo(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [slug]);
 
-  // Fetch data when slug changes or hasFetched is false
+  // Fetch data
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -763,7 +715,7 @@ const PostPage = memo(() => {
     const observer = new IntersectionObserver(debouncedObserve, {
       root: null,
       rootMargin: '0px',
-      threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+      threshold: [0.1, 0.3, 0.5, 0.7, 0.9],
     });
     document.querySelectorAll('[id^="subtitle-"], #summary').forEach((section) => observer.observe(section));
     return () => observer.disconnect();
@@ -797,21 +749,6 @@ const PostPage = memo(() => {
     },
     [isSidebarOpen, subtitleSlugs]
   );
-
-  useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash.slice(1);
-      if (hash && window.gtag) {
-        window.gtag('event', 'section_view', {
-          event_category: 'Navigation',
-          event_label: hash,
-          page_path: window.location.pathname + window.location.hash,
-        });
-      }
-    };
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
 
   const handleImageError = useCallback((url) => {
     setImageErrors((prev) => ({ ...prev, [url]: true }));
@@ -850,8 +787,8 @@ const PostPage = memo(() => {
           name: 'Zedemy',
           logo: { '@type': 'ImageObject', url: ogImage },
         },
-        datePublished: post.date || '',
-        dateModified: post.date || '',
+        datePublished: post.date || new Date().toISOString(),
+        dateModified: post.date || new Date().toISOString(),
         image: ogImage,
         url: canonicalUrl,
         mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
@@ -890,9 +827,6 @@ const PostPage = memo(() => {
     ];
   }, [post, slug, readTime, wordCount]);
 
-  // Enable web-vitals for performance monitoring
- 
-
   if (!post && !hasFetched) {
     return (
       <Container>
@@ -909,7 +843,7 @@ const PostPage = memo(() => {
   if (!post) {
     return (
       <LoadingOverlay aria-live="polite">
-        <RingLoader color="#2c3e50" size={60} />
+        <ClipLoader color="#2c3e50" size={50} />
       </LoadingOverlay>
     );
   }
@@ -940,11 +874,7 @@ const PostPage = memo(() => {
               ${post.titleImage}?w=320&format=avif&q=75 320w,
               ${post.titleImage}?w=480&format=avif&q=75 480w,
               ${post.titleImage}?w=768&format=avif&q=75 768w,
-              ${post.titleImage}?w=1024&format=avif&q=75 1024w,
-              ${post.titleImage}?w=320&format=webp&q=75 320w,
-              ${post.titleImage}?w=480&format=webp&q=75 480w,
-              ${post.titleImage}?w=768&format=webp&q=75 768w,
-              ${post.titleImage}?w=1024&format=webp&q=75 1024w
+              ${post.titleImage}?w=1024&format=avif&q=75 1024w
             `}
             imagesizes="(max-width: 480px) 320px, (max-width: 768px) 480px, (max-width: 1024px) 768px, 1024px"
           />
@@ -996,7 +926,7 @@ const PostPage = memo(() => {
 
             {post.titleImage && !imageErrors[post.titleImage] && (
               <ImageContainer>
-                <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
+                <Suspense fallback={<Placeholder minHeight="675px">Loading image...</Placeholder>}>
                   <AccessibleZoom caption={`Illustration for ${post.title}`}>
                     <PostImage
                       src={`${post.titleImage}?w=480&format=avif&q=75`}
@@ -1004,11 +934,7 @@ const PostPage = memo(() => {
                         ${post.titleImage}?w=320&format=avif&q=75 320w,
                         ${post.titleImage}?w=480&format=avif&q=75 480w,
                         ${post.titleImage}?w=768&format=avif&q=75 768w,
-                        ${post.titleImage}?w=1024&format=avif&q=75 1024w,
-                        ${post.titleImage}?w=320&format=webp&q=75 320w,
-                        ${post.titleImage}?w=480&format=webp&q=75 480w,
-                        ${post.titleImage}?w=768&format=webp&q=75 768w,
-                        ${post.titleImage}?w=1024&format=webp&q=75 1024w
+                        ${post.titleImage}?w=1024&format=avif&q=75 1024w
                       `}
                       sizes="(max-width: 480px) 320px, (max-width: 768px) 480px, (max-width: 1024px) 768px, 1024px"
                       alt={`Illustration for ${post.title}`}
@@ -1056,13 +982,7 @@ const PostPage = memo(() => {
               />
             ))}
 
-            {(post.superTitles || []).some(
-              (st) =>
-                st.superTitle?.trim() &&
-                st.attributes?.some((attr) =>
-                  attr.attribute?.trim() && attr.items?.some((item) => item.title?.trim>item.bulletPoints?.some((p) => p.trim()))
-                )
-            ) && (
+            {(post.superTitles || []).length > 0 && (
               <ComparisonTableContainer aria-labelledby="comparison-heading">
                 <SubtitleHeader id="comparison-heading">Comparison</SubtitleHeader>
                 <ResponsiveContent>
@@ -1075,11 +995,11 @@ const PostPage = memo(() => {
                         <ResponsiveHeader scope="col">Attribute</ResponsiveHeader>
                         {(post.superTitles || []).map(
                           (st, i) =>
-                            st.superTitle?.trim() && (
+                            st.superTitle && (
                               <ResponsiveHeader
                                 key={i}
                                 scope="col"
-                                dangerouslySetInnerHTML={{ __html: parseLinksForHtml(st.superTitle, post.category || '') }}
+                                dangerouslySetInnerHTML={{ __html: parseLinksForHtml(st.superTitle || '', post.category || '') }}
                               />
                             )
                         )}
@@ -1088,34 +1008,33 @@ const PostPage = memo(() => {
                     <tbody>
                       {(post.superTitles[0]?.attributes || []).map(
                         (attr, attrIdx) =>
-                          attr.attribute?.trim() &&
-                          attr.items?.some((item) => item.title?.trim() || item.bulletPoints?.some((p) => p.trim())) && (
+                          attr.attribute && (
                             <tr key={attrIdx}>
                               <ResponsiveCell
                                 scope="row"
-                                dangerouslySetInnerHTML={{ __html: parseLinksForHtml(attr.attribute, post.category || '') }}
+                                dangerouslySetInnerHTML={{ __html: parseLinksForHtml(attr.attribute || '', post.category || '') }}
                               />
                               {(post.superTitles || []).map(
                                 (st, stIdx) =>
                                   st.attributes?.[attrIdx]?.items && (
                                     <ResponsiveCell key={stIdx}>
-                                      {st.attributes[attrIdx].items.map(
+                                      {(st.attributes[attrIdx].items || []).map(
                                         (item, itemIdx) =>
-                                          (item.title?.trim() || item.bulletPoints?.some((p) => p.trim())) && (
+                                          (item.title || item.bulletPoints?.length > 0) && (
                                             <div key={itemIdx}>
                                               <strong
                                                 dangerouslySetInnerHTML={{
-                                                  __html: parseLinksForHtml(item.title || '', post.category || ''),
+                                                  __html: parseLinksForHtml(item.title || 'N/A', post.category || ''),
                                                 }}
                                               />
                                               <ul style={{ paddingLeft: '1.25rem' }}>
                                                 {(item.bulletPoints || []).map(
                                                   (point, pIdx) =>
-                                                    point?.trim() && (
+                                                    point && (
                                                       <li
                                                         key={pIdx}
                                                         dangerouslySetInnerHTML={{
-                                                          __html: parseLinksForHtml(point, post.category || ''),
+                                                          __html: parseLinksForHtml(point || 'N/A', post.category || ''),
                                                         }}
                                                       />
                                                     )
@@ -1153,7 +1072,7 @@ const PostPage = memo(() => {
             </CompleteButton>
 
             <section aria-labelledby="related-posts-heading">
-              <Suspense fallback={<Placeholder>Loading related posts...</Placeholder>}>
+              <Suspense fallback={<Placeholder minHeight="200px">Loading related posts...</Placeholder>}>
                 <RelatedPosts relatedPosts={relatedPosts} />
               </Suspense>
             </section>
@@ -1161,7 +1080,7 @@ const PostPage = memo(() => {
             <LazyReferencesSection post={post} handleImageError={handleImageError} />
           </article>
         </MainContent>
-        <Suspense fallback={<Placeholder>Loading sidebar...</Placeholder>}>
+        <Suspense fallback={<Placeholder minHeight="300px">Loading sidebar...</Placeholder>}>
           <aside>
             <Sidebar
               post={post}
