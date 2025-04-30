@@ -385,7 +385,7 @@ const CodeHighlighter = memo(({ code, language = 'javascript' }) => {
       }
     };
 
-    loadHighlighter();
+    requestIdleCallback(loadHighlighter, { timeout: 1000 });
   }, [code, language]);
 
   if (error || !code) {
@@ -440,6 +440,7 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
             aria-label={`Video for ${subtitle.title || 'subtitle'}`}
             width="480"
             height="270"
+            fetchpriority="low"
           >
             <source src={`${subtitle.video}#t=0.1`} type="video/mp4" />
           </PostVideo>
@@ -484,6 +485,7 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
                   aria-label={`Video example for ${point.text || 'bullet point'}`}
                   width="480"
                   height="270"
+                  fetchpriority="low"
                 >
                   <source src={`${point.video}#t=0.1`} type="video/mp4" />
                 </PostVideo>
@@ -961,6 +963,7 @@ const PostPage = memo(() => {
                   aria-label={`Video for ${post.title}`}
                   width="1200"
                   height="675"
+                  fetchpriority="high"
                 >
                   <source src={`${post.titleVideo}#t=0.1`} type="video/mp4" />
                 </PostVideo>
