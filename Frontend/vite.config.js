@@ -13,12 +13,12 @@ export default defineConfig({
     viteCompression({
       algorithm: 'brotliCompress',
       ext: '.br',
-      threshold: 512, // Lowered to compress smaller files
+      threshold: 512,
     }),
     viteCompression({
       algorithm: 'gzip',
       ext: '.gz',
-      threshold: 512, // Lowered to compress smaller files
+      threshold: 512,
     }),
     visualizer({
       open: false,
@@ -49,11 +49,6 @@ export default defineConfig({
               expiration: { maxEntries: 50, maxAgeSeconds: 30 * 24 * 60 * 60 },
               cacheableResponse: { statuses: [0, 200] },
             },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com/,
-            handler: 'StaleWhileRevalidate',
-            options: { cacheName: 'google-fonts', cacheableResponse: { statuses: [0, 200] } },
           },
           {
             urlPattern: /^https:\/\/se3fw2nzc2\.execute-api\.ap-south-1\.amazonaws\.com/,
@@ -96,9 +91,9 @@ export default defineConfig({
     minify: 'esbuild',
     sourcemap: true,
     target: 'esnext',
-    treeshake: 'recommended', // Enable aggressive tree shaking
+    treeshake: 'recommended',
     modulePreload: {
-      polyfill: true, // Enable module preloading for dynamic imports
+      polyfill: true,
     },
     rollupOptions: {
       output: {
@@ -120,7 +115,7 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
-    exclude: ['highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash'], // Exclude heavy deps from pre-bundling
+    exclude: ['highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash'],
     force: true,
   },
   server: {
