@@ -1,120 +1,106 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import { useDispatch } from 'react-redux';
 import { register } from '../actions/authActions';
-import styled, { keyframes } from 'styled-components';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 
-const fadeIn = keyframes`
-  from {
-    opacity: 0;
+const Container = {
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  minHeight: '100vh',
+  padding: '1rem',
+};
+
+const FormContainer = {
+  padding: '1.5rem',
+  borderRadius: '8px',
+  backgroundColor: '#333',
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+  width: '100%',
+  maxWidth: '400px',
+};
+
+const InstructionText = {
+  fontSize: '0.9rem',
+  color: '#ccc',
+  marginBottom: '1rem',
+  lineHeight: '1.4',
+};
+
+const FormGroup = {
+  marginBottom: '1rem',
+  position: 'relative',
+};
+
+const Label = {
+  display: 'block',
+  fontSize: '1rem',
+  marginBottom: '0.5rem',
+  color: '#fff',
+  fontWeight: '500',
+};
+
+const Input = {
+  width: '100%',
+  padding: '0.75rem',
+  border: '1px solid #555',
+  borderRadius: '6px',
+  fontSize: '1rem',
+  color: '#fff',
+  backgroundColor: '#444',
+  boxSizing: 'border-box',
+  transition: 'border-color 0.2s ease-in-out',
+};
+
+const Select = {
+  width: '100%',
+  padding: '0.75rem',
+  border: '1px solid #555',
+  borderRadius: '6px',
+  fontSize: '1rem',
+  color: '#fff',
+  backgroundColor: '#444',
+  boxSizing: 'border-box',
+};
+
+const Button = {
+  width: 'auto',
+  padding: '0.75rem 1.5rem',
+  backgroundColor: '#007bff',
+  color: '#fff',
+  border: 'none',
+  borderRadius: '6px',
+  fontSize: '1rem',
+  cursor: 'pointer',
+  transition: 'background-color 0.2s ease-in-out',
+};
+
+const TogglePasswordButton = {
+  position: 'absolute',
+  top: '60%',
+  right: '10px',
+  transform: 'translateY(-50%)',
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  color: '#007bff',
+  fontSize: '1rem',
+};
+
+// Media queries for responsiveness
+const responsiveStyles = `
+  @media (max-width: 600px) {
+    .form-container {
+      padding: 1rem;
+      max-width: 90%;
+    }
+    .input, .select, .button {
+      font-size: 0.9rem;
+      padding: 0.6rem;
+    }
+    .instruction-text {
+      font-size: 0.85rem;
+    }
   }
-  to {
-    opacity: 1;
-  }
-`;
-
-const slideIn = keyframes`
-  from {
-    transform: translateY(-20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-`;
-
-const Container = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 90vh;
-  animation: ${fadeIn} 1s ease-in-out;
-`;
-
-const FormContainer = styled.div`
-  padding: 2rem;
-  border-radius: 15px;
-  background: linear-gradient(145deg, #262626, #333);
-  box-shadow: 6px 6px 12px #1a1a1a, -6px -6px 12px #404040;
-  width: 100%;
-  max-width: 400px;
-  animation: ${slideIn} 0.8s ease-out;
-`;
-
-const FormGroup = styled.div`
-  margin-bottom: 1.5rem;
-  position: relative;
-`;
-
-const Label = styled.label`
-  display: block;
-  font-size: 1.1rem;
-  margin-bottom: 0.5rem;
-  color: #fff;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: 0.85rem;
-  border: none;
-  border-radius: 10px;
-  background: #333;
-  box-shadow: inset 4px 4px 8px #1a1a1a, inset -4px -4px 8px #404040;
-  font-size: 1rem;
-  color: #fff;
-  transition: box-shadow 0.3s ease-in-out;
-  &:focus {
-    box-shadow: inset 6px 6px 12px #1a1a1a, inset -6px -6px 12px #404040;
-    outline: none;
-  }
-`;
-
-const Select = styled.select`
-  width: 100%;
-  padding: 0.85rem;
-  border: none;
-  border-radius: 10px;
-  background: #333;
-  box-shadow: inset 4px 4px 8px #1a1a1a, inset -4px -4px 8px #404040;
-  font-size: 1rem;
-  color: #fff;
-  transition: box-shadow 0.3s ease-in-out;
-  &:focus {
-    box-shadow: inset 6px 6px 12px #1a1a1a, inset -6px -6px 12px #404040;
-    outline: none;
-  }
-`;
-
-const Button = styled.button`
-  width: auto;
-  padding: 0.5rem 1.5rem;
-  background-color: #1a1a1a; /* Dark background color */
-  color: white;
-  border: none;
-  border-radius: 30px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background-color 0.3s ease-in-out, transform 0.2s ease, box-shadow 0.3s ease-in-out; /* Added box-shadow transition */
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5); /* Shining shadow effect */
-  &:hover {
-    background-color: #2a2a2a; /* Darker background color on hover */
-    transform: scale(1.05);
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.8); /* Increased shadow intensity on hover */
-  }
-`;
-
-
-const TogglePasswordButton = styled.button`
-  position: absolute;
-  top: 70%;
-  right: 10px;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #fff;
 `;
 
 const RegisterForm = () => {
@@ -124,129 +110,167 @@ const RegisterForm = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: '' // Add role field
+    role: '',
   });
-
   const { name, email, password, confirmPassword, role } = formData;
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  useEffect(() => {
-    toast.info('Your full name will be displayed on the certificate as the bearer. Ensure your full name is entered correctly without any spelling mistakes. If there is any discrepancy, contact the Hogwarts Team.', {
-      position: 'top-right',
-      autoClose: 8000,
-      hideProgressBar: true,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
-      progress: undefined,
-    });
+  const handleChange = useCallback((e) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   }, []);
 
-  const handleChange = e => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async e => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     const response = await dispatch(register(formData)) || { success: false };
-
     if (response.success) {
-        toast.success('Registration successful');
-        navigate('/dashboard');
-    } else {
-        toast.error(response.message || 'Registration failed');
+      navigate('/dashboard'); // Assumes navigate is defined (e.g., via react-router-dom)
     }
-};
+  }, [dispatch, formData]);
 
+  const togglePasswordVisibility = useCallback(() => {
+    setShowPassword((prev) => !prev);
+  }, []);
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
-  const toggleConfirmPasswordVisibility = () => {
-    setShowConfirmPassword(!showConfirmPassword);
-  };
+  const toggleConfirmPasswordVisibility = useCallback(() => {
+    setShowConfirmPassword((prev) => !prev);
+  }, []);
 
   return (
-    <Container>
-      <FormContainer>
-        <form onSubmit={handleSubmit}>
-          <FormGroup>
-            <Label htmlFor="name">Name:</Label>
-            <Input
-              type="text"
-              id="name"
-              placeholder="Enter your full name"
-              name="name"
-              value={name}
-              onChange={handleChange}
-              required
-            />
-          </FormGroup>
-          <FormGroup>
-            <Label htmlFor="email">Email:</Label>
-            <Input
-              type="email"
-              id="email"
-              placeholder="Enter your email"
-              name="email"
-              value={email}
-              onChange={handleChange}
-              required
-            />
-          </FormGroup>
-          <FormGroup>
-            <Label htmlFor="password">Password:</Label>
-            <Input
-              type={showPassword ? 'text' : 'password'}
-              id="password"
-              placeholder="Enter your password"
-              name="password"
-              value={password}
-              onChange={handleChange}
-              required
-            />
-            <TogglePasswordButton onClick={togglePasswordVisibility}>
-              {showPassword ? '🙈' : '👁️'}
-            </TogglePasswordButton>
-          </FormGroup>
-          <FormGroup>
-            <Label htmlFor="confirmPassword">Confirm Password:</Label>
-            <Input
-              type={showConfirmPassword ? 'text' : 'password'}
-              id="confirmPassword"
-              placeholder="Confirm your password"
-              name="confirmPassword"
-              value={confirmPassword}
-              onChange={handleChange}
-              required
-            />
-            <TogglePasswordButton onClick={toggleConfirmPasswordVisibility}>
-              {showConfirmPassword? '🙈' : '👁️'}
-</TogglePasswordButton>
-</FormGroup>
-<FormGroup>
-<Label htmlFor="role">Role:</Label>
-<Select
-           id="role"
-           name="role"
-           value={role}
-           onChange={handleChange}
-           required
-         >
-<option value="">Select Role</option>
-<option value="user">User</option>
-<option value="admin">Admin</option>
-</Select>
-</FormGroup>
-<Button type="submit">Register</Button>
-</form>
-</FormContainer>
-</Container>
-);
+    <>
+      <style>{responsiveStyles}</style>
+      <div style={Container} role="main" aria-labelledby="register-heading">
+        <h1 id="register-heading" style={{ display: 'none' }}>Register</h1>
+        <div style={FormContainer} className="form-container">
+          <p
+            style={InstructionText}
+            className="instruction-text"
+            aria-live="polite"
+          >
+            Your full name will be displayed on the certificate as the bearer. Ensure your full name is entered correctly without any spelling mistakes. If there is any discrepancy, contact the Hogwarts Team.
+          </p>
+          <form onSubmit={handleSubmit} noValidate>
+            <div style={FormGroup}>
+              <label style={Label} htmlFor="name">
+                Name
+              </label>
+              <input
+                style={Input}
+                type="text"
+                id="name"
+                name="name"
+                value={name}
+                onChange={handleChange}
+                placeholder="Enter your full name"
+                required
+                aria-required="true"
+                aria-describedby="name-error"
+                className="input"
+              />
+            </div>
+            <div style={FormGroup}>
+              <label style={Label} htmlFor="email">
+                Email
+              </label>
+              <input
+                style={Input}
+                type="email"
+                id="email"
+                name="email"
+                value={email}
+                onChange={handleChange}
+                placeholder="Enter your email"
+                required
+                aria-required="true"
+                aria-describedby="email-error"
+                className="input"
+              />
+            </div>
+            <div style={FormGroup}>
+              <label style={Label} htmlFor="password">
+                Password
+              </label>
+              <input
+                style={Input}
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                name="password"
+                value={password}
+                onChange={handleChange}
+                placeholder="Enter your password"
+                required
+                aria-required="true"
+                aria-describedby="password-error"
+                className="input"
+              />
+              <button
+                style={TogglePasswordButton}
+                type="button"
+                onClick={togglePasswordVisibility}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? '🙈' : '👁️'}
+              </button>
+            </div>
+            <div style={FormGroup}>
+              <label style={Label} htmlFor="confirmPassword">
+                Confirm Password
+              </label>
+              <input
+                style={Input}
+                type={showConfirmPassword ? 'text' : 'password'}
+                id="confirmPassword"
+                name="confirmPassword"
+                value={confirmPassword}
+                onChange={handleChange}
+                placeholder="Confirm your password"
+                required
+                aria-required="true"
+                aria-describedby="confirmPassword-error"
+                className="input"
+              />
+              <button
+                style={TogglePasswordButton}
+                type="button"
+                onClick={toggleConfirmPasswordVisibility}
+                aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+              >
+                {showConfirmPassword ? '🙈' : '👁️'}
+              </button>
+            </div>
+            <div style={FormGroup}>
+              <label style={Label} htmlFor="role">
+                Role
+              </label>
+              <select
+                style={Select}
+                id="role"
+                name="role"
+                value={role}
+                onChange={handleChange}
+                required
+                aria-required="true"
+                aria-describedby="role-error"
+                className="select"
+              >
+                <option value="">Select Role</option>
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <button
+              style={Button}
+              type="submit"
+              aria-label="Submit registration form"
+              className="button"
+            >
+              Register
+            </button>
+          </form>
+        </div>
+      </div>
+    </>
+  );
 };
 
-export default RegisterForm;
-
-
+export default memo(RegisterForm);
