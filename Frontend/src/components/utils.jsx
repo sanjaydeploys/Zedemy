@@ -1,63 +1,61 @@
+import React from 'react';
 import { Link } from 'react-router-dom';
 
-export const parseLinks = (text, category) => {
-  if (!text) return [text];
+export const parseLinks = (text, category, isHtml = false) => {
+  if (!text) return isHtml ? '' : [text];
   const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+|\/[^\s)]+)\)/g;
+  if (isHtml) {
+    return text.replace(linkRegex, (match, linkText, url) => {
+      const isInternal = url.startsWith('/');
+      return isInternal
+        ? `<a href="${url}" class="text-blue-600 hover:text-blue-800" aria-label="Navigate to ${linkText}">${linkText}</a>`
+        : `<a href="${url}" target="_blank" rel="noopener" class="text-blue-600 hover:text-blue-800" aria-label="Visit ${linkText}">${linkText}</a>`;
+    });
+  }
   const elements = [];
   let lastIndex = 0;
   let match;
   while ((match = linkRegex.exec(text)) !== null) {
     const [fullMatch, linkText, url] = match;
-    const startIndex = match.index;
-    const endIndex = startIndex + fullMatch.length;
-    if (startIndex > lastIndex) {
-      elements.push(text.slice(lastIndex, startIndex));
-    }
+    elements.push(text.slice(lastIndex, match.index));
     const isInternal = url.startsWith('/');
     elements.push(
       isInternal ? (
-        <Link
-          key={startIndex}
-          to={url}
-          style={{ color: '#007bff', textDecoration: 'underline' }}
-          aria-label={`Navigate to ${linkText}`}
-        >
+        <Link key={`${url}-${match.index}`} to={url} className="text-blue-600 hover:text-blue-800" aria-label={`Navigate to ${linkText}`}>
           {linkText}
         </Link>
       ) : (
         <a
-          key={startIndex}
+          key={`${url}-${match.index}`}
           href={url}
           target={url.startsWith('vscode://') ? '_self' : '_blank'}
-          rel={url.startsWith('vscode://') ? undefined : 'noopener noreferrer nofollow'}
-          style={{ color: '#007bff', textDecoration: 'underline' }}
+          rel="noopener"
+          className="text-blue-600 hover:text-blue-800"
           aria-label={`Visit ${linkText}`}
         >
           {linkText}
         </a>
       )
     );
-    lastIndex = endIndex;
+    lastIndex = match.index + fullMatch.length;
   }
   if (lastIndex < text.length) {
     elements.push(text.slice(lastIndex));
   }
-  if (elements.length === 0) {
-    elements.push(text);
-  }
-  return elements;
+  return elements.length ? elements : [text];
 };
 
-export const parseLinksForHtml = (text, category) => {
-  if (!text) return text;
-  const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+|\/[^\s)]+)\)/g;
-  return text.replace(linkRegex, (match, linkText, url) => {
-    const isInternal = url.startsWith('/');
-    if (isInternal) {
-      return `<a href="${url}" style="color: #007bff; text-decoration: underline;" aria-label="Navigate to ${linkText}">${linkText}</a>`;
-    }
-    const target = url.startsWith('vscode://') ? '_self' : '_blank';
-    const rel = url.startsWith('vscode://') ? '' : ' rel="noopener noreferrer nofollow"';
-    return `<a href="${url}" target="${target}"${rel} style="color: #007bff; text-decoration: underline;" aria-label="Visit ${linkText}">${linkText}</a>`;
-  });
+export const slugify = (text) => {
+  if (!text) return '';
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+};
+
+export const truncateText = (text, max) => {
+  if (!text || text.length <= max) return text || '';
+  return text.slice(0, max) + '...';
 };
