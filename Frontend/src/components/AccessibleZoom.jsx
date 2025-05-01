@@ -19,12 +19,13 @@ const ButtonContainer = styled.div`
 const ZoomButton = styled.button`
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
-  background: #007bff;
-  color: #fff;
+  background: #0069d9;
+  color: #ffffff;
   border: none;
   border-radius: 0.25rem;
   cursor: pointer;
 `;
+
 
 const Caption = styled.figcaption`
   font-size: 0.75rem;
