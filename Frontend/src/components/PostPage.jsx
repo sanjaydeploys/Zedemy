@@ -1,17 +1,19 @@
-import React, { useState, useEffect, useRef, memo, useMemo, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useRef, memo, useMemo, useCallback, Suspense, useDeferredValue } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPostBySlug, fetchCompletedPosts, fetchPosts, markPostAsCompleted } from '../actions/postActions';
 import { useParams, Link } from 'react-router-dom';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import styled from 'styled-components';
-import DOMPurify from 'dompurify';
 import { ClipLoader } from 'react-spinners';
 import { createSelector } from 'reselect';
+import { parseLinks, slugify, truncateText } from './utils';
 
 // Lazy-loaded components
 const Sidebar = React.lazy(() => import('./Sidebar'));
 const RelatedPosts = React.lazy(() => import('./RelatedPosts'));
 const AccessibleZoom = React.lazy(() => import('./AccessibleZoom'));
+const ComparisonTable = React.lazy(() => import('./ComparisonTable'));
+const CodeHighlighter = React.lazy(() => import('./CodeHighlighter'));
 
 // Minimal CSS imports
 import 'highlight.js/styles/vs.css';
@@ -25,25 +27,6 @@ const debounce = (func, wait) => {
   };
 };
 
-// Slugify utility
-const slugify = (text) => {
-  if (!text) return '';
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-');
-};
-
-// Shared styles
-const sharedSectionStyles = `
-  margin-top: 1rem;
-  padding: 1rem;
-  background: #f9f9f9;
-  border-radius: 0.375rem;
-`;
-
 // Styled components
 const Container = styled.div`
   display: flex;
@@ -53,7 +36,6 @@ const Container = styled.div`
   @media (min-width: 769px) {
     flex-direction: row;
   }
-  transition: none;
 `;
 
 const MainContent = styled.main`
@@ -61,6 +43,10 @@ const MainContent = styled.main`
   padding: 1rem;
   background: #f4f4f9;
   contain: paint;
+  @media (min-width: 769px) {
+    margin-right: 2px; /* Reserve space for sidebar */
+    min-width: 0;
+  }
   @media (max-width: 768px) {
     padding: 0.75rem;
   }
@@ -109,32 +95,6 @@ const SubtitleHeader = styled.h2`
   padding-left: 0.5rem;
 `;
 
-const CodeSnippetContainer = styled.div`
-  position: relative;
-  margin: 1rem 0;
-  background: #1e1e1e;
-  border-radius: 0.375rem;
-  overflow: hidden;
-`;
-
-const CopyButton = styled.button`
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  background: #007bff;
-  color: #fff;
-  border: none;
-  padding: 0.5rem;
-  border-radius: 0.25rem;
-  cursor: pointer;
-  font-size: 0.75rem;
-  min-width: 48px;
-  min-height: 48px;
-  &:hover {
-    background: #0056b3;
-  }
-`;
-
 const CompleteButton = styled.button`
   position: fixed;
   bottom: 1rem;
@@ -161,8 +121,8 @@ const ImageContainer = styled.figure`
   width: 100%;
   max-width: 100%;
   margin: 0.75rem 0;
+  min-height: 270px;
   overflow: hidden;
-  min-height: 270px; /* Prevent CLS */
 `;
 
 const PostImage = styled.img`
@@ -172,15 +132,13 @@ const PostImage = styled.img`
   max-height: 60vh;
   object-fit: contain;
   border-radius: 0.375rem;
-  aspect-ratio: 16 / 9;
 `;
 
 const VideoContainer = styled.figure`
   width: 100%;
   max-width: 100%;
   margin: 0.75rem 0;
-min-height: ${(props) => props.minHeight || '675px'};
-aspect-ratio: 16 / 9;
+  min-height: 270px;
 `;
 
 const PostVideo = styled.video`
@@ -189,54 +147,26 @@ const PostVideo = styled.video`
   max-width: 100%;
   max-height: 60vh;
   border-radius: 0.375rem;
-  aspect-ratio: 16 / 9;
 `;
+
 const Placeholder = styled.div`
   width: 100%;
-  min-height: ${(props) => props.minHeight || '50px'};
+  min-height: ${(props) => props.minHeight || '270px'};
+  aspect-ratio: 16 / 9;
   background: #e0e0e0;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #666;
   border-radius: 0.375rem;
-  font-size: 0.75rem;
-  aspect-ratio: ${(props) => (props.minHeight === '675px' || props.minHeight === '270px' ? '16 / 9' : 'auto')};
-`;
-
-const ComparisonTableContainer = styled.section`
-  ${sharedSectionStyles}
-  overflow-x: auto;
-`;
-
-const ResponsiveContent = styled.div`
-  overflow: auto;
-`;
-
-const ResponsiveTable = styled.table`
-  border-collapse: collapse;
-  width: 100%;
-  min-width: 500px;
-`;
-
-const ResponsiveHeader = styled.th`
-  background: #34495e;
-  color: #ecf0f1;
-  padding: 0.5rem;
-  border: 1px solid #34495e;
-  font-size: 0.75rem;
-`;
-
-const ResponsiveCell = styled.td`
-  border: 1px solid #34495e;
-  padding: 0.5rem;
-  vertical-align: top;
-  font-size: 0.75rem;
-  white-space: normal;
+  font-size: 0.875rem;
 `;
 
 const ReferencesSection = styled.section`
-  ${sharedSectionStyles}
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 0.375rem;
 `;
 
 const ReferenceLink = styled.a`
@@ -270,86 +200,15 @@ const NavigationLinks = styled.nav`
   }
 `;
 
-// Optimized Critical CSS
+// Critical CSS (extracted to file in production)
 const criticalCSS = `
   html { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; }
   .container { display: flex; min-height: 100vh; }
   main { flex: 1; padding: 1rem; background: #f4f4f9; }
   h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; }
-  figure { width: 100%; max-width: 100%; margin: 0.75rem 0; min-height: 675px; }
+  figure { width: 100%; max-width: 100%; margin: 0.75rem 0; min-height: 270px; }
   img { width: 100%; height: auto; max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 0.375rem; }
 `;
-
-// Utility functions
-const parseLinks = (text, category) => {
-  if (!text) return [text];
-  const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+|\/[^\s)]+)\)/g;
-  const elements = [];
-  let lastIndex = 0;
-
-  let match;
-  while ((match = linkRegex.exec(text)) !== null) {
-    const [fullMatch, linkText, url] = match;
-    elements.push(text.slice(lastIndex, match.index));
-    const isInternal = url.startsWith('/');
-    elements.push(
-      isInternal ? (
-        <Link key={`${url}-${match.index}`} to={url} style={{ color: '#007bff' }} aria-label={`Navigate to ${linkText}`}>
-          {linkText}
-        </Link>
-      ) : (
-        <a
-          key={`${url}-${match.index}`}
-          href={url}
-          target={url.startsWith('vscode://') ? '_self' : '_blank'}
-          rel="noopener"
-          style={{ color: '#007bff' }}
-          aria-label={`Visit ${linkText}`}
-        >
-          {linkText}
-        </a>
-      )
-    );
-    lastIndex = match.index + fullMatch.length;
-  }
-
-  if (lastIndex < text.length) {
-    elements.push(text.slice(lastIndex));
-  }
-  return elements.length ? elements : [text];
-};
-
-const parseLinksForHtml = (text, category) => {
-  if (!text) return '';
-  const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+|\/[^\s)]+)\)/g;
-  return text.replace(linkRegex, (match, linkText, url) => {
-    const isInternal = url.startsWith('/');
-    return isInternal
-      ? `<a href="${url}" style="color:#007bff" aria-label="Navigate to ${linkText}">${linkText}</a>`
-      : `<a href="${url}" target="_blank" rel="noopener" style="color:#007bff" aria-label="Visit ${linkText}">${linkText}</a>`;
-  });
-};
-
-const calculateReadTimeAndWordCount = (post) => {
-  if (!post) return { readTime: 0, wordCount: 0 };
-  const text = [
-    post.title || '',
-    post.content || '',
-    post.summary || '',
-    ...(post.subtitles?.map((s) => (s.title || '') + (s.bulletPoints?.map((b) => b.text || '').join('') || '')) || []),
-  ].join(' ');
-  const words = text.split(/\s+/).filter((w) => w).length;
-  return { readTime: Math.ceil(words / 200), wordCount: words };
-};
-
-const sanitizeCode = (code) => {
-  return DOMPurify.sanitize(code || '', { ALLOWED_TAGS: [] });
-};
-
-const truncateText = (text, max) => {
-  if (!text || text.length <= max) return text || '';
-  return text.slice(0, max) + '...';
-};
 
 // Memoized selectors
 const selectPostReducer = (state) => state.postReducer;
@@ -365,45 +224,15 @@ const selectRelatedPosts = createSelector(
   { memoizeOptions: { resultEqualityCheck: (a, b) => JSON.stringify(a) === JSON.stringify(b) } }
 );
 
-// Code Highlighter Component
-const CodeHighlighter = memo(({ code, language = 'javascript' }) => {
-  const [highlighted, setHighlighted] = useState('');
-  const [error, setError] = useState(false);
+// Subtitle Section Component
+const SubtitleSection = memo(({ subtitle, index, category }) => {
+  if (!subtitle) return null;
 
   useEffect(() => {
-    if (!code) {
-      setError(true);
-      return;
+    if (subtitle.image) {
+      console.log('Subtitle Image URL:', `${subtitle.image}?w=480&format=avif&q=75`);
     }
-
-    const loadHighlighter = async () => {
-      try {
-        const hljs = await import('highlight.js/lib/core');
-        const langModule = await import(`highlight.js/lib/languages/${language}.js`);
-        hljs.default.registerLanguage(language, langModule.default);
-        const result = hljs.default.highlight(sanitizeCode(code), { language });
-        setHighlighted(result.value);
-      } catch {
-        setError(true);
-      }
-    };
-
-    requestIdleCallback(loadHighlighter, { timeout: 1000 });
-  }, [code, language]);
-
-  if (error || !code) {
-    return <pre><code>{code || 'No code available'}</code></pre>;
-  }
-  return (
-    <pre>
-      <code className={`hljs language-${language}`} dangerouslySetInnerHTML={{ __html: highlighted }} />
-    </pre>
-  );
-});
-
-// Subtitle Section Component
-const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) => {
-  if (!subtitle) return null;
+  }, [subtitle.image]);
 
   return (
     <section id={`subtitle-${index}`} aria-labelledby={`subtitle-${index}-heading`}>
@@ -413,7 +242,7 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
           <Suspense fallback={<Placeholder minHeight="270px">Loading image...</Placeholder>}>
             <AccessibleZoom caption={subtitle.title || ''}>
               <PostImage
-                src={`${subtitle.image}?w=480&format=avif&q=60`}
+                src={`${subtitle.image}?w=480&format=avif&q=75`}
                 srcSet={`
                   ${subtitle.image}?w=320&format=avif&q=75 320w,
                   ${subtitle.image}?w=480&format=avif&q=75 480w,
@@ -424,9 +253,9 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
                 alt={subtitle.title || 'Subtitle image'}
                 loading="lazy"
                 decoding="async"
-                width="480"
-                height="270"
-                onError={() => handleImageError(subtitle.image)}
+                fetchpriority="low"
+                onLoad={() => console.log('Subtitle Image Loaded:', subtitle.image)}
+                onError={() => console.error('Subtitle Image Failed:', subtitle.image)}
               />
             </AccessibleZoom>
           </Suspense>
@@ -441,9 +270,8 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
             loading="lazy"
             decoding="async"
             aria-label={`Video for ${subtitle.title || 'subtitle'}`}
-            width="480"
-            height="270"
             fetchpriority="low"
+            onLoad={() => console.log('Video Loaded:', subtitle.video)}
           >
             <source src={`${subtitle.video}#t=0.1`} type="video/mp4" />
           </PostVideo>
@@ -458,7 +286,7 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
                 <Suspense fallback={<Placeholder minHeight="270px">Loading image...</Placeholder>}>
                   <AccessibleZoom caption={`Example for ${point.text || ''}`}>
                     <PostImage
-                      src={`${point.image}?w=480&format=avif&q=60`}
+                      src={`${point.image}?w=480&format=avif&q=75`}
                       srcSet={`
                         ${point.image}?w=320&format=avif&q=75 320w,
                         ${point.image}?w=480&format=avif&q=75 480w,
@@ -469,9 +297,9 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
                       alt={`Example for ${point.text || 'bullet point'}`}
                       loading="lazy"
                       decoding="async"
-                      width="480"
-                      height="270"
-                      onError={() => handleImageError(point.image)}
+                      fetchpriority="low"
+                      onLoad={() => console.log('Point Image Loaded:', point.image)}
+                      onError={() => console.error('Point Image Failed:', point.image)}
                     />
                   </AccessibleZoom>
                 </Suspense>
@@ -486,18 +314,19 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
                   loading="lazy"
                   decoding="async"
                   aria-label={`Video example for ${point.text || 'bullet point'}`}
-                  width="480"
-                  height="270"
                   fetchpriority="low"
+                  onLoad={() => console.log('Point Video Loaded:', point.video)}
                 >
                   <source src={`${point.video}#t=0.1`} type="video/mp4" />
                 </PostVideo>
               </VideoContainer>
             )}
             {point.codeSnippet && (
-              <CodeSnippetContainer>
-                <CopyButton
-                  onClick={async () => {
+              <Suspense fallback={<Placeholder>Loading code...</Placeholder>}>
+                <CodeHighlighter
+                  code={point.codeSnippet}
+                  language={point.language || 'javascript'}
+                  onCopy={async () => {
                     try {
                       await navigator.clipboard.writeText(point.codeSnippet);
                       alert('Code copied!');
@@ -505,14 +334,8 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
                       alert('Failed to copy code');
                     }
                   }}
-                  aria-label="Copy code"
-                >
-                  Copy
-                </CopyButton>
-                <Suspense fallback={<Placeholder>Loading code...</Placeholder>}>
-                  <CodeHighlighter code={point.codeSnippet} language={point.language || 'javascript'} />
-                </Suspense>
-              </CodeSnippetContainer>
+                />
+              </Suspense>
             )}
           </li>
         ))}
@@ -522,7 +345,7 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
 });
 
 // Lazy Subtitle Section
-const LazySubtitleSection = memo(({ subtitle, index, category, handleImageError }) => {
+const LazySubtitleSection = memo(({ subtitle, index, category }) => {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef();
 
@@ -534,7 +357,7 @@ const LazySubtitleSection = memo(({ subtitle, index, category, handleImageError 
           observer.disconnect();
         }
       },
-      { rootMargin: '800px', threshold: 0.1 }
+      { rootMargin: '200px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
@@ -543,7 +366,7 @@ const LazySubtitleSection = memo(({ subtitle, index, category, handleImageError 
   return (
     <div ref={ref}>
       {isVisible ? (
-        <SubtitleSection subtitle={subtitle} index={index} category={category} handleImageError={handleImageError} />
+        <SubtitleSection subtitle={subtitle} index={index} category={category} />
       ) : (
         <Placeholder minHeight="200px">Loading section...</Placeholder>
       )}
@@ -552,7 +375,7 @@ const LazySubtitleSection = memo(({ subtitle, index, category, handleImageError 
 });
 
 // Lazy References Section
-const LazyReferencesSection = memo(({ post, handleImageError }) => {
+const LazyReferencesSection = memo(({ post }) => {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef();
 
@@ -564,7 +387,7 @@ const LazyReferencesSection = memo(({ post, handleImageError }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '800px', threshold: 0.1 }
+      { rootMargin: '200px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
@@ -619,20 +442,17 @@ const PostPage = memo(() => {
   const relatedPosts = useSelector(selectRelatedPosts);
   const completedPosts = useSelector(selectCompletedPosts);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [imageErrors, setImageErrors] = useState({});
   const [activeSection, setActiveSection] = useState(null);
+  const deferredActiveSection = useDeferredValue(activeSection);
   const subtitlesListRef = useRef(null);
   const [hasFetched, setHasFetched] = useState(false);
 
-  // Debug Comparison Table data
+  // Debug Image URLs
   useEffect(() => {
-    if (post?.superTitles) {
-      console.log('SuperTitles Data:', post.superTitles);
-      post.superTitles.forEach((st, i) => {
-        console.log(`SuperTitle ${i}:`, st.superTitle, 'Attributes:', st.attributes);
-      });
+    if (post?.titleImage) {
+      console.log('Title Image URL:', `${post.titleImage}?w=480&format=avif&q=75`);
     }
-  }, [post]);
+  }, [post?.titleImage]);
 
   // Debounced Intersection Observer
   const debouncedObserve = useMemo(
@@ -660,20 +480,22 @@ const PostPage = memo(() => {
   // Reset state and scroll to top
   useEffect(() => {
     setHasFetched(false);
-    setImageErrors({});
     setActiveSection(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [slug]);
 
-  // Fetch data
+  // Fetch data with retry
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchData = async (retries = 3) => {
       try {
         await dispatch(fetchPostBySlug(slug));
         await Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
         setHasFetched(true);
       } catch (error) {
-        console.error('Failed to load data:', error);
+        console.error('Fetch failed:', error);
+        if (retries > 0) {
+          setTimeout(() => fetchData(retries - 1), 1000);
+        }
       }
     };
     if (!hasFetched) {
@@ -701,38 +523,57 @@ const PostPage = memo(() => {
     }
   }, [subtitleSlugs]);
 
-  const { readTime, wordCount } = useMemo(() => calculateReadTimeAndWordCount(post), [post]);
-  const parsedTitle = useMemo(
-    () => parseLinks(post?.title || '', post?.category || ''),
-    [post?.title, post?.category]
-  );
-  const parsedContent = useMemo(
-    () => parseLinks(post?.content || '', post?.category || ''),
-    [post?.content, post?.category]
-  );
-  const parsedSummary = useMemo(
-    () => parseLinks(post?.summary || '', post?.category || ''),
-    [post?.summary, post?.category]
-  );
+  const calculateReadTimeAndWordCount = useMemo(() => {
+    if (!post) return { readTime: 0, wordCount: 0 };
+    const text = [
+      post.title || '',
+      post.content || '',
+      post.summary || '',
+      ...(post.subtitles?.map((s) => (s.title || '') + (s.bulletPoints?.map((b) => b.text || '').join('') || '')) || []),
+    ].join(' ');
+    const words = text.split(/\s+/).filter((w) => w).length;
+    return { readTime: Math.ceil(words / 200), wordCount: words };
+  }, [post]);
+
+  const parsedTitle = useMemo(() => parseLinks(post?.title || '', post?.category || ''), [post?.title, post?.category]);
+  const parsedContent = useMemo(() => parseLinks(post?.content || '', post?.category || ''), [post?.content, post?.category]);
+  const parsedSummary = useMemo(() => parseLinks(post?.summary || '', post?.category || ''), [post?.summary, post?.category]);
 
   useEffect(() => {
     if (!post) return;
     const observer = new IntersectionObserver(debouncedObserve, {
       root: null,
       rootMargin: '0px',
-      threshold: [0.1, 0.3, 0.5, 0.7, 0.9],
+      threshold: [0.1, 0.3, 0.5],
     });
     document.querySelectorAll('[id^="subtitle-"], #summary').forEach((section) => observer.observe(section));
     return () => observer.disconnect();
   }, [post, debouncedObserve]);
 
   useEffect(() => {
-    requestIdleCallback(() => {
-      if (post?.titleImage) {
-        const img = new Image();
-        img.src = `${post.titleImage}?w=480&format=avif&q=75`;
+    if (post?.titleImage) {
+      if (typeof scheduler !== 'undefined' && scheduler.postTask) {
+        scheduler.postTask(
+          () => {
+            const img = new Image();
+            img.src = `${post.titleImage}?w=480&format=avif&q=75`;
+            img.onload = () => console.log('Title Image Preloaded:', post.titleImage);
+            img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
+          },
+          { priority: 'background' }
+        );
+      } else {
+        requestIdleCallback(
+          () => {
+            const img = new Image();
+            img.src = `${post.titleImage}?w=480&format=avif&q=75`;
+            img.onload = () => console.log('Title Image Preloaded:', post.titleImage);
+            img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
+          },
+          { timeout: 1000 }
+        );
       }
-    });
+    }
   }, [post?.titleImage]);
 
   const handleMarkAsCompleted = useCallback(() => {
@@ -755,10 +596,6 @@ const PostPage = memo(() => {
     [isSidebarOpen, subtitleSlugs]
   );
 
-  const handleImageError = useCallback((url) => {
-    setImageErrors((prev) => ({ ...prev, [url]: true }));
-  }, []);
-
   const structuredData = useMemo(() => {
     if (!post) return [];
     const pageTitle = `${post.title} | Zedemy, India`;
@@ -768,16 +605,9 @@ const PostPage = memo(() => {
       ? `${post.keywords}, Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`
       : `Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`;
     const canonicalUrl = `https://zedemy.vercel.app/post/${slug}`;
-    const ogImage = post.titleImage || 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
-    const faqData = (post.subtitles || [])
-      .filter((s) => s.isFAQ)
-      .map((s) => ({
-        '@type': 'Question',
-        name: s.title || '',
-        acceptedAnswer: { '@type': 'Answer', text: (s.bulletPoints || []).map((p) => p.text || '').join(' ') },
-        mainEntityOfPage: { '@type': 'WebPage', '@id': `${canonicalUrl}#${slugify(s.title || '')}` },
-      }));
-
+    const ogImage = post.titleImage
+      ? `${post.titleImage}?w=1200&format=webp&q=75`
+      : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
     return [
       {
         '@context': 'https://schema.org',
@@ -797,40 +627,36 @@ const PostPage = memo(() => {
         image: ogImage,
         url: canonicalUrl,
         mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
-        timeRequired: `PT${readTime}M`,
-        wordCount,
+        timeRequired: `PT${calculateReadTimeAndWordCount.readTime}M`,
+        wordCount: calculateReadTimeAndWordCount.wordCount,
         inLanguage: 'en',
-        isPartOf: { '@type': 'WebSite', name: 'Zedemy', url: 'https://zedemy.vercel.app/' },
       },
       {
         '@context': 'https://schema.org',
         '@type': 'BreadcrumbList',
         itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://zedemy.vercel.app/' },
-          { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://zedemy.vercel.app/explore' },
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: 'https://zedemy.vercel.app/',
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: post.category || 'Blog',
+            item: `https://zedemy.vercel.app/category/${post.category?.toLowerCase() || 'blog'}`,
+          },
           {
             '@type': 'ListItem',
             position: 3,
-            name: post.category || 'Tech Tutorials',
-            item: `https://zedemy.vercel.app/category/${post.category?.toLowerCase() || 'blog'}`,
+            name: post.title || '',
+            item: canonicalUrl,
           },
-          { '@type': 'ListItem', position: 4, name: post.title || '', item: canonicalUrl },
         ],
       },
-      ...(faqData.length > 0 ? [{ '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: faqData }] : []),
-      {
-        '@context': 'https://schema.org',
-        '@type': 'WebSite',
-        name: 'Zedemy',
-        url: 'https://zedemy.vercel.app/',
-        potentialAction: {
-          '@type': 'SearchAction',
-          target: 'https://zedemy.vercel.app/explore?search={search_term_string}',
-          'query-input': 'required name=search_term_string',
-        },
-      },
     ];
-  }, [post, slug, readTime, wordCount]);
+  }, [post, slug, calculateReadTimeAndWordCount]);
 
   if (!post && !hasFetched) {
     return (
@@ -841,6 +667,7 @@ const PostPage = memo(() => {
           <SkeletonText width="60%" />
           <SkeletonText width="90%" />
         </MainContent>
+        <Placeholder minHeight="300px">Loading sidebar...</Placeholder>
       </Container>
     );
   }
@@ -868,7 +695,8 @@ const PostPage = memo(() => {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
         <link rel="preload" href="/highlight.js/styles/vs.css" as="style" fetchpriority="high" />
-        <link rel="stylesheet" href="/highlight.js/styles/vs.css" media="print" onLoad="this.media='all'" fetchpriority="low" />        {post.titleImage && (
+        <link rel="stylesheet" href="/highlight.js/styles/vs.css" media="print" onLoad="this.media='all'" fetchpriority="low" />
+        {post.titleImage && (
           <link
             rel="preload"
             as="image"
@@ -887,7 +715,11 @@ const PostPage = memo(() => {
         <meta property="og:description" content={truncateText(post.summary || post.content, 160)} />
         <meta
           property="og:image"
-          content={post.titleImage || 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
+          content={
+            post.titleImage
+              ? `${post.titleImage}?w=1200&format=webp&q=75`
+              : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'
+          }
         />
         <meta property="og:image:alt" content={`${post.title} tutorial`} />
         <meta property="og:image:width" content="1200" />
@@ -900,7 +732,11 @@ const PostPage = memo(() => {
         <meta name="twitter:description" content={truncateText(post.summary || post.content, 160)} />
         <meta
           name="twitter:image"
-          content={post.titleImage || 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
+          content={
+            post.titleImage
+              ? `${post.titleImage}?w=1200&format=webp&q=75`
+              : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'
+          }
         />
         <style>{criticalCSS}</style>
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
@@ -911,7 +747,7 @@ const PostPage = memo(() => {
             <header>
               <PostHeader>{parsedTitle}</PostHeader>
               <div style={{ marginBottom: '0.5rem', color: '#666', fontSize: '0.75rem' }}>
-                Read time: {readTime} min
+                Read time: {calculateReadTimeAndWordCount.readTime} min
               </div>
               <NavigationLinks aria-label="Page navigation">
                 <Link to="/explore" aria-label="Back to blog">
@@ -928,33 +764,30 @@ const PostPage = memo(() => {
               </NavigationLinks>
             </header>
 
-            {post.titleImage && !imageErrors[post.titleImage] && (
-  <ImageContainer>
-    <Suspense fallback={<Placeholder minHeight="675px">Loading image...</Placeholder>}>
-      <AccessibleZoom caption={`Illustration for ${post.title}`}>
-        <PostImage
-        rel="preload"
-          src={`${post.titleImage}?w=480&format=avif&q=75`}
-          srcSet={`
-            ${post.titleImage}?w=320&format=avif&q=75 320w,
-            ${post.titleImage}?w=480&format=avif&q=75 480w,
-            ${post.titleImage}?w=768&format=avif&q=75 768w,
-            ${post.titleImage}?w=1024&format=avif&q=75 1024w
-          `}
-          sizes="(max-width: 480px) 320px, (max-width: 768px) 480px, (max-width: 1024px) 768px, 1024px"
-          alt={`Illustration for ${post.title}`}
-          fetchpriority="high"
-          loading="eager"
-          decoding="async"
-          width="1200"
-          height="675"
-          onError={() => handleImageError(post.titleImage)}
-          className="lcp-image" // Add for debugging
-        />
-      </AccessibleZoom>
-    </Suspense>
-  </ImageContainer>
-)}
+            {post.titleImage && (
+              <ImageContainer>
+                <Suspense fallback={<Placeholder minHeight="270px">Loading image...</Placeholder>}>
+                  <AccessibleZoom caption={`Illustration for ${post.title}`}>
+                    <PostImage
+                      src={`${post.titleImage}?w=480&format=avif&q=75`}
+                      srcSet={`
+                        ${post.titleImage}?w=320&format=avif&q=75 320w,
+                        ${post.titleImage}?w=480&format=avif&q=75 480w,
+                        ${post.titleImage}?w=768&format=avif&q=75 768w,
+                        ${post.titleImage}?w=1024&format=avif&q=75 1024w
+                      `}
+                      sizes="(max-width: 480px) 320px, (max-width: 768px) 480px, (max-width: 1024px) 768px, 1024px"
+                      alt={`Illustration for ${post.title}`}
+                      fetchpriority="high"
+                      loading="eager"
+                      decoding="async"
+                      onLoad={() => console.log('Title Image Loaded:', post.titleImage)}
+                      onError={() => console.error('Title Image Failed:', post.titleImage)}
+                    />
+                  </AccessibleZoom>
+                </Suspense>
+              </ImageContainer>
+            )}
 
             {post.titleVideo && (
               <VideoContainer>
@@ -965,9 +798,8 @@ const PostPage = memo(() => {
                   loading="eager"
                   decoding="async"
                   aria-label={`Video for ${post.title}`}
-                  width="1200"
-                  height="675"
                   fetchpriority="high"
+                  onLoad={() => console.log('Title Video Loaded:', post.titleVideo)}
                 >
                   <source src={`${post.titleVideo}#t=0.1`} type="video/mp4" />
                 </PostVideo>
@@ -980,86 +812,13 @@ const PostPage = memo(() => {
             <section style={{ fontSize: '0.875rem' }}>{parsedContent}</section>
 
             {(post.subtitles || []).map((subtitle, i) => (
-              <LazySubtitleSection
-                key={i}
-                subtitle={subtitle}
-                index={i}
-                category={post.category || ''}
-                handleImageError={handleImageError}
-              />
+              <LazySubtitleSection key={i} subtitle={subtitle} index={i} category={post.category || ''} />
             ))}
 
-            {(post.superTitles || []).length > 0 && (
-              <ComparisonTableContainer aria-labelledby="comparison-heading">
-                <SubtitleHeader id="comparison-heading">Comparison</SubtitleHeader>
-                <ResponsiveContent>
-                  <ResponsiveTable>
-                    <caption style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>
-                      Comparison of {post.category || 'features'}
-                    </caption>
-                    <thead>
-                      <tr>
-                        <ResponsiveHeader scope="col">Attribute</ResponsiveHeader>
-                        {(post.superTitles || []).map(
-                          (st, i) =>
-                            st.superTitle && (
-                              <ResponsiveHeader
-                                key={i}
-                                scope="col"
-                                dangerouslySetInnerHTML={{ __html: parseLinksForHtml(st.superTitle || '', post.category || '') }}
-                              />
-                            )
-                        )}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(post.superTitles[0]?.attributes || []).map(
-                        (attr, attrIdx) =>
-                          attr.attribute && (
-                            <tr key={attrIdx}>
-                              <ResponsiveCell
-                                scope="row"
-                                dangerouslySetInnerHTML={{ __html: parseLinksForHtml(attr.attribute || '', post.category || '') }}
-                              />
-                              {(post.superTitles || []).map(
-                                (st, stIdx) =>
-                                  st.attributes?.[attrIdx]?.items && (
-                                    <ResponsiveCell key={stIdx}>
-                                      {(st.attributes[attrIdx].items || []).map(
-                                        (item, itemIdx) =>
-                                          (item.title || item.bulletPoints?.length > 0) && (
-                                            <div key={itemIdx}>
-                                              <strong
-                                                dangerouslySetInnerHTML={{
-                                                  __html: parseLinksForHtml(item.title || 'N/A', post.category || ''),
-                                                }}
-                                              />
-                                              <ul style={{ paddingLeft: '1.25rem' }}>
-                                                {(item.bulletPoints || []).map(
-                                                  (point, pIdx) =>
-                                                    point && (
-                                                      <li
-                                                        key={pIdx}
-                                                        dangerouslySetInnerHTML={{
-                                                          __html: parseLinksForHtml(point || 'N/A', post.category || ''),
-                                                        }}
-                                                      />
-                                                    )
-                                                )}
-                                              </ul>
-                                            </div>
-                                          )
-                                      )}
-                                    </ResponsiveCell>
-                                  )
-                              )}
-                            </tr>
-                          )
-                      )}
-                    </tbody>
-                  </ResponsiveTable>
-                </ResponsiveContent>
-              </ComparisonTableContainer>
+            {post.superTitles?.length > 0 && (
+              <Suspense fallback={<Placeholder minHeight="200px">Loading comparison...</Placeholder>}>
+                <ComparisonTable superTitles={post.superTitles} category={post.category || ''} />
+              </Suspense>
             )}
 
             {post.summary && (
@@ -1084,20 +843,18 @@ const PostPage = memo(() => {
               </Suspense>
             </section>
 
-            <LazyReferencesSection post={post} handleImageError={handleImageError} />
+            <LazyReferencesSection post={post} />
           </article>
         </MainContent>
         <Suspense fallback={<Placeholder minHeight="300px">Loading sidebar...</Placeholder>}>
-          <aside>
-            <Sidebar
-              post={post}
-              isSidebarOpen={isSidebarOpen}
-              setSidebarOpen={setSidebarOpen}
-              activeSection={activeSection}
-              scrollToSection={scrollToSection}
-              subtitlesListRef={subtitlesListRef}
-            />
-          </aside>
+          <Sidebar
+            post={post}
+            isSidebarOpen={isSidebarOpen}
+            setSidebarOpen={setSidebarOpen}
+            activeSection={deferredActiveSection}
+            scrollToSection={scrollToSection}
+            subtitlesListRef={subtitlesListRef}
+          />
         </Suspense>
       </Container>
     </HelmetProvider>
