@@ -15,7 +15,6 @@ const ComparisonTable = React.lazy(() => import('./ComparisonTable'));
 const CodeHighlighter = React.lazy(() => import('./CodeHighlighter'));
 
 // Minimal CSS imports
-import 'highlight.js/styles/vs.css';
 
 // Debounce utility
 const debounce = (func, wait) => {
