@@ -1,235 +1,269 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { login, loginSuccess } from '../actions/authActions';
-import styled, { keyframes } from 'styled-components';
-import { Link } from 'react-router-dom';
-import { RingLoader } from 'react-spinners';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import { faGoogle } from '@fortawesome/free-brands-svg-icons';
 
-const Container = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 50vh;
-  padding: 2rem;
-`;
+const Container = {
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  padding: '1rem',
+};
 
-const LoginForm = styled.form`
-  background: linear-gradient(135deg, #3a3a3a, #1e1e1e);
-  padding: 2rem;
-  border-radius: 20px;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
-  max-width: 400px;
-  width: 100%;
-  transform: perspective(1000px) rotateY(10deg);
-  transition: transform 0.5s ease, box-shadow 0.5s ease;
-  &:hover {
-    transform: perspective(1000px) rotateY(0);
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
-  }
-`;
+const FormContainer = {
+  padding: '1.5rem',
+  borderRadius: '8px',
+  backgroundColor: '#333',
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+  width: '100%',
+  maxWidth: '400px',
+};
 
-const fadeIn = keyframes`
-  0% {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-`;
+const Title = {
+  fontSize: '1.5rem',
+  color: '#fff',
+  textAlign: 'center',
+  marginBottom: '1.5rem',
+  fontWeight: '600',
+};
 
-const Title = styled.h2`
-  font-family: 'Cinzel Decorative', cursive;
-  color: #d4af37;
-  text-align: center;
-  margin-bottom: 2rem;
-  animation: ${fadeIn} 1s ease-in-out;
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-`;
+const FormGroup = {
+  marginBottom: '1rem',
+  position: 'relative',
+};
 
-const Input = styled.input`
-  padding: 0.5rem;
-  margin-bottom: 1rem;
-  border: 2px solid #d4af37;
-  border-radius: 10px;
-  font-size: 1rem;
-  width: 100%;
-  background-color: #2a2a2a;
-  color: #fff;
-  transition: border-color 0.3s, box-shadow 0.3s;
-  &:focus {
-    border-color: #d4af37;
-    outline: none;
-    box-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
-  }
-`;
+const Input = {
+  width: '100%',
+  padding: '0.75rem',
+  border: '1px solid #555',
+  borderRadius: '6px',
+  fontSize: '1rem',
+  color: '#fff',
+  backgroundColor: '#444',
+  boxSizing: 'border-box',
+  transition: 'border-color 0.2s ease-in-out',
+};
 
-const Button = styled.button`
-  padding: 0.5rem 1rem;
-  background-color: #d4af37;
-  color: black;
-  border: none;
-  border-radius: 10px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  margin-top: 1rem;
-  transition: background-color 0.3s, transform 0.3s, box-shadow 0.3s;
-  &:hover {
-    background-color: #e5c370;
-    transform: scale(1.05);
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-  }
-`;
+const Button = {
+  width: '100%',
+  padding: '0.75rem',
+  backgroundColor: '#007bff',
+  color: '#fff',
+  border: 'none',
+  borderRadius: '6px',
+  fontSize: '1rem',
+  cursor: 'pointer',
+  transition: 'background-color 0.2s ease-in-out',
+  marginTop: '1rem',
+};
 
-const GoogleButton = styled(Button)`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #db4437;
-  color: white;
-  margin-top: 1rem;
-  &:hover {
-    background-color: #c23321;
-  }
-`;
+const GoogleButton = {
+  ...Button,
+  backgroundColor: '#db4437',
+};
 
-const GoogleIcon = styled(FontAwesomeIcon)`
-  margin-right: 0.5rem;
-`;
+const TogglePasswordButton = {
+  position: 'absolute',
+  top: '50%',
+  right: '10px',
+  transform: 'translateY(-50%)',
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  color: '#007bff',
+  fontSize: '1rem',
+};
 
-const PasswordContainer = styled.div`
-  position: relative;
-`;
+const ForgotPasswordLink = {
+  display: 'inline-block',
+  marginTop: '1rem',
+  fontSize: '0.9rem',
+  color: '#ccc',
+  textDecoration: 'none',
+  transition: 'color 0.2s ease-in-out',
+};
 
-const ToggleIcon = styled(FontAwesomeIcon)`
-  position: absolute;
-  right: 10px;
-  top: 35%;
-  transform: translateY(-50%);
-  cursor: pointer;
-  color: #d4af37;
-`;
+const LoadingText = {
+  fontSize: '1rem',
+  color: '#fff',
+  textAlign: 'center',
+};
 
-const ForgotPasswordLink = styled(Link)`
-  display: inline-block;
-  margin-top: 10px;
-  font-size: 16px;
-  color: #d4af37;
-  text-decoration: none;
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-  transition: text-shadow 0.5s ease;
-  &:hover {
-    text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
+const ErrorMessage = {
+  fontSize: '0.9rem',
+  color: '#ff4d4f',
+  marginTop: '0.5rem',
+  textAlign: 'center',
+};
+
+// Media queries for responsiveness
+const responsiveStyles = `
+  @media (max-width: 600px) {
+    .form-container {
+      padding: 1rem;
+      max-width: 90%;
+    }
+    .input, .button {
+      font-size: 0.9rem;
+      padding: 0.6rem;
+    }
+    .title {
+      font-size: 1.3rem;
+    }
+    .error-message {
+      font-size: 0.85rem;
+    }
   }
 `;
 
 const Login = () => {
-    const dispatch = useDispatch();
-    const navigate = useNavigate();
-    const [formData, setFormData] = useState({
-        email: '',
-        password: ''
-    });
-    const [showPassword, setShowPassword] = useState(false);
-    const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
-    const { email, password } = formData;
+  const { email, password } = formData;
 
-    const handleChange = e => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const user = params.get('user');
+    if (user) {
+      const userData = JSON.parse(decodeURIComponent(user));
+      dispatch(loginSuccess(userData));
+      navigate('/dashboard');
+    }
+  }, [dispatch, navigate]);
 
-    const togglePasswordVisibility = () => {
-        setShowPassword(!showPassword);
-    };
+  const handleChange = useCallback((e) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  }, []);
 
-    useEffect(() => {
-        const params = new URLSearchParams(window.location.search);
-        const user = params.get('user');
-        if (user) {
-            const userData = JSON.parse(decodeURIComponent(user));
-            dispatch(loginSuccess(userData));
-            navigate('/dashboard');
-        }
-    }, [dispatch, navigate]);
-
-    const handleSubmit = async e => {
-        e.preventDefault();
-        setLoading(true);
-        const response = await dispatch(login(email, password));
-        setLoading(false);
-        if (response.success) {
-            toast.success('Login successful');
-            if (response.role === 'admin') {
-                navigate('/admin-dashboard');
-            } else {
-                navigate('/dashboard');
-            }
+  const handleSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+      setLoading(true);
+      setErrorMessage('');
+      const response = await dispatch(login(email, password));
+      setLoading(false);
+      if (response.success) {
+        if (response.role === 'admin') {
+          navigate('/admin-dashboard');
         } else {
-            toast.error(response.message || 'Invalid email or password');
+          navigate('/dashboard');
         }
-    };
+      } else {
+        setErrorMessage(response.message || 'Invalid email or password');
+      }
+    },
+    [dispatch, email, password, navigate]
+  );
 
-    const handleGoogleLogin = () => {
-        window.location.href = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/auth/google';
-    };
+  const togglePasswordVisibility = useCallback(() => {
+    setShowPassword((prev) => !prev);
+  }, []);
 
-    return (
-        <Container>
-            <LoginForm onSubmit={handleSubmit}>
-                <Title aria-label="HogwartsEdx Title">Zedemy</Title>
-                <Input
-                    type="email"
-                    placeholder="Email"
-                    name="email"
-                    value={email}
-                    onChange={handleChange}
-                    required
-                    aria-label="Email"
-                />
-                <PasswordContainer>
-                    <Input
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="Password"
-                        name="password"
-                        value={password}
-                        onChange={handleChange}
-                        required
-                        aria-label="Password"
-                    />
-                    <ToggleIcon
-                        icon={showPassword ? faEyeSlash : faEye}
-                        onClick={togglePasswordVisibility}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
-                    />
-                </PasswordContainer>
-                <Button type="submit" aria-label="Login Button">
-                    {loading ? (
-                        <RingLoader color={'#000000'} loading={loading} size={20} />
-                    ) : (
-                        'Login'
-                    )}
-                </Button>
-                <GoogleButton onClick={handleGoogleLogin} aria-label="Login with Google">
-                    <GoogleIcon icon={faGoogle} />
-                    Login with Google
-                </GoogleButton>
-                <ForgotPasswordLink to="/forgot-password" aria-label="Forgot Password Link">
-                    Forgot Password? Click to reset
-                </ForgotPasswordLink>
-            </LoginForm>
-            <ToastContainer />
-        </Container>
-    );
+  const handleGoogleLogin = useCallback(() => {
+    window.location.href = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/auth/google';
+  }, []);
+
+  return (
+    <>
+      <style>{responsiveStyles}</style>
+      <div style={Container} role="main" aria-labelledby="login-heading">
+        <h1 id="login-heading" style={{ display: 'none' }}>Login</h1>
+        <div style={FormContainer} className="form-container">
+        
+          <form onSubmit={handleSubmit} noValidate>
+            <div style={FormGroup}>
+              <input
+                style={Input}
+                type="email"
+                id="email"
+                name="email"
+                value={email}
+                onChange={handleChange}
+                placeholder="Email"
+                required
+                aria-required="true"
+                aria-describedby="email-error"
+                aria-label="Email"
+                className="input"
+              />
+            </div>
+            <div style={FormGroup}>
+              <input
+                style={Input}
+                type={showPassword ? 'text' : 'password'}
+                id="password"
+                name="password"
+                value={password}
+                onChange={handleChange}
+                placeholder="Password"
+                required
+                aria-required="true"
+                aria-describedby="password-error"
+                aria-label="Password"
+                className="input"
+              />
+              <button
+                style={TogglePasswordButton}
+                type="button"
+                onClick={togglePasswordVisibility}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? '🙈' : '👁️'}
+              </button>
+            </div>
+            {errorMessage && (
+              <div
+                style={ErrorMessage}
+                className="error-message"
+                aria-live="polite"
+              >
+                {errorMessage}
+              </div>
+            )}
+            <button
+              style={Button}
+              type="submit"
+              aria-label="Login"
+              className="button"
+              disabled={loading}
+            >
+              {loading ? (
+                <span style={LoadingText} aria-live="polite">
+                  Loading...
+                </span>
+              ) : (
+                'Login'
+              )}
+            </button>
+            <button
+              style={GoogleButton}
+              type="button"
+              onClick={handleGoogleLogin}
+              aria-label="Login with Google"
+              className="button"
+            >
+              Login with Google
+            </button>
+            <Link
+              to="/forgot-password"
+              style={ForgotPasswordLink}
+              aria-label="Forgot Password"
+            >
+              Forgot Password? Click to reset
+            </Link>
+          </form>
+        </div>
+      </div>
+    </>
+  );
 };
 
-export default Login;
+export default memo(Login);
