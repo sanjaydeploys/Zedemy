@@ -1,10 +1,54 @@
 import { useRef, useEffect, Suspense } from 'react';
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
+import styled from 'styled-components';
+
+// Styled Components
+const ZoomContainer = styled.div`
+  width: 100%;
+  display: block;
+  margin: 0.5rem 0;
+`;
+
+const ButtonContainer = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 0.25rem;
+`;
+
+const ZoomButton = styled.button`
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  background: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+`;
+
+const Caption = styled.figcaption`
+  font-size: 0.75rem;
+  color: #666;
+  text-align: center;
+  margin-top: 0.25rem;
+`;
+
+const Placeholder = styled.div`
+  width: 100%;
+  min-height: 270px;
+  aspect-ratio: 16 / 9;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+`;
 
 const ZoomWrapper = ({ children, caption, ...props }) => {
   const wrapperRef = useRef(null);
 
-  // Add event listener for Escape key to reset zoom
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') {
@@ -17,22 +61,13 @@ const ZoomWrapper = ({ children, caption, ...props }) => {
   }, []);
 
   return (
-    <div
-      ref={wrapperRef}
-      role="figure"
-      aria-label={caption || 'Zoomable image'}
-      style={{
-        width: '100%',
-        display: 'block',
-        margin: '0.5rem 0',
-      }}
-    >
-      <Suspense fallback={<div style={{ height: '200px', background: '#f0f0f0' }}>Loading image...</div>}>
+    <ZoomContainer role="figure" aria-label={caption || 'Zoomable image'}>
+      <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
         <TransformWrapper
           initialScale={1}
           minScale={1}
           maxScale={3}
-          wheel={{ disabled: true }} // Disable zoom on scroll
+          wheel={{ disabled: true }}
           pinch={{ step: 5 }}
           doubleClick={{ step: 0.5 }}
           {...props}
@@ -42,77 +77,17 @@ const ZoomWrapper = ({ children, caption, ...props }) => {
               <TransformComponent>
                 {children}
               </TransformComponent>
-              <div
-                style={{
-                  display: 'flex',
-                  gap: '0.5rem',
-                  justifyContent: 'center',
-                  marginTop: '0.25rem',
-                }}
-              >
-                <button
-                  onClick={() => zoomIn()}
-                  aria-label="Zoom in"
-                  style={{
-                    padding: '0.25rem 0.5rem',
-                    fontSize: '0.75rem',
-                    background: '#007bff',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '0.25rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  +
-                </button>
-                <button
-                  onClick={() => zoomOut()}
-                  aria-label="Zoom out"
-                  style={{
-                    padding: '0.25rem 0.5rem',
-                    fontSize: '0.75rem',
-                    background: '#007bff',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '0.25rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  -
-                </button>
-                <button
-                  onClick={() => resetTransform()}
-                  aria-label="Reset zoom"
-                  style={{
-                    padding: '0.25rem 0.5rem',
-                    fontSize: '0.75rem',
-                    background: '#007bff',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '0.25rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Reset
-                </button>
-              </div>
+              <ButtonContainer>
+                <ZoomButton onClick={() => zoomIn()} aria-label="Zoom in">+</ZoomButton>
+                <ZoomButton onClick={() => zoomOut()} aria-label="Zoom out">-</ZoomButton>
+                <ZoomButton onClick={() => resetTransform()} aria-label="Reset zoom">Reset</ZoomButton>
+              </ButtonContainer>
             </>
           )}
         </TransformWrapper>
-        {caption && (
-          <figcaption
-            style={{
-              fontSize: '0.75rem',
-              color: '#666',
-              textAlign: 'center',
-              marginTop: '0.25rem',
-            }}
-          >
-            {caption}
-          </figcaption>
-        )}
+        {caption && <Caption>{caption}</Caption>}
       </Suspense>
-    </div>
+    </ZoomContainer>
   );
 };
 
