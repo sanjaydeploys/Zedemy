@@ -1,68 +1,83 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
+import { Helmet } from 'react-helmet';
 import axios from 'axios';
+import LazyLoad from 'react-lazyload';
 import { loadUser } from '../actions/authActions';
 import { fetchUserPosts, fetchCompletedPosts } from '../actions/postActions';
 import { fetchNotifications, followCategory, unfollowCategory, markNotificationAsRead, fetchFollowedCategories } from '../actions/notificationActions';
 import { fetchCertificates } from '../actions/certificateActions';
 
-// Styled Components
-const DashboardContainer = styled.div`
-  min-height: 100vh;
-  background: linear-gradient(135deg, #1a202c, #2d3748);
-    padding: 4rem 1rem;
-  overflow: hidden;
-  position: relative;
+// Reusable Styled Components
+const BaseCard = styled(motion.div)`
+  padding: 1.5rem;
+  background: #4b5563;
+  border-radius: 0.75rem;
+  border: 2px solid transparent;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 
-  &:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at 50% 20%, rgba(124, 58, 237, 0.2), transparent 70%);
-    z-index: 0;
+  &:hover {
+    border-color: #a855f7;
+    box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
   }
+`;
+
+const BaseButton = styled.button`
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  color: #ffffff;
+  font-weight: 600;
+  transition: background 0.2s ease;
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.2);
+  }
+
+  &:disabled {
+    background: #6b7280;
+    cursor: not-allowed;
+  }
+`;
+
+// Main Styled Components
+const DashboardContainer = styled.main`
+  min-height: 100vh;
+  background: #1a202c;
+  padding: 2rem 1rem;
+  overflow-x: hidden;
 `;
 
 const ContentWrapper = styled(motion.div)`
   max-width: 90rem;
   margin: 0 auto;
-  position: relative;
-  z-index: 1;
 `;
 
 const Header = styled(motion.h1)`
-  font-size: 3rem;
-  font-weight: 900;
+  font-size: 2.5rem;
+  font-weight: 800;
   text-align: center;
-  margin-bottom: 3rem;
-  background: linear-gradient(90deg, #a855f7, #ec4899, #3b82f6);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
+  margin-bottom: 2rem;
+  color: #c4b5fd;
 `;
 
-const UserInfo = styled(motion.div)`
+const UserInfo = styled(motion.section)`
   text-align: center;
-  color: #94a3b8;
-  margin-bottom: 4rem;
-  font-size: 1.25rem;
-  background: rgba(31, 41, 55, 0.8);
+  color: #d1d5db;
+  margin-bottom: 2rem;
+  font-size: 1.1rem;
+  background: #2d3748;
   padding: 1rem;
-  border-radius: 1rem;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 `;
 
 const Grid = styled.div`
   display: grid;
   grid-template-columns: 1fr;
-  gap: 2.5rem;
+  gap: 1.5rem;
 
   @media (min-width: 768px) {
     grid-template-columns: repeat(2, 1fr);
@@ -74,97 +89,62 @@ const Grid = styled.div`
 
 const Section = styled(motion.section)`
   background: #2d3748;
-  padding: 2rem;
-  border-radius: 1rem;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   border: 1px solid #4b5563;
-  position: relative;
-  overflow: hidden;
-
-  &:after {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(124, 58, 237, 0.1), transparent 70%);
-    pointer-events: none;
-  }
 `;
 
 const SectionTitle = styled.h2`
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #c4b5fd;
-  margin-bottom: 1.5rem;
-  text-shadow: 0 0 10px rgba(196, 181, 253, 0.3);
+  margin-bottom: 1rem;
 `;
 
 const ScrollContainer = styled.div`
-  max-height: 28rem;
+  max-height: 24rem;
   overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: #8b5cf6 #2d3748;
 
   &::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
   }
   &::-webkit-scrollbar-thumb {
     background: #8b5cf6;
-    border-radius: 4px;
+    border-radius: 3px;
   }
   &::-webkit-scrollbar-track {
     background: #2d3748;
   }
 `;
 
-const Card = styled(motion.div)`
-  padding: 1.5rem;
-  background: linear-gradient(45deg, #4b5563, #6b7280);
-  border-radius: 0.75rem;
-  border: 2px solid transparent;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-
-  &:hover {
-    border-color: #a855f7;
-    box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
-  }
-
-  &:before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(168, 85, 247, 0.2), transparent 70%);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-
-  &:hover:before {
-    opacity: 1;
-  }
+const Card = styled(BaseCard)`
+  margin-bottom: 1rem;
 `;
 
 const CardLink = styled(Link)`
   color: #60a5fa;
   font-weight: 600;
-  &:hover {
+  text-decoration: none;
+
+  &:hover, &:focus {
     text-decoration: underline;
     color: #93c5fd;
+    outline: none;
   }
 `;
 
 const ExternalLink = styled.a`
   color: #60a5fa;
   font-weight: 600;
-  &:hover {
+  text-decoration: none;
+
+  &:hover, &:focus {
     text-decoration: underline;
     color: #93c5fd;
+    outline: none;
   }
 `;
 
@@ -179,41 +159,31 @@ const PlaceholderText = styled.p`
   font-style: italic;
 `;
 
-const CategoryButton = styled.button`
+const CategoryButton = styled(BaseButton)`
   width: 100%;
-  padding: 0.75rem;
-  background: linear-gradient(to right, #8b5cf6, #3b82f6);
-  border-radius: 0.5rem;
-  color: #ffffff;
-  font-weight: 600;
-  &:hover {
-    background: linear-gradient(to right, #a78bfa, #60a5fa);
-  }
+  background: #8b5cf6;
 `;
 
-const CategoryCard = styled(motion.div)`
-  width: 100%;
-  height: 6rem;
-  background: #4b5563;
-  border-radius: 0.5rem;
-  transform-style: preserve-3d;
+const CategoryCard = styled(BaseCard)`
+  height: 5rem;
 `;
 
 const CategoryContent = styled.div`
-  position: absolute;
-  inset: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
-  backface-visibility: hidden;
 `;
 
 const UnfollowButton = styled.button`
   color: #f87171;
   font-weight: 600;
-  &:hover {
+  background: none;
+  border: none;
+
+  &:hover, &:focus {
     color: #fca5a5;
+    outline: none;
   }
 `;
 
@@ -229,15 +199,15 @@ const ModalOverlay = styled(motion.div)`
 
 const ModalContent = styled(motion.div)`
   background: #2d3748;
-  padding: 2rem;
-  border-radius: 1rem;
-  width: 100%;
-  max-width: 28rem;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  width: 90%;
+  max-width: 24rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
 `;
 
 const ModalTitle = styled.h3`
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   color: #c4b5fd;
   margin-bottom: 1rem;
@@ -251,6 +221,7 @@ const Input = styled.input`
   color: #ffffff;
   margin-bottom: 1rem;
   outline: none;
+
   &:focus {
     box-shadow: 0 0 5px #a855f7;
   }
@@ -259,40 +230,33 @@ const Input = styled.input`
 const ButtonGroup = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: 1rem;
+  gap: 0.75rem;
 `;
 
 const CancelButton = styled.button`
   color: #9ca3af;
-  &:hover {
+  background: none;
+  border: none;
+
+  &:hover, &:focus {
     color: #d1d5db;
+    outline: none;
   }
 `;
 
-const FollowButton = styled.button`
+const FollowButton = styled(BaseButton)`
   padding: 0.5rem 1rem;
   background: #8b5cf6;
-  border-radius: 0.5rem;
-  color: #ffffff;
-  &:hover {
-    background: #a78bfa;
-  }
-  &:disabled {
-    background: #6b7280;
-    cursor: not-allowed;
-  }
 `;
 
-const NotificationCard = styled(motion.div)`
-  padding: 1.5rem;
-  border-radius: 0.75rem;
+const NotificationCard = styled(BaseCard)`
   background: ${props => (props.isRead ? '#4b5563' : '#1e40af')};
 `;
 
 const ProgressGrid = styled.div`
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1.5rem;
+  gap: 1rem;
 
   @media (min-width: 640px) {
     grid-template-columns: repeat(2, 1fr);
@@ -318,51 +282,45 @@ const Dashboard = () => {
   const [categoryInput, setCategoryInput] = useState('');
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [categoryTotals, setCategoryTotals] = useState({});
-  const [isDataLoading, setIsDataLoading] = useState(true); // New loading state
+  const [isDataLoading, setIsDataLoading] = useState(true);
   const API_BASE_URL = 'https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/api';
   const availableCategories = ['React', 'Node.js', 'AWS', 'Python', 'JavaScript', 'VS Code'];
 
-  // Load auth state on mount
- // Handle URL parameters and initialize auth
- useEffect(() => {
-  const initializeAuth = async () => {
-    const query = new URLSearchParams(location.search);
-    const userParam = query.get('user');
-    const tokenParam = query.get('token');
+  // Combined useEffect for auth initialization
+  useEffect(() => {
+    const initializeAuth = async () => {
+      setIsDataLoading(true);
+      const query = new URLSearchParams(location.search);
+      const userParam = query.get('user');
+      const tokenParam = query.get('token');
 
-    if (userParam && tokenParam) {
       try {
-        const userFromUrl = JSON.parse(decodeURIComponent(userParam));
-        localStorage.setItem('user', JSON.stringify(userFromUrl));
-        localStorage.setItem('token', tokenParam);
-        dispatch({ 
-          type: 'FETCH_USER_SUCCESS', 
-          payload: { user: userFromUrl, token: tokenParam } 
-        });
+        if (userParam && tokenParam) {
+          const userFromUrl = JSON.parse(decodeURIComponent(userParam));
+          localStorage.setItem('user', JSON.stringify(userFromUrl));
+          localStorage.setItem('token', tokenParam);
+          dispatch({ type: 'FETCH_USER_SUCCESS', payload: { user: userFromUrl, token: tokenParam } });
+        } else {
+          const storedToken = localStorage.getItem('token');
+          const storedUser = JSON.parse(localStorage.getItem('user'));
+          if (storedToken && storedUser) {
+            dispatch({ type: 'FETCH_USER_SUCCESS', payload: { user: storedUser, token: storedToken } });
+          } else {
+            await dispatch(loadUser());
+          }
+        }
       } catch (error) {
-        console.error('Error parsing URL parameters:', error);
-        await dispatch(loadUser());
+        console.error('Error initializing auth:', error);
       }
-    } else {
-      const storedToken = localStorage.getItem('token');
-      const storedUser = JSON.parse(localStorage.getItem('user'));
-      if (storedToken && storedUser) {
-        dispatch({ 
-          type: 'FETCH_USER_SUCCESS', 
-          payload: { user: storedUser, token: storedToken } 
-        });
-      } else {
-        await dispatch(loadUser());
-      }
-    }
-  };
-  initializeAuth();
-}, [dispatch, location.search]);
+    };
+
+    initializeAuth();
+  }, [dispatch, location.search]);
+
   // Fetch initial data when token and user are available
   useEffect(() => {
     const fetchInitialData = async () => {
-      const storedToken = localStorage.getItem('token');
-      if (!storedToken) {
+      if (!token || !user?._id) {
         setIsDataLoading(false);
         return;
       }
@@ -375,40 +333,32 @@ const Dashboard = () => {
           dispatch(fetchNotifications()),
           dispatch(fetchCertificates()),
         ]);
-        console.log('[Dashboard] Initial data fetched, followedCategories:', followedCategories);
       } catch (error) {
-        console.error('[Dashboard] Error fetching initial data:', error);
+        console.error('Error fetching initial data:', error);
       } finally {
-        setIsDataLoading(false); // Set loading to false after fetch completes
+        setIsDataLoading(false);
       }
     };
 
-    if (token && user?._id) {
-      fetchInitialData();
-    } else {
-      setIsDataLoading(false);
-    }
+    fetchInitialData();
   }, [dispatch, token, user]);
 
-  // Fetch category totals when followedCategories changes
+  // Fetch category totals
   useEffect(() => {
     const fetchCategoryTotals = async () => {
-      const storedToken = localStorage.getItem('token');
-      if (!storedToken || followedCategories.length === 0) return;
+      if (!token || followedCategories.length === 0) return;
 
       try {
         const totals = {};
         for (const category of followedCategories) {
           const res = await axios.get(`${API_BASE_URL}/posts/category?category=${encodeURIComponent(category)}`, {
-            headers: { 'x-auth-token': storedToken },
+            headers: { 'x-auth-token': token },
           });
           totals[category] = res.data.length;
-          console.log(`[Dashboard] Fetched total for ${category}: ${res.data.length}`);
         }
         setCategoryTotals(totals);
-        console.log('[Dashboard] Category totals updated:', totals);
       } catch (error) {
-        console.error('[Dashboard] Error fetching category totals:', error);
+        console.error('Error fetching category totals:', error);
       }
     };
 
@@ -417,16 +367,16 @@ const Dashboard = () => {
     }
   }, [followedCategories, token, isDataLoading]);
 
-  const filteredUserPosts = userPosts.filter(post => post.userId === user?._id);
-  const unreadNotifications = notifications.filter(notif => !notif.isRead);
+  // Memoized filtered posts and notifications
+  const filteredUserPosts = useMemo(() => userPosts.filter(post => post.userId === user?._id), [userPosts, user]);
+  const unreadNotifications = useMemo(() => notifications.filter(notif => !notif.isRead), [notifications]);
 
   const handleFollow = async () => {
     if (categoryInput && !followedCategories.includes(categoryInput)) {
       await dispatch(followCategory(categoryInput));
-      const storedToken = localStorage.getItem('token');
       try {
         const res = await axios.get(`${API_BASE_URL}/posts/category?category=${encodeURIComponent(categoryInput)}`, {
-          headers: { 'x-auth-token': storedToken },
+          headers: { 'x-auth-token': token },
         });
         setCategoryTotals(prev => ({ ...prev, [categoryInput]: res.data.length }));
       } catch (error) {
@@ -451,206 +401,272 @@ const Dashboard = () => {
     dispatch(markNotificationAsRead(id));
   };
 
-  const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.2, duration: 0.8 } } };
-  const itemVariants = { hidden: { opacity: 0, y: 30 }, visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: 'easeOut' } } };
-  const cardVariants = { hidden: { opacity: 0, scale: 0.9 }, visible: { opacity: 1, scale: 1, transition: { duration: 0.5 } } };
+  // Animation variants
+  const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { staggerChildren: 0.2 } } };
+  const itemVariants = { hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0, transition: { duration: 0.5 } } };
+  const cardVariants = { hidden: { opacity: 0, scale: 0.95 }, visible: { opacity: 1, scale: 1, transition: { duration: 0.4 } } };
   const progressVariants = {
     animate: (percent) => ({
       strokeDasharray: '251',
       strokeDashoffset: 251 - (251 * percent) / 100,
-      transition: { duration: 1.5, ease: 'easeInOut' },
+      transition: { duration: 1, ease: 'easeInOut' },
     }),
   };
 
+  // Structured data for SEO
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: 'Zedemy Dashboard',
+    description: 'Personalized dashboard for Zedemy users to track learning progress, manage posts, certificates, and notifications.',
+    url: 'https://zedemy.vercel.app/dashboard',
+    publisher: {
+      '@type': 'Organization',
+      name: 'Zedemy',
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png',
+      },
+    },
+  };
+
   if (authLoading || postsLoading || isDataLoading) {
-    return <div style={{ textAlign: 'center', color: '#fff', fontSize: '1.5rem' }}>Loading...</div>;
+    return <div style={{ textAlign: 'center', color: '#fff', fontSize: '1.5rem', padding: '2rem' }}>Loading...</div>;
   }
-  if (!isAuthenticated && !localStorage.getItem('token')) {
-    return <div style={{ textAlign: 'center', color: '#fff', fontSize: '1.5rem' }}>Please log in to view this page.</div>;
+  if (!isAuthenticated || !token) {
+    return <div style={{ textAlign: 'center', color: '#fff', fontSize: '1.5rem', padding: '2rem' }}>Please log in to view this page.</div>;
   }
   if (!user) {
-    return <div style={{ textAlign: 'center', color: '#fff', fontSize: '1.5rem' }}>Error loading user data.</div>;
+    return <div style={{ textAlign: 'center', color: '#fff', fontSize: '1.5rem', padding: '2rem' }}>Error loading user data.</div>;
   }
 
   return (
-    <DashboardContainer>
-      <ContentWrapper variants={containerVariants} initial="hidden" animate="visible">
-        <Header variants={itemVariants}>Welcome to Your LearnSphere, {user.name}!</Header>
-        <UserInfo variants={itemVariants}>
-          <p>Email: {user.email}</p>
-          <p>Role: {user.role}</p>
-        </UserInfo>
+    <>
+      <Helmet>
+        <html lang="en" />
+        <title>Zedemy Dashboard - Track Your Learning Progress</title>
+        <meta
+          name="description"
+          content="Manage your Zedemy learning journey: track posts, certificates, notifications, and progress in your personalized dashboard."
+        />
+        <meta
+          name="keywords"
+          content="Zedemy dashboard, learning progress, tech education, certificates, notifications, user posts, category tracking"
+        />
+        <meta name="author" content="Sanjay Patidar" />
+        <meta name="robots" content="noindex, nofollow" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png" type="image/png" />
+        <link rel="canonical" href="https://zedemy.vercel.app/dashboard" />
+        <link rel="preload" as="image" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+        <meta property="og:title" content="Zedemy Dashboard - Track Your Learning Progress" />
+        <meta
+          property="og:description"
+          content="Manage your Zedemy learning journey: track posts, certificates, notifications, and progress."
+        />
+        <meta property="og:image" content="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
+        <meta property="og:url" content="https://zedemy.vercel.app/dashboard" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Zedemy Dashboard - Track Your Learning Progress" />
+        <meta name="twitter:image" content="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
+        <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
+      </Helmet>
+      <DashboardContainer role="main" aria-label="User Dashboard">
+        <ContentWrapper variants={containerVariants} initial="hidden" animate="visible">
+          <Header variants={itemVariants}>Welcome, {user.name}!</Header>
+          <UserInfo variants={itemVariants}>
+            <p>Email: {user.email}</p>
+            <p>Role: {user.role}</p>
+          </UserInfo>
 
-        <Grid>
-          {/* User Posts */}
-          <Section variants={itemVariants}>
-            <SectionTitle>Your Creations</SectionTitle>
-            {filteredUserPosts.length === 0 ? (
-              <PlaceholderText>No posts yet—create something amazing!</PlaceholderText>
-            ) : (
-              <ScrollContainer>
-                {filteredUserPosts.map(post => (
-                  <Card key={post.postId} variants={cardVariants} initial="hidden" animate="visible" whileHover={{ scale: 1.05, boxShadow: '0 0 20px rgba(168, 85, 247, 0.5)' }}>
-                    <CardLink to={`/post/${post.slug}`}>{post.title}</CardLink>
-                    <TextSm>{post.content.slice(0, 80)}...</TextSm>
-                  </Card>
-                ))}
-              </ScrollContainer>
-            )}
-          </Section>
+          <Grid>
+            {/* User Posts */}
+            <Section variants={itemVariants} aria-labelledby="user-posts">
+              <SectionTitle id="user-posts">Your Creations</SectionTitle>
+              {filteredUserPosts.length === 0 ? (
+                <PlaceholderText>No posts yet—create something amazing!</PlaceholderText>
+              ) : (
+                <ScrollContainer>
+                  {filteredUserPosts.map(post => (
+                    <Card key={post.postId} variants={cardVariants} whileHover={{ scale: 1.03 }}>
+                      <CardLink to={`/post/${post.slug}`}>{post.title}</CardLink>
+                      <TextSm>{post.content.slice(0, 80)}...</TextSm>
+                    </Card>
+                  ))}
+                </ScrollContainer>
+              )}
+            </Section>
 
-          {/* Categories Explorer */}
-          <Section variants={itemVariants}>
-            <SectionTitle>Explore Categories</SectionTitle>
-            <CategoryButton onClick={() => setIsCategoryModalOpen(true)}>Add Category</CategoryButton>
-            {followedCategories.length === 0 ? (
-              <PlaceholderText style={{ marginTop: '1rem' }}>Follow categories to start exploring!</PlaceholderText>
-            ) : (
-              <ScrollContainer style={{ marginTop: '1rem' }}>
-                {followedCategories.map(category => (
-                  <motion.div key={category} whileHover={{ scale: 1.05 }} style={{ position: 'relative', perspective: '1000px' }}>
-                    <CategoryCard animate="front" variants={{ front: { rotateY: 0 }, back: { rotateY: 180 } }} transition={{ duration: 0.5 }}>
+            {/* Categories Explorer */}
+            <Section variants={itemVariants} aria-labelledby="categories">
+              <SectionTitle id="categories">Explore Categories</SectionTitle>
+              <CategoryButton onClick={() => setIsCategoryModalOpen(true)} aria-label="Add a new category">
+                Add Category
+              </CategoryButton>
+              {followedCategories.length === 0 ? (
+                <PlaceholderText style={{ marginTop: '1rem' }}>Follow categories to start exploring!</PlaceholderText>
+              ) : (
+                <ScrollContainer style={{ marginTop: '1rem' }}>
+                  {followedCategories.map(category => (
+                    <CategoryCard key={category} variants={cardVariants} whileHover={{ scale: 1.03 }}>
                       <CategoryContent>
                         <CardLink to={`/category/${category}`}>{category}</CardLink>
-                        <UnfollowButton onClick={() => handleUnfollow(category)}>Unfollow</UnfollowButton>
+                        <UnfollowButton onClick={() => handleUnfollow(category)} aria-label={`Unfollow ${category}`}>
+                          Unfollow
+                        </UnfollowButton>
                       </CategoryContent>
                     </CategoryCard>
-                  </motion.div>
-                ))}
-              </ScrollContainer>
-            )}
-            <AnimatePresence>
-              {isCategoryModalOpen && (
-                <ModalOverlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <ModalContent initial={{ scale: 0.8, y: 50 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.8, y: 50 }}>
-                    <ModalTitle>Follow a Category</ModalTitle>
-                    <Input
-                      type="text"
-                      value={categoryInput}
-                      onChange={(e) => setCategoryInput(e.target.value)}
-                      placeholder="Enter category name"
-                      list="category-suggestions"
-                    />
-                    <datalist id="category-suggestions">
-                      {availableCategories.map(cat => <option key={cat} value={cat} />)}
-                    </datalist>
-                    <ButtonGroup>
-                      <CancelButton onClick={() => setIsCategoryModalOpen(false)}>Cancel</CancelButton>
-                      <FollowButton onClick={handleFollow} disabled={!categoryInput || followedCategories.includes(categoryInput)}>
-                        Follow
-                      </FollowButton>
-                    </ButtonGroup>
-                  </ModalContent>
-                </ModalOverlay>
+                  ))}
+                </ScrollContainer>
               )}
-            </AnimatePresence>
-          </Section>
+              <AnimatePresence>
+                {isCategoryModalOpen && (
+                  <ModalOverlay initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                    <ModalContent initial={{ scale: 0.8 }} animate={{ scale: 1 }} exit={{ scale: 0.8 }}>
+                      <ModalTitle>Follow a Category</ModalTitle>
+                      <Input
+                        type="text"
+                        value={categoryInput}
+                        onChange={(e) => setCategoryInput(e.target.value)}
+                        placeholder="Enter category name"
+                        list="category-suggestions"
+                        aria-label="Category name"
+                      />
+                      <datalist id="category-suggestions">
+                        {availableCategories.map(cat => <option key={cat} value={cat} />)}
+                      </datalist>
+                      <ButtonGroup>
+                        <CancelButton onClick={() => setIsCategoryModalOpen(false)} aria-label="Cancel">Cancel</CancelButton>
+                        <FollowButton
+                          onClick={handleFollow}
+                          disabled={!categoryInput || followedCategories.includes(categoryInput)}
+                          aria-label="Follow category"
+                        >
+                          Follow
+                        </FollowButton>
+                      </ButtonGroup>
+                    </ModalContent>
+                  </ModalOverlay>
+                )}
+              </AnimatePresence>
+            </Section>
 
-          {/* Completed Posts */}
-          <Section variants={itemVariants}>
-            <SectionTitle>Completed Journeys</SectionTitle>
-            {completedPosts.length === 0 ? (
-              <PlaceholderText>No completed posts yet—keep learning!</PlaceholderText>
-            ) : (
-              <ScrollContainer>
-                {completedPosts.map(post => (
-                  <Card key={post.postId} variants={cardVariants} initial="hidden" animate="visible" whileHover={{ scale: 1.05 }}>
-                    <span style={{ color: '#60a5fa' }}>{post.title}</span>
-                    <TextSm>Category: {post.category}</TextSm>
-                  </Card>
-                ))}
-              </ScrollContainer>
-            )}
-          </Section>
+            {/* Completed Posts */}
+            <LazyLoad height={300} offset={100} once>
+              <Section variants={itemVariants} aria-labelledby="completed-posts">
+                <SectionTitle id="completed-posts">Completed Journeys</SectionTitle>
+                {completedPosts.length === 0 ? (
+                  <PlaceholderText>No completed posts yet—keep learning!</PlaceholderText>
+                ) : (
+                  <ScrollContainer>
+                    {completedPosts.map(post => (
+                      <Card key={post.postId} variants={cardVariants} whileHover={{ scale: 1.03 }}>
+                        <span style={{ color: '#60a5fa' }}>{post.title}</span>
+                        <TextSm>Category: {post.category}</TextSm>
+                      </Card>
+                    ))}
+                  </ScrollContainer>
+                )}
+              </Section>
+            </LazyLoad>
 
-          {/* Notifications */}
-          <Section variants={itemVariants}>
-            <SectionTitle>Updates ({unreadNotifications.length} unread)</SectionTitle>
-            {notifications.length === 0 ? (
-              <PlaceholderText>No updates yet.</PlaceholderText>
-            ) : (
-              <ScrollContainer>
-                {notifications.slice(0, 5).map(notif => (
-                  <NotificationCard
-                    key={notif.notificationId}
-                    isRead={notif.isRead}
-                    drag="x"
-                    dragConstraints={{ left: -100, right: 0 }}
-                    onDragEnd={(e, { offset }) => { if (offset.x < -50) handleMarkAsRead(notif.notificationId); }}
-                    whileHover={{ scale: 1.05 }}
-                    variants={cardVariants}
-                    initial="hidden"
-                    animate="visible"
-                  >
-                    <TextSm>{notif.message}</TextSm>
-                    <TextSm>{new Date(notif.createdAt).toLocaleString()}</TextSm>
-                  </NotificationCard>
-                ))}
-              </ScrollContainer>
-            )}
-            <CardLink to="/notifications" style={{ display: 'block', marginTop: '1rem' }}>See All</CardLink>
-          </Section>
+            {/* Notifications */}
+            <LazyLoad height={300} offset={100} once>
+              <Section variants={itemVariants} aria-labelledby="notifications">
+                <SectionTitle id="notifications">Updates ({unreadNotifications.length} unread)</SectionTitle>
+                {notifications.length === 0 ? (
+                  <PlaceholderText>No updates yet.</PlaceholderText>
+                ) : (
+                  <ScrollContainer>
+                    {notifications.slice(0, 5).map(notif => (
+                      <NotificationCard
+                        key={notif.notificationId}
+                        isRead={notif.isRead}
+                        drag="x"
+                        dragConstraints={{ left: -100, right: 0 }}
+                        onDragEnd={(e, { offset }) => { if (offset.x < -50) handleMarkAsRead(notif.notificationId); }}
+                        variants={cardVariants}
+                        whileHover={{ scale: 1.03 }}
+                      >
+                        <TextSm>{notif.message}</TextSm>
+                        <TextSm>{new Date(notif.createdAt).toLocaleString()}</TextSm>
+                      </NotificationCard>
+                    ))}
+                  </ScrollContainer>
+                )}
+                <CardLink to="/notifications" style={{ display: 'block', marginTop: '1rem' }} aria-label="View all notifications">
+                  See All
+                </CardLink>
+              </Section>
+            </LazyLoad>
 
-          {/* Certificates */}
-          <Section variants={itemVariants}>
-            <SectionTitle>Your Achievements</SectionTitle>
-            {certificates.length === 0 ? (
-              <PlaceholderText>No certificates yet—complete a category!</PlaceholderText>
-            ) : (
-              <ScrollContainer>
-                {certificates.map(cert => (
-                  <Card key={cert.certificateId} variants={cardVariants} initial="hidden" animate="visible" whileHover={{ scale: 1.05, boxShadow: '0 0 20px rgba(168, 85, 247, 0.5)' }}>
-                    <ExternalLink href={cert.filePath} target="_blank" rel="noopener noreferrer">{cert.category} Certificate</ExternalLink>
-                    <TextSm>Earned: {new Date(cert.createdAt).toLocaleDateString()}</TextSm>
-                    <TextSm>Unique ID: {cert.uniqueId}</TextSm>
-                  </Card>
-                ))}
-              </ScrollContainer>
-            )}
-          </Section>
+            {/* Certificates */}
+            <LazyLoad height={300} offset={100} once>
+              <Section variants={itemVariants} aria-labelledby="certificates">
+                <SectionTitle id="certificates">Your Achievements</SectionTitle>
+                {certificates.length === 0 ? (
+                  <PlaceholderText>No certificates yet—complete a category!</PlaceholderText>
+                ) : (
+                  <ScrollContainer>
+                    {certificates.map(cert => (
+                      <Card key={cert.certificateId} variants={cardVariants} whileHover={{ scale: 1.03 }}>
+                        <ExternalLink href={cert.filePath} target="_blank" rel="noopener noreferrer">
+                          {cert.category} Certificate
+                        </ExternalLink>
+                        <TextSm>Earned: {new Date(cert.createdAt).toLocaleDateString()}</TextSm>
+                        <TextSm>Unique ID: {cert.uniqueId}</TextSm>
+                      </Card>
+                    ))}
+                  </ScrollContainer>
+                )}
+              </Section>
+            </LazyLoad>
 
-          {/* Progress Tracker */}
-          <ProgressSection variants={itemVariants}>
-            <SectionTitle>Learning Progress</SectionTitle>
-            {followedCategories.length === 0 ? (
-              <PlaceholderText>Follow categories to see your progress!</PlaceholderText>
-            ) : (
-              <ProgressGrid>
-                {followedCategories.map(category => {
-                  const completed = completedPosts.filter(p => p.category === category).length;
-                  const total = categoryTotals[category] || 0;
-                  const percent = total > 0 ? Math.round((completed / total) * 100) : completed > 0 ? 100 : 0;
+            {/* Progress Tracker */}
+            <ProgressSection variants={itemVariants} aria-labelledby="progress">
+              <SectionTitle id="progress">Learning Progress</SectionTitle>
+              {followedCategories.length === 0 ? (
+                <PlaceholderText>Follow categories to see your progress!</PlaceholderText>
+              ) : (
+                <ProgressGrid>
+                  {followedCategories.map(category => {
+                    const completed = completedPosts.filter(p => p.category === category).length;
+                    const total = categoryTotals[category] || 0;
+                    const percent = total > 0 ? Math.round((completed / total) * 100) : completed > 0 ? 100 : 0;
 
-                  return (
-                    <div key={category} style={{ textAlign: 'center' }}>
-                      <svg style={{ width: '6rem', height: '6rem', margin: '0 auto' }} viewBox="0 0 100 100">
-                        <circle cx="50" cy="50" r="40" fill="none" stroke="#4B5563" strokeWidth="10" />
-                        <motion.circle
-                          cx="50"
-                          cy="50"
-                          r="40"
-                          fill="none"
-                          stroke="#8B5CF6"
-                          strokeWidth="10"
-                          custom={percent}
-                          variants={progressVariants}
-                          initial={{ strokeDashoffset: 251 }}
-                          animate="animate"
-                          style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }}
-                        />
-                        <text x="50" y="55" textAnchor="middle" fill="#e2e8f0" fontSize="20">{percent}%</text>
-                      </svg>
-                      <p style={{ marginTop: '0.5rem', color: '#d1d5db' }}>{category}</p>
-                      <TextSm>{completed}/{total}</TextSm>
-                    </div>
-                  );
-                })}
-              </ProgressGrid>
-            )}
-          </ProgressSection>
-        </Grid>
-      </ContentWrapper>
-    </DashboardContainer>
+                    return (
+                      <div key={category} style={{ textAlign: 'center' }}>
+                        <svg style={{ width: '5rem', height: '5rem', margin: '0 auto' }} viewBox="0 0 100 100">
+                          <circle cx="50" cy="50" r="40" fill="none" stroke="#4B5563" strokeWidth="8" />
+                          <motion.circle
+                            cx="50"
+                            cy="50"
+                            r="40"
+                            fill="none"
+                            stroke="#8B5CF6"
+                            strokeWidth="8"
+                            custom={percent}
+                            variants={progressVariants}
+                            initial={{ strokeDashoffset: 251 }}
+                            animate="animate"
+                            style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }}
+                          />
+                          <text x="50" y="55" textAnchor="middle" fill="#e2e8f0" fontSize="18">{percent}%</text>
+                        </svg>
+                        <p style={{ marginTop: '0.5rem', color: '#d1d5db' }}>{category}</p>
+                        <TextSm>{completed}/{total}</TextSm>
+                      </div>
+                    );
+                  })}
+                </ProgressGrid>
+              )}
+            </ProgressSection>
+          </Grid>
+        </ContentWrapper>
+      </DashboardContainer>
+    </>
   );
 };
 
