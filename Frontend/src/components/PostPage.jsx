@@ -7,7 +7,6 @@ import styled from 'styled-components';
 import { ClipLoader } from 'react-spinners';
 import { createSelector } from 'reselect';
 import { parseLinks, slugify, truncateText } from './utils';
-
 // Lazy-loaded components
 const Sidebar = React.lazy(() => import('./Sidebar'));
 const RelatedPosts = React.lazy(() => import('./RelatedPosts'));
