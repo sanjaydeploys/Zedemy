@@ -1,163 +1,204 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import axios from 'axios';
-import styled from 'styled-components';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 
-// Styled Components
-const Container = styled.div`
-  max-width: 450px;
-  margin: 60px auto;
-  padding: 32px;
-  background: linear-gradient(145deg, #ffffff, #f8f9fa);
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-`;
+const Container = {
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  padding: '1rem',
+  backgroundColor: '#1a1a1a',
+};
 
-const Title = styled.h2`
-  font-size: 1.75rem;
-  font-weight: 700;
-  text-align: center;
-  color: #1e1b4b;
-  margin-bottom: 32px;
-`;
+const FormContainer = {
+  padding: '1.5rem',
+  borderRadius: '8px',
+  boxShadow: '0 2px 8px #0b0101',
+  width: '100%',
+  maxWidth: '400px',
+};
 
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-`;
+const Title = {
+  fontSize: '1.5rem',
+  color: '#fff',
+  textAlign: 'center',
+  marginBottom: '1.5rem',
+  fontWeight: '600',
+};
 
-const InputContainer = styled.div`
-  position: relative;
-  width: 100%;
-`;
+const Form = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: '1rem',
+};
 
-const Input = styled.input`
-  width: 100%;
-  padding: 14px 16px;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  
-  &:focus {
-    outline: none;
-    border-color: #4b0082;
-    box-shadow: 0 0 0 4px rgba(75, 0, 130, 0.1);
+const InputContainer = {
+  position: 'relative',
+  width: '100%',
+};
+
+const Input = {
+  width: '100%',
+  padding: '0.75rem',
+  border: '1px solid #555',
+  borderRadius: '6px',
+  fontSize: '1rem',
+  color: '#fff',
+  backgroundColor: '#444',
+  boxSizing: 'border-box',
+  transition: 'border-color 0.2s ease-in-out',
+};
+
+const SubmitButton = {
+  width: '100%',
+  padding: '0.75rem',
+  backgroundColor: '#007bff',
+  color: '#fff',
+  border: 'none',
+  borderRadius: '6px',
+  fontSize: '1rem',
+  cursor: 'pointer',
+  transition: 'background-color 0.2s ease-in-out',
+  marginTop: '1rem',
+};
+
+const ErrorText = {
+  fontSize: '0.9rem',
+  color: '#ff4d4f',
+  textAlign: 'center',
+  marginTop: '0.5rem',
+};
+
+const SuccessText = {
+  fontSize: '0.9rem',
+  color: '#2ecc71',
+  textAlign: 'center',
+  marginTop: '0.5rem',
+};
+
+// Media queries for responsiveness
+const responsiveStyles = `
+  @media (max-width: 600px) {
+    .form-container {
+      padding: 1rem;
+      max-width: 90%;
+    }
+    .input, .button {
+      font-size: 0.9rem;
+      padding: 0.6rem;
+    }
+    .title {
+      font-size: 1.3rem;
+    }
+    .error-text, .success-text {
+      font-size: 0.85rem;
+    }
   }
-  
-  &::placeholder {
-    color: #9ca3af;
-  }
-`;
-
-const SubmitButton = styled.button`
-  width: 100%;
-  padding: 14px;
-  background: linear-gradient(90deg, #4b0082, #6b21a8);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  
-  &:hover:not(:disabled) {
-    background: linear-gradient(90deg, #5b21b6, #7c3aed);
-    transform: translateY(-2px);
-  }
-  
-  &:disabled {
-    background: #9ca3af;
-    cursor: not-allowed;
-    opacity: 0.7;
-  }
-`;
-
-const ErrorText = styled.p`
-  color: #dc2626;
-  font-size: 0.875rem;
-  text-align: center;
-  margin-top: 12px;
 `;
 
 const ForgotPassword = () => {
-    const [email, setEmail] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
+  const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
-    const validateEmail = (email) => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
-    };
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
+  const handleEmailChange = useCallback((e) => {
+    setEmail(e.target.value);
+    setError('');
+    setSuccessMessage('');
+  }, []);
 
-        if (!validateEmail(email)) {
-            setError('Please enter a valid email address');
-            toast.error('Please enter a valid email address');
-            return;
-        }
+  const handleSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+      setError('');
+      setSuccessMessage('');
 
-        setIsLoading(true);
-        try {
-            const response = await axios.post(
-                'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/auth/forgot-password',
-                { email }
-            );
-            toast.success('You have received a password reset link on your email. Please check your spam folder if not found.');
-            setEmail(''); // Clear input on success
-        } catch (error) {
-            const errorMessage = error.response?.data?.message || 'Failed to send reset link. Please try again.';
-            setError(errorMessage.includes('not found') 
-                ? `${errorMessage} Please check your spam folder if not found.`
-                : errorMessage);
-            toast.error(errorMessage);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+      if (!validateEmail(email)) {
+        setError('Please enter a valid email address');
+        return;
+      }
 
-    return (
-        <Container>
-            <Title>Forgot Password</Title>
-            <Form onSubmit={handleSubmit}>
-                <InputContainer>
-                    <Input
-                        type="email"
-                        placeholder="Enter your email"
-                        value={email}
-                        onChange={(e) => {
-                            setEmail(e.target.value);
-                            setError('');
-                        }}
-                        required
-                        disabled={isLoading}
-                    />
-                </InputContainer>
-                {error && <ErrorText>{error}</ErrorText>}
-                <SubmitButton type="submit" disabled={isLoading || !email}>
-                    {isLoading ? 'Sending...' : 'Submit'}
-                </SubmitButton>
-            </Form>
-            <ToastContainer 
-                position="top-right"
-                autoClose={3000}
-                hideProgressBar={false}
-                newestOnTop
-                closeOnClick
-                rtl={false}
-                pauseOnFocusLoss
-                draggable
-                pauseOnHover
-                theme="colored"
-            />
-        </Container>
-    );
+      setIsLoading(true);
+      try {
+        await axios.post(
+          'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/auth/forgot-password',
+          { email }
+        );
+        setSuccessMessage('Password reset link sent to your email. Check your spam folder if not found.');
+        setEmail('');
+      } catch (error) {
+        const errorMessage =
+          error.response?.data?.message || 'Failed to send reset link. Please try again.';
+        setError(
+          errorMessage.includes('not found')
+            ? `${errorMessage} Please check your spam folder if not found.`
+            : errorMessage
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [email]
+  );
+
+  return (
+    <>
+      <style>{responsiveStyles}</style>
+      <div style={Container} role="main" aria-labelledby="forgot-password-heading">
+        <h1 id="forgot-password-heading" style={{ display: 'none' }}>
+          Forgot Password
+        </h1>
+        <div style={FormContainer} className="form-container">
+          <h2 style={Title} className="title" aria-label="Forgot Password Title">
+            Forgot Password
+          </h2>
+          <form onSubmit={handleSubmit} noValidate>
+            <div style={InputContainer}>
+              <input
+                style={Input}
+                type="email"
+                id="email"
+                name="email"
+                value={email}
+                onChange={handleEmailChange}
+                placeholder="Enter your email"
+                required
+                aria-required="true"
+                aria-describedby="email-error"
+                aria-label="Email"
+                className="input"
+                disabled={isLoading}
+              />
+            </div>
+            {error && (
+              <div style={ErrorText} className="error-text" aria-live="polite">
+                {error}
+              </div>
+            )}
+            {successMessage && (
+              <div style={SuccessText} className="success-text" aria-live="polite">
+                {successMessage}
+              </div>
+            )}
+            <button
+              style={SubmitButton}
+              type="submit"
+              aria-label="Submit forgot password request"
+              className="button"
+              disabled={isLoading || !email}
+            >
+              {isLoading ? 'Sending...' : 'Submit'}
+            </button>
+          </form>
+        </div>
+      </div>
+    </>
+  );
 };
 
-export default ForgotPassword;
+export default memo(ForgotPassword);
