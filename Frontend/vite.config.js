@@ -104,7 +104,6 @@ export default defineConfig({
           codemirror: ['@codemirror/view', '@codemirror/state'],
           parse5: ['parse5'],
           lodash: ['lodash'],
-          heavy: ['react-medium-image-zoom'],
         },
       },
     },
