@@ -163,14 +163,7 @@ const FAQPage = () => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="icon" type="image/svg+xml" href="/zedemy-logo.png" />
         <link rel="canonical" href="https://zedemy.vercel.app/faq" />
-        <link rel="preload" as="image" href="https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Amatic+SC&family=Bangers&display=swap"
-          rel="stylesheet"
-          media="print"
-          onload="this.media='all'"
-        />
-        <meta property="og:title" content="Zedemy | Frequently Asked Questions" />
+         <meta property="og:title" content="Zedemy | Frequently Asked Questions" />
         <meta
           property="og:description"
           content="Find answers to common questions about Zedemy’s online tech courses, certificate verification, in-browser coding platform, and more."
