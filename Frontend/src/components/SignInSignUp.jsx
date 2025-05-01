@@ -5,7 +5,6 @@ import Login from '../pages/Login';
 import styled from 'styled-components';
 import SecurityImage from '../assets/security.gif'; 
 import { Helmet } from "react-helmet"; 
-
 const Container = styled.div`
   display: flex;
   justify-content: center;
@@ -13,7 +12,6 @@ const Container = styled.div`
   background-color: #1a1a1d;
   padding: 2rem;
 `;
-
 const AuthBox = styled.div`
   background: linear-gradient(135deg, #8a2387, #e94057, #f27121);
   border-radius: 20px;
@@ -29,12 +27,10 @@ const AuthBox = styled.div`
   &:hover {
     transform: perspective(1000px) rotateY(0);
   }
-
   @media (max-width: 768px) {
     flex-direction: column;
   }
 `;
-
 const FormContainer = styled.div`
   padding: 0rem;
   width: 50%;
@@ -42,7 +38,6 @@ const FormContainer = styled.div`
   backdrop-filter: blur(10px);
   border-right: 2px solid #f27121;
   position: relative;
-
   @media (max-width: 768px) {
     width: 100%;
     border-right: none;
@@ -56,7 +51,6 @@ const Title = styled.h1`
   text-align: center;
   margin-bottom: 0rem;
 `;
-
 const ToggleFormText = styled.p`
   color: #1a1a1d;
   text-align: center;
@@ -66,8 +60,6 @@ const ToggleFormText = styled.p`
     color: #f27121;
   }
 `;
-
-
 const AuthImage = styled.div`
   width: 50%;
   display: flex;
@@ -75,40 +67,31 @@ const AuthImage = styled.div`
   align-items: center;
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(10px);
-
   @media (max-width: 768px) {
     width: 100%;
   }
 `;
-
 const SecurityGif = styled.img`
   max-width: 100%;
   border-radius: 0 20px 20px 0;
 `;
-
 function SignInSignUp({ showCloseButton }) {
   const [isSignUp, setIsSignUp] = useState(false);
-
   const toggleForm = () => {
     setIsSignUp(!isSignUp);
   };
-
   const handleClose = () => {
     setIsSignUp(false);
   };
-
   return (
     <Container>
        <Helmet>
-    
     <title>Login | Zedemy - Access Customized Learning, Certificates, and Expert Content</title>
  <meta
    name="description"
    content="
 Log in to Zedemy to access your personalized learning journey, curated educational content, and community-driven insights. Join our vibrant community founded by Sanjay Patidar, where technology meets education to deliver top-notch tutorials, articles, and user-generated blogs. Create and follow customized categories, mark completed posts, and earn certificates to validate your mastery in various subjects. Receive timely notifications on new content and stay updated with the latest educational discoveries. Experience an unparalleled learning environment that combines comprehensive resources with the transformative power of technology. Sign in now to unlock endless learning possibilities."
  />
- 
-
  <meta property="og:title" content="Login | Zedemy - Access Customized Learning, Certificates, and Expert Content" />
  <meta property="og:description" content="Log in to Zedemy to access your personalized learning journey, curated educational content, and community-driven insights. Join our vibrant community founded by Sanjay Patidar, where technology meets education to deliver top-notch tutorials, articles, and user-generated blogs. Create and follow customized categories, mark completed posts, and earn certificates to validate your mastery in various subjects. Receive timely notifications on new content and stay updated with the latest educational discoveries. Experience an unparalleled learning environment that combines comprehensive resources with the transformative power of technology. Sign in now to unlock endless learning possibilities."/> 
  <meta property="og:type" content="website" />
@@ -127,200 +110,9 @@ Log in to Zedemy to access your personalized learning journey, curated education
 
  <meta name="keywords" content="Zedemy login, personalized learning, educational content, community insights, technology education, user blogs, curated tutorials, educational articles, certificate validation, learning categories, user notifications, educational discoveries, learning platform, tech tutorials, online learning, user-generated content, learning journey, educational resources
 portfolio,verification , certificate verify , certfication verification, signup , eduxcel ,founder: Sanjay patidar , tech, education, careers, opportunity, personal-portfolio,developer_sanju,sanjay, Sanjay, SANJAY, Sanjay Patidar, SANJAY PATIDAR, SANJAY WEB DEVELOPER, SANJAY DEVELOPER, Full Stack Web Developer, Mern Stack Web Developer, sanjay patidar, sanjay-patidar, professional, web developer portfolio, coder, web development, UI/UX design, Chandigarh University, EduXcel, Indore,contact, developer, programmer, engineer, AI, Artificial Intelligence ,tech enthusiastic, creativity ,creator, work , technology, coding, projects, experiences, resume, cv" />
- <meta name="author" content="Sanjay Patidar" />        <script type="application/ld+json">
-       {JSON.stringify({
-         '@context': 'http://schema.org',
-         '@type': 'Person',
-         "name": "Sanjay Patidar",
-         "birthDate": "1998-07-01",
-         "birthPlace": {
-           "@type": "Place",
-           "address": {
-             "@type": "PostalAddress",
-             "addressLocality": "Indore"
-           }
-         },
-         "alumniOf": {
-           "@type": "CollegeOrUniversity",
-           "name": "Chandigarh University",
-           "location": {
-             "@type": "Place",
-             "address": {
-               "@type": "PostalAddress",
-               "addressLocality": "Chandigarh",
-               "addressRegion": "Punjab",
-               "addressCountry": "India"
-             }
-           }
-         },
-         "address": [
-           {
-             "@type": "PostalAddress",
-             "addressLocality": "Indore",
-             "addressRegion": "Madhya Pradesh",
-             "postalCode": "452001",
-             "addressCountry": "India"
-           },
-           {
-             "@type": "PostalAddress",
-             "addressLocality": "Chandigarh",
-             "addressRegion": "Punjab",
-             "postalCode": "160001",
-             "addressCountry": "India"
-           },
-           {
-             "@type": "PostalAddress",
-             "addressLocality": "Mumbai",
-             "addressRegion": "Maharashtra",
-             "postalCode": "400001",
-             "addressCountry": "India"
-           },
-           {
-             "@type": "PostalAddress",
-             "addressLocality": "Bangalore",
-             "addressRegion": "Karnataka",
-             "postalCode": "560001",
-             "addressCountry": "India"
-           },
-           {
-             "@type": "PostalAddress",
-             "addressLocality": "Delhi",
-             "addressRegion": "Delhi",
-             "postalCode": "110001",
-             "addressCountry": "India"
-           },
-           {
-             "@type": "PostalAddress",
-             "addressLocality": "Kolkata",
-             "addressRegion": "West Bengal",
-             "postalCode": "700001",
-             "addressCountry": "India"
-           },
-           {
-             "@type": "PostalAddress",
-             "addressLocality": "Chennai",
-             "addressRegion": "Tamil Nadu",
-             "postalCode": "600001",
-             "addressCountry": "India"
-           },
-           {
-             "@type": "PostalAddress",
-             "addressLocality": "Hyderabad",
-             "addressRegion": "Telangana",
-             "postalCode": "500001",
-             "addressCountry": "India"
-           },
-           {
-             "@type": "PostalAddress",
-             "addressLocality": "Pune",
-             "addressRegion": "Maharashtra",
-             "postalCode": "411001",
-             "addressCountry": "India"
-           },
-           {
-             "@type": "PostalAddress",
-             "addressLocality": "Ahmedabad",
-             "addressRegion": "Gujarat",
-             "postalCode": "380001",
-             "addressCountry": "India"
-           },
-           {
-             "@type": "PostalAddress",
-             "addressLocality": "Jaipur",
-             "addressRegion": "Rajasthan",
-             "postalCode": "302001",
-             "addressCountry": "India"
-           },
-           {
-             "@type": "PostalAddress",
-             "addressLocality": "Lucknow",
-             "addressRegion": "Uttar Pradesh",
-             "postalCode": "226001",
-             "addressCountry": "India"
-           },
-           {
-             "@type": "PostalAddress",
-             "addressLocality": "Bhopal",
-             "addressRegion": "Madhya Pradesh",
-             "postalCode": "462001",
-             "addressCountry": "India"
-           },
-           {
-             "@type": "PostalAddress",
-             "addressLocality": "Nagpur",
-             "addressRegion": "Maharashtra",
-             "postalCode": "440001",
-             "addressCountry": "India"
-           },
-           {
-             "@type": "PostalAddress",
-             "addressLocality": "Visakhapatnam",
-             "addressRegion": "Andhra Pradesh",
-             "postalCode": "530001",
-             "addressCountry": "India"
-           },
-           {
-             "@type": "PostalAddress",
-             "addressLocality": "Kochi",
-             "addressRegion": "Kerala",
-             "postalCode": "682001",
-             "addressCountry": "India"
-           },
-           {
-             "@type": "PostalAddress",
-             "addressLocality": "Guwahati",
-             "addressRegion": "Assam",
-             "postalCode": "781001",
-             "addressCountry": "India"
-           },
-           {
-             "@type": "PostalAddress",
-             "addressLocality": "Bhubaneswar",
-             "addressRegion": "Odisha",
-             "postalCode": "751001",
-             "addressCountry": "India"
-           },
-           {
-             "@type": "PostalAddress",
-             "addressLocality": "Dehradun",
-             "addressRegion": "Uttarakhand",
-             "postalCode": "248001",
-             "addressCountry": "India"
-           },
-           {
-             "@type": "PostalAddress",
-             "addressLocality": "Raipur",
-             "addressRegion": "Chhattisgarh",
-             "postalCode": "492001",
-             "addressCountry": "India"
-           }
-         ],
-         "worksFor": {
-           "@type": "Organization",
-           "name": "LearnAndShare" 
-         },
-         "url": "https://learnandshare.vercel.app/",
-         "sameAs": [
-           "https://www.linkedin.com/in/sanjay-patidar-25b580292/",
-           "https://github.com/hello-developer-sanjay",
-           "https://www.instagram.com/sanjay_patidar_mcmxcviii/",
-           "https://learnandshare.vercel.app/",
-                      "https://learnandshare.vercel.app/login",
-                      "https://learnandshare.vercel.app/certificate-verification",
-           
-
-
-
-         ]
-   
-
-       })}
-     </script>
-
-
+ <meta name="author" content="Sanjay Patidar" />   
     </Helmet>	
       <AuthBox className={`auth-box ${isSignUp ? 'register' : 'login'}`}>
-      
         <FormContainer>
           <Title>{isSignUp ? 'Sign Up - Zedemy' : 'Sign In - Zedemy'}</Title>
           <div>{isSignUp ? <Register /> : <Login />}</div>
@@ -337,5 +129,4 @@ portfolio,verification , certificate verify , certfication verification, signup 
     </Container>
   );
 }
-
 export default SignInSignUp;
