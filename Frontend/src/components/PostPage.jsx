@@ -53,6 +53,7 @@ const Container = styled.div`
   @media (min-width: 769px) {
     flex-direction: row;
   }
+  transition: none;
 `;
 
 const MainContent = styled.main`
@@ -178,7 +179,8 @@ const VideoContainer = styled.figure`
   width: 100%;
   max-width: 100%;
   margin: 0.75rem 0;
-  min-height: 270px; /* Prevent CLS */
+min-height: ${(props) => props.minHeight || '675px'};
+aspect-ratio: 16 / 9;
 `;
 
 const PostVideo = styled.video`
@@ -189,10 +191,9 @@ const PostVideo = styled.video`
   border-radius: 0.375rem;
   aspect-ratio: 16 / 9;
 `;
-
 const Placeholder = styled.div`
   width: 100%;
-  min-height: 50px;
+  min-height: ${(props) => props.minHeight || '50px'};
   background: #e0e0e0;
   display: flex;
   align-items: center;
@@ -200,6 +201,7 @@ const Placeholder = styled.div`
   color: #666;
   border-radius: 0.375rem;
   font-size: 0.75rem;
+  aspect-ratio: ${(props) => (props.minHeight === '675px' || props.minHeight === '270px' ? '16 / 9' : 'auto')};
 `;
 
 const ComparisonTableContainer = styled.section`
@@ -274,7 +276,8 @@ const criticalCSS = `
   .container { display: flex; min-height: 100vh; }
   main { flex: 1; padding: 1rem; background: #f4f4f9; }
   h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; }
-  img, video { width: 100%; height: auto; }
+  figure { width: 100%; max-width: 100%; margin: 0.75rem 0; min-height: 675px; }
+  img { width: 100%; height: auto; max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 0.375rem; }
 `;
 
 // Utility functions
@@ -410,7 +413,7 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
           <Suspense fallback={<Placeholder minHeight="270px">Loading image...</Placeholder>}>
             <AccessibleZoom caption={subtitle.title || ''}>
               <PostImage
-                src={`${subtitle.image}?w=480&format=avif&q=75`}
+                src={`${subtitle.image}?w=480&format=avif&q=60`}
                 srcSet={`
                   ${subtitle.image}?w=320&format=avif&q=75 320w,
                   ${subtitle.image}?w=480&format=avif&q=75 480w,
@@ -455,7 +458,7 @@ const SubtitleSection = memo(({ subtitle, index, category, handleImageError }) =
                 <Suspense fallback={<Placeholder minHeight="270px">Loading image...</Placeholder>}>
                   <AccessibleZoom caption={`Example for ${point.text || ''}`}>
                     <PostImage
-                      src={`${point.image}?w=480&format=avif&q=75`}
+                      src={`${point.image}?w=480&format=avif&q=60`}
                       srcSet={`
                         ${point.image}?w=320&format=avif&q=75 320w,
                         ${point.image}?w=480&format=avif&q=75 480w,
@@ -865,8 +868,7 @@ const PostPage = memo(() => {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
         <link rel="preload" href="/highlight.js/styles/vs.css" as="style" fetchpriority="high" />
-        <link rel="stylesheet" href="/highlight.js/styles/vs.css" media="print" onLoad="this.media='all'" />
-        {post.titleImage && (
+        <link rel="stylesheet" href="/highlight.js/styles/vs.css" media="print" onLoad="this.media='all'" fetchpriority="low" />        {post.titleImage && (
           <link
             rel="preload"
             as="image"
@@ -927,30 +929,32 @@ const PostPage = memo(() => {
             </header>
 
             {post.titleImage && !imageErrors[post.titleImage] && (
-              <ImageContainer>
-                <Suspense fallback={<Placeholder minHeight="675px">Loading image...</Placeholder>}>
-                  <AccessibleZoom caption={`Illustration for ${post.title}`}>
-                    <PostImage
-                      src={`${post.titleImage}?w=480&format=avif&q=75`}
-                      srcSet={`
-                        ${post.titleImage}?w=320&format=avif&q=75 320w,
-                        ${post.titleImage}?w=480&format=avif&q=75 480w,
-                        ${post.titleImage}?w=768&format=avif&q=75 768w,
-                        ${post.titleImage}?w=1024&format=avif&q=75 1024w
-                      `}
-                      sizes="(max-width: 480px) 320px, (max-width: 768px) 480px, (max-width: 1024px) 768px, 1024px"
-                      alt={`Illustration for ${post.title}`}
-                      fetchpriority="high"
-                      loading="eager"
-                      decoding="async"
-                      width="1200"
-                      height="675"
-                      onError={() => handleImageError(post.titleImage)}
-                    />
-                  </AccessibleZoom>
-                </Suspense>
-              </ImageContainer>
-            )}
+  <ImageContainer>
+    <Suspense fallback={<Placeholder minHeight="675px">Loading image...</Placeholder>}>
+      <AccessibleZoom caption={`Illustration for ${post.title}`}>
+        <PostImage
+        rel="preload"
+          src={`${post.titleImage}?w=480&format=avif&q=75`}
+          srcSet={`
+            ${post.titleImage}?w=320&format=avif&q=75 320w,
+            ${post.titleImage}?w=480&format=avif&q=75 480w,
+            ${post.titleImage}?w=768&format=avif&q=75 768w,
+            ${post.titleImage}?w=1024&format=avif&q=75 1024w
+          `}
+          sizes="(max-width: 480px) 320px, (max-width: 768px) 480px, (max-width: 1024px) 768px, 1024px"
+          alt={`Illustration for ${post.title}`}
+          fetchpriority="high"
+          loading="eager"
+          decoding="async"
+          width="1200"
+          height="675"
+          onError={() => handleImageError(post.titleImage)}
+          className="lcp-image" // Add for debugging
+        />
+      </AccessibleZoom>
+    </Suspense>
+  </ImageContainer>
+)}
 
             {post.titleVideo && (
               <VideoContainer>
