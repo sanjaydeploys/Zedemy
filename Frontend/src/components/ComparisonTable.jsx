@@ -5,7 +5,7 @@ import { parseLinks } from './utils';
 // Shared styles
 const sharedSectionStyles = `
   margin-top: 1.5rem;
-  padding: 1.25rem;
+  padding: 1.25rem; 
   background: #0f172a; /* dark background */
   border-radius: 0.5rem;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
@@ -76,7 +76,7 @@ const BulletItem = styled.li`
   color: #cbd5e1;
 `;
 
-const ComparisonTable = memo(({ superTitles, category }) => {
+const ComparisonTable = memo(({ superTitles = [], category = '' } = {}) => {
   if (!Array.isArray(superTitles) || superTitles.length === 0 || !superTitles.some(st => st.superTitle && st.attributes?.length > 0)) {
     return null;
   }
