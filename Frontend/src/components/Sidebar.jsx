@@ -1,62 +1,55 @@
 import React from 'react';
 import styled from 'styled-components';
-import { parseLinksForHtml } from './utils';
+import { parseLinks, slugify } from './utils';
 
-// Add slugify function (or import from utils)
-const slugify = (text) => {
-  if (!text) return '';
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-');
-};
-
-// Styled Components (unchanged)
-const SidebarContainer = styled.div`
+// Styled Components
+const SidebarContainer = styled.aside`
   width: 250px;
-  background-color: rgba(15, 1, 1, 0.82);
+  background: rgba(15, 1, 1, 0.82);
   color: #ecf0f1;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  box-sizing: border-box;
   position: sticky;
   top: 0;
   height: 100vh;
-  display: flex;
-  flex-direction: column;
   @media (max-width: 768px) {
-    width: ${props => (props.isOpen ? '100%' : '0')};
+    width: ${(props) => (props.isOpen ? 'min(100%, 300px)' : '0')};
     position: fixed;
     top: 0;
     left: 0;
-    height: 100%;
+    bottom: 0;
     transition: width 0.3s;
     z-index: 1000;
     overflow: hidden;
+    height: auto;
   }
 `;
 
 const SidebarHeader = styled.div`
-  padding: 2px;
-  font-size: 1.2em;
-  background-color: rgb(4, 18, 33);
+  padding: 0.5rem;
+  font-size: 1.125rem;
+  background: #041221;
   text-align: center;
+  font-weight: 600;
 `;
 
 const SubtitlesList = styled.ul`
-  list-style-type: none;
+  list-style: none;
   padding: 0;
   overflow-y: auto;
   flex: 1;
-  height: 100%;
+  max-height: calc(100vh - 48px);
 `;
 
 const SubtitleItem = styled.li`
-  padding: 10px 20px;
-  border-bottom: 1px solid rgb(228, 231, 235);
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e4e7eb;
   cursor: pointer;
-  background-color: ${props => (props.isActive ? '#34495e' : 'transparent')};
+  background: ${(props) => (props.isActive ? '#34495e' : 'transparent')};
   &:hover {
-    background-color: rgb(59, 118, 20);
+    background: #3b7614;
   }
 `;
 
@@ -67,7 +60,8 @@ const Button = styled.button`
   text-align: left;
   width: 100%;
   padding: 0;
-  font-size: 1em;
+  font-size: 0.875rem;
+  font-weight: 500;
 `;
 
 const ToggleButton = styled.button`
@@ -75,12 +69,13 @@ const ToggleButton = styled.button`
   background: #d32f2f;
   color: #ffffff;
   border: none;
-  padding: 10px;
+  padding: 0.5rem;
   cursor: pointer;
   position: fixed;
-  top: 10px;
-  left: 10px;
+  top: 0.5rem;
+  left: 0.5rem;
   z-index: 1010;
+  border-radius: 0.25rem;
   &:hover {
     background: #b71c1c;
   }
@@ -92,33 +87,31 @@ const ToggleButton = styled.button`
 const Sidebar = ({ post, isSidebarOpen, setSidebarOpen, activeSection, scrollToSection, subtitlesListRef }) => {
   return (
     <>
-      <ToggleButton onClick={() => setSidebarOpen(!isSidebarOpen)}>
+      <ToggleButton
+        onClick={() => setSidebarOpen(!isSidebarOpen)}
+        aria-label={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+      >
         {isSidebarOpen ? 'Close' : 'Menu'}
       </ToggleButton>
-      <SidebarContainer isOpen={isSidebarOpen}>
+      <SidebarContainer isOpen={isSidebarOpen} role="navigation" aria-label="Table of contents">
         <SidebarHeader>Contents</SidebarHeader>
         <SubtitlesList ref={subtitlesListRef}>
-          {post.subtitles.map((subtitle, index) => {
-            const slug = slugify(subtitle.title);
-            return (
-              <SubtitleItem
-                key={index}
-                isActive={activeSection === `subtitle-${index}`}
-                data-section={`subtitle-${index}`}
-              >
-                <Button
-                  dangerouslySetInnerHTML={{ __html: parseLinksForHtml(subtitle.title, post.category) }}
-                  onClick={() => scrollToSection(`subtitle-${index}`)}
-                  aria-label={`Navigate to ${subtitle.title}`}
-                />
-              </SubtitleItem>
-            );
-          })}
-          {post.summary && (
+          {post.subtitles.map((subtitle, index) => (
             <SubtitleItem
-              isActive={activeSection === 'summary'}
-              data-section="summary"
+              key={index}
+              isActive={activeSection === `subtitle-${index}`}
+              data-section={`subtitle-${index}`}
             >
+              <Button
+                onClick={() => scrollToSection(`subtitle-${index}`)}
+                aria-label={`Navigate to ${subtitle.title}`}
+              >
+                {parseLinks(subtitle.title || '', post.category)}
+              </Button>
+            </SubtitleItem>
+          ))}
+          {post.summary && (
+            <SubtitleItem isActive={activeSection === 'summary'} data-section="summary">
               <Button onClick={() => scrollToSection('summary')} aria-label="Navigate to summary">
                 Summary
               </Button>
