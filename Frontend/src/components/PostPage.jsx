@@ -7,6 +7,7 @@ import styled from 'styled-components';
 import { ClipLoader } from 'react-spinners';
 import { createSelector } from 'reselect';
 import { parseLinks, slugify, truncateText } from './utils';
+
 // Lazy-loaded components
 const Sidebar = React.lazy(() => import('./Sidebar'));
 const RelatedPosts = React.lazy(() => import('./RelatedPosts'));
@@ -15,6 +16,7 @@ const ComparisonTable = React.lazy(() => import('./ComparisonTable'));
 const CodeHighlighter = React.lazy(() => import('./CodeHighlighter'));
 
 // Minimal CSS imports
+import 'highlight.js/styles/vs.css';
 
 // Debounce utility
 const debounce = (func, wait) => {
@@ -226,12 +228,6 @@ const selectRelatedPosts = createSelector(
 const SubtitleSection = memo(({ subtitle, index, category }) => {
   if (!subtitle) return null;
 
-  useEffect(() => {
-    if (subtitle.image) {
-      console.log('Subtitle Image URL:', `${subtitle.image}?w=480&format=avif&q=75`);
-    }
-  }, [subtitle.image]);
-
   return (
     <section id={`subtitle-${index}`} aria-labelledby={`subtitle-${index}-heading`}>
       <SubtitleHeader id={`subtitle-${index}-heading`}>{parseLinks(subtitle.title || '', category)}</SubtitleHeader>
@@ -252,7 +248,6 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                 loading="lazy"
                 decoding="async"
                 fetchpriority="low"
-                onLoad={() => console.log('Subtitle Image Loaded:', subtitle.image)}
                 onError={() => console.error('Subtitle Image Failed:', subtitle.image)}
               />
             </AccessibleZoom>
@@ -269,7 +264,6 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
             decoding="async"
             aria-label={`Video for ${subtitle.title || 'subtitle'}`}
             fetchpriority="low"
-            onLoad={() => console.log('Video Loaded:', subtitle.video)}
           >
             <source src={`${subtitle.video}#t=0.1`} type="video/mp4" />
           </PostVideo>
@@ -296,7 +290,6 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                       loading="lazy"
                       decoding="async"
                       fetchpriority="low"
-                      onLoad={() => console.log('Point Image Loaded:', point.image)}
                       onError={() => console.error('Point Image Failed:', point.image)}
                     />
                   </AccessibleZoom>
@@ -444,14 +437,6 @@ const PostPage = memo(() => {
   const deferredActiveSection = useDeferredValue(activeSection);
   const subtitlesListRef = useRef(null);
   const [hasFetched, setHasFetched] = useState(false);
-
-  // Debug Image URLs
-  useEffect(() => {
-    if (post?.titleImage) {
-      console.log('Title Image URL:', `${post.titleImage}?w=480&format=avif&q=75`);
-    }
-  }, [post?.titleImage]);
-
   // Debounced Intersection Observer
   const debouncedObserve = useMemo(
     () =>
@@ -555,7 +540,6 @@ const PostPage = memo(() => {
           () => {
             const img = new Image();
             img.src = `${post.titleImage}?w=480&format=avif&q=75`;
-            img.onload = () => console.log('Title Image Preloaded:', post.titleImage);
             img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
           },
           { priority: 'background' }
@@ -565,7 +549,6 @@ const PostPage = memo(() => {
           () => {
             const img = new Image();
             img.src = `${post.titleImage}?w=480&format=avif&q=75`;
-            img.onload = () => console.log('Title Image Preloaded:', post.titleImage);
             img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
           },
           { timeout: 1000 }
@@ -779,7 +762,6 @@ const PostPage = memo(() => {
                       fetchpriority="high"
                       loading="eager"
                       decoding="async"
-                      onLoad={() => console.log('Title Image Loaded:', post.titleImage)}
                       onError={() => console.error('Title Image Failed:', post.titleImage)}
                     />
                   </AccessibleZoom>
@@ -797,7 +779,6 @@ const PostPage = memo(() => {
                   decoding="async"
                   aria-label={`Video for ${post.title}`}
                   fetchpriority="high"
-                  onLoad={() => console.log('Title Video Loaded:', post.titleVideo)}
                 >
                   <source src={`${post.titleVideo}#t=0.1`} type="video/mp4" />
                 </PostVideo>
