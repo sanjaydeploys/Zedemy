@@ -205,18 +205,18 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
   useEffect(() => {
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
       window.requestIdleCallback(() => {
-        setParsedTitle(parseLinks(subtitle.title || '', category));
+        setParsedTitle(parseLinks(subtitle.title || '', category, false));
         setParsedBulletPoints((subtitle.bulletPoints || []).map(point => ({
           ...point,
-          text: parseLinks(point.text || '', category),
+          text: parseLinks(point.text || '', category, false),
         })));
       }, { timeout: 3000 });
     } else {
       setTimeout(() => {
-        setParsedTitle(parseLinks(subtitle.title || '', category));
+        setParsedTitle(parseLinks(subtitle.title || '', category, false));
         setParsedBulletPoints((subtitle.bulletPoints || []).map(point => ({
           ...point,
-          text: parseLinks(point.text || '', category),
+          text: parseLinks(point.text || '', category, false),
         })));
       }, 3000);
     }
@@ -276,10 +276,10 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
           </PostVideo>
         </VideoContainer>
       )}
-      <ul style={{ paddingLeft: '1.25rem', fontSize: '1.1rem', lineHeight: '1.7' }}>
+      <ul style={{ paddingLeft: '1.25rem', fontSize: '1.1rem', lineheight: '1.7' }}>
         {parsedBulletPoints.map((point, j) => (
           <li key={j} style={{ marginBottom: '0.5rem' }}>
-            <span dangerouslySetInnerHTML={{ __html: point.text }} />
+            <span>{point.text}</span>
             {point.image && (
               <ImageContainer>
                 <Suspense fallback={<Placeholder height="157.5px">Loading image...</Placeholder>}>
@@ -491,11 +491,11 @@ const PostContentNonCritical = memo(
       if (!post?.summary) return;
       if (typeof window !== 'undefined' && window.requestIdleCallback) {
         window.requestIdleCallback(() => {
-          setParsedSummary(parseLinks(post.summary || '', post.category || ''));
+          setParsedSummary(parseLinks(post.summary || '', post.category || '', false));
         }, { timeout: 3000 });
       } else {
         setTimeout(() => {
-          setParsedSummary(parseLinks(post.summary || '', post.category || ''));
+          setParsedSummary(parseLinks(post.summary || '', post.category || '', false));
         }, 3000);
       }
     }, [post]);
@@ -550,7 +550,7 @@ const PostContentNonCritical = memo(
         {post.summary && (
           <section id="summary" aria-labelledby="summary-heading">
             <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
-            <p style={{ fontSize: '1.1rem', lineHeight: '1.7' }} dangerouslySetInnerHTML={{ __html: parsedSummary }} />
+            <p style={{ fontSize: '1.1rem', lineHeight: '1.7' }}>{parsedSummary}</p>
           </section>
         )}
 
