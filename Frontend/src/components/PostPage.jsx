@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef, memo, useMemo, useCallback, Suspense, useDeferredValue, startTransition } from 'react';
+import React, { useState, useEffect, useRef, memo, useMemo, useCallback, Suspense, useDeferredValue, startTransition } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPostBySlug, fetchCompletedPosts, fetchPosts, markPostAsCompleted } from '../actions/postActions';
 import { useParams, Link } from 'react-router-dom';
@@ -93,14 +93,18 @@ const PostHeader = styled.h1`
   color: #111827;
   margin: 0.75rem 0 1rem;
   font-weight: 800;
-  line-height: 1.3;
+  line-height: 1.2;
+  @media (min-width: 769px) {
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+  }
 `;
 
 const ContentSection = styled.section`
-  font-size: 1rem;
-  line-height: 1.8;
-  min-height: 100px; /* Reserve space to avoid CLS */
-  @media (max-width: 768px) {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  min-height: 100px; /* Prevent layout shift during parsing */
+  @media (min-width: 769px) {
     font-size: 1rem;
     line-height: 1.8;
   }
@@ -113,6 +117,9 @@ const SubtitleHeader = styled.h2`
   font-weight: 700;
   border-left: 4px solid #34db58;
   padding-left: 0.5rem;
+  @media (min-width: 769px) {
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+  }
 `;
 
 const CompleteButton = styled.button`
@@ -140,15 +147,15 @@ const CompleteButton = styled.button`
 const ImageContainer = styled.figure`
   width: 100%;
   max-width: 100%;
-  margin: 1rem 0;
+  margin: 0.75rem 0;
   position: relative;
 `;
 
 const PostImage = styled.img`
   width: 100%;
-  max-width: 280px;
+  max-width: 90vw;
   aspect-ratio: 16 / 9;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 0.375rem;
   position: relative;
   z-index: 2;
@@ -159,9 +166,9 @@ const PostImage = styled.img`
 
 const LQIPImage = styled.img`
   width: 100%;
-  max-width: 280px;
+  max-width: 90vw;
   aspect-ratio: 16 / 9;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 0.375rem;
   filter: blur(10px);
   position: absolute;
@@ -176,12 +183,12 @@ const LQIPImage = styled.img`
 const VideoContainer = styled.figure`
   width: 100%;
   max-width: 100%;
-  margin: 1rem 0;
+  margin: 0.75rem 0;
 `;
 
 const PostVideo = styled.video`
   width: 100%;
-  max-width: 280px;
+  max-width: 90vw;
   aspect-ratio: 16 / 9;
   border-radius: 0.375rem;
   @media (min-width: 769px) {
@@ -202,7 +209,7 @@ const Placeholder = styled.div`
 `;
 
 const ReferencesSection = styled.section`
-  margin-top: 1.5rem;
+  margin-top: 1rem;
   padding: 1rem;
   background: #f9f9f9;
   border-radius: 0.375rem;
@@ -226,21 +233,16 @@ const ReferenceLink = styled.a`
 `;
 
 const NavigationLinks = styled.nav`
-  margin: 1.5rem 0;
+  margin: 1rem 0;
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   & a {
     min-height: 44px;
     display: inline-flex;
     align-items: center;
     padding: 0.5rem;
-    color: #0645ad;
-    text-decoration: none;
-    &:hover {
-      text-decoration: underline;
-    }
   }
 `;
 
@@ -248,26 +250,22 @@ const NavigationLinks = styled.nav`
 const criticalCSS = `
   html { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; }
   .container { display: flex; min-height: 100vh; }
-  main { flex: 1; padding: 1.5rem; background: #f4f4f9; min-height: 2000px; }
+  main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 2000px; }
   aside { width: 250px; min-height: 1200px; flex-shrink: 0; }
-  h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; margin: 0.75rem 0 1rem; line-height: 1.3; }
-  section { font-size: 1rem; line-height: 1.8; min-height: 100px; }
-  figure { width: 100%; max-width: 100%; margin: 1rem 0; position: relative; }
-  img { width: 100%; max-width: 280px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 0.375rem; }
-  video { width: 100%; max-width: 280px; aspect-ratio: 16 / 9; border-radius: 0.375rem; }
-  nav { margin: 1.5rem 0; display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.875rem; }
-  nav a { min-height: 44px; display: inline-flex; align-items: center; padding: 0.5rem; color: #0645ad; text-decoration: none; }
-  nav a:hover { text-decoration: underline; }
-  p { font-size: 0.875rem; line-height: 1.6; }
+  h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; margin: 0.75rem 0 1rem; line-height: 1.2; }
+  section { font-size: 1.1rem; line-height: 1.6; margin-bottom: 1.5rem; min-height: 100px; }
+  figure { width: 100%; max-width: 100%; margin: 0.75rem 0; position: relative; }
+  img { width: 100%; max-width: 90vw; aspect-ratio: 16 / 9; border-radius: 0.375rem; }
+  video { width: 100%; max-width: 90vw; aspect-ratio: 16 / 9; border-radius: 0.375rem; }
+  nav { margin: 1rem 0; display: flex; gap: 0.75rem; flex-wrap: wrap; font-size: 0.75rem; }
+  nav a { min-height: 44px; display: inline-flex; align-items: center; padding: 0.5rem; }
+  p { font-size: 0.875rem; }
   @media (min-width: 769px) {
     main { padding: 2rem; }
+    h1 { text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1); }
+    section { font-size: 1rem; line-height: 1.8; }
     img { max-width: 480px; }
     video { max-width: 480px; }
-    section { font-size: 1rem; line-height: 1.6; }
-  }
-  @media (max-width: 768px) {
-    main { padding: 1rem; }
-    section { font-size: 1rem; line-height: 1.8; }
   }
   @font-face {
     font-family: 'Segoe UI';
@@ -367,7 +365,7 @@ const PostPage = memo(() => {
         // Defer non-critical fetches
         setTimeout(() => {
           Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-        }, 1000);
+        }, 2000);
       } catch (error) {
         console.error('Fetch failed:', error);
         if (retries > 0) {
@@ -412,8 +410,8 @@ const PostPage = memo(() => {
     return { readTime: Math.ceil(words / 200), wordCount: words };
   }, [post]);
 
-  // Parse content after initial render
-  useLayoutEffect(() => {
+  // Defer parsing until after initial render
+  useEffect(() => {
     if (!post) return;
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
       window.requestIdleCallback(() => {
@@ -538,7 +536,7 @@ const PostPage = memo(() => {
         scheduler.postTask(
           () => {
             const img = new Image();
-            img.src = `${post.titleImage}?w=80&format=avif&q=5`;
+            img.src = `${post.titleImage}?w=60&format=avif&q=5`;
             img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
           },
           { priority: 'background' }
@@ -547,7 +545,7 @@ const PostPage = memo(() => {
         window.requestIdleCallback(
           () => {
             const img = new Image();
-            img.src = `${post.titleImage}?w=80&format=avif&q=5`;
+            img.src = `${post.titleImage}?w=60&format=avif&q=5`;
             img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
           },
           { timeout: 1000 }
@@ -594,14 +592,14 @@ const PostPage = memo(() => {
                   height="157.5"
                 />
                 <PostImage
-                  src={`${subtitle.image}?w=80&format=avif&q=5`}
+                  src={`${subtitle.image}?w=60&format=avif&q=5`}
                   srcSet={`
-                    ${subtitle.image}?w=80&format=avif&q=5 80w,
+                    ${subtitle.image}?w=60&format=avif&q=5 60w,
                     ${subtitle.image}?w=120&format=avif&q=5 120w,
                     ${subtitle.image}?w=200&format=avif&q=5 200w,
                     ${subtitle.image}?w=280&format=avif&q=5 280w
                   `}
-                  sizes="(max-width: 320px) 80px, (max-width: 480px) 120px, (max-width: 768px) 200px, 280px"
+                  sizes="(max-width: 320px) 60px, (max-width: 480px) 120px, (max-width: 768px) 200px, 280px"
                   alt={subtitle.title || 'Subtitle image'}
                   width="280"
                   height="157.5"
@@ -619,7 +617,7 @@ const PostPage = memo(() => {
             <PostVideo
               controls
               preload="none"
-              poster={`${subtitle.videoPoster || subtitle.image}?w=80&format=webp&q=5`}
+              poster={`${subtitle.videoPoster || subtitle.image}?w=60&format=webp&q=5`}
               width="280"
               height="157.5"
               loading="lazy"
@@ -631,7 +629,7 @@ const PostPage = memo(() => {
             </PostVideo>
           </VideoContainer>
         )}
-        <ul style={{ paddingLeft: '1.25rem', fontSize: '1rem', lineHeight: '1.8' }}>
+        <ul style={{ paddingLeft: '1.25rem', fontSize: '1.1rem', lineHeight: '1.6' }}>
           {(subtitle.bulletPoints || []).map((point, j) => (
             <li key={j} style={{ marginBottom: '0.5rem' }}>
               {parseLinks(point.text || '', category)}
@@ -646,14 +644,14 @@ const PostPage = memo(() => {
                         height="157.5"
                       />
                       <PostImage
-                        src={`${point.image}?w=80&format=avif&q=5`}
+                        src={`${point.image}?w=60&format=avif&q=5`}
                         srcSet={`
-                          ${point.image}?w=80&format=avif&q=5 80w,
+                          ${point.image}?w=60&format=avif&q=5 60w,
                           ${point.image}?w=120&format=avif&q=5 120w,
                           ${point.image}?w=200&format=avif&q=5 200w,
                           ${point.image}?w=280&format=avif&q=5 280w
                         `}
-                        sizes="(max-width: 320px) 80px, (max-width: 480px) 120px, (max-width: 768px) 200px, 280px"
+                        sizes="(max-width: 320px) 60px, (max-width: 480px) 120px, (max-width: 768px) 200px, 280px"
                         alt={`Example for ${point.text || 'bullet point'}`}
                         width="280"
                         height="157.5"
@@ -671,7 +669,7 @@ const PostPage = memo(() => {
                   <PostVideo
                     controls
                     preload="none"
-                    poster={`${point.videoPoster || point.image}?w=80&format=webp&q=5`}
+                    poster={`${point.videoPoster || point.image}?w=60&format=webp&q=5`}
                     width="280"
                     height="157.5"
                     loading="lazy"
@@ -839,16 +837,16 @@ const PostPage = memo(() => {
             <link
               rel="preload"
               as="image"
-              href={`${post.titleImage}?w=80&format=avif&q=5`}
+              href={`${post.titleImage}?w=60&format=avif&q=5`}
               crossOrigin="anonymous"
-              fetchpriority="low"
+              fetchpriority="high"
               imagesrcset={`
-                ${post.titleImage}?w=80&format=avif&q=5 80w,
+                ${post.titleImage}?w=60&format=avif&q=5 60w,
                 ${post.titleImage}?w=120&format=avif&q=5 120w,
                 ${post.titleImage}?w=200&format=avif&q=5 200w,
                 ${post.titleImage}?w=280&format=avif&q=5 280w
               `}
-              imagesizes="(max-width: 320px) 80px, (max-width: 480px) 120px, (max-width: 768px) 200px, 280px"
+              imagesizes="(max-width: 320px) 60px, (max-width: 480px) 120px, (max-width: 768px) 200px, 280px"
             />
           </>
         )}
@@ -878,8 +876,8 @@ const PostPage = memo(() => {
         <MainContent role="main" aria-label="Main content">
           <article>
             <header>
-              <PostHeader>{post.title}</PostHeader>
-              <div style={{ marginBottom: '0.5rem', color: '#666', fontSize: '0.875rem' }}>
+              <PostHeader>{parsedTitle || post.title}</PostHeader>
+              <div style={{ marginBottom: '0.5rem', color: '#666', fontSize: '0.75rem' }}>
                 Read time: {calculateReadTimeAndWordCount.readTime} min
               </div>
             </header>
@@ -893,18 +891,18 @@ const PostPage = memo(() => {
                   height="157.5"
                 />
                 <PostImage
-                  src={`${post.titleImage}?w=80&format=avif&q=5`}
+                  src={`${post.titleImage}?w=60&format=avif&q=5`}
                   srcSet={`
-                    ${post.titleImage}?w=80&format=avif&q=5 80w,
+                    ${post.titleImage}?w=60&format=avif&q=5 60w,
                     ${post.titleImage}?w=120&format=avif&q=5 120w,
                     ${post.titleImage}?w=200&format=avif&q=5 200w,
                     ${post.titleImage}?w=280&format=avif&q=5 280w
                   `}
-                  sizes="(max-width: 320px) 80px, (max-width: 480px) 120px, (max-width: 768px) 200px, 280px"
+                  sizes="(max-width: 320px) 60px, (max-width: 480px) 120px, (max-width: 768px) 200px, 280px"
                   alt={`Illustration for ${post.title}`}
                   width="280"
                   height="157.5"
-                  fetchpriority="low"
+                  fetchpriority="high"
                   loading="eager"
                   decoding="async"
                   onError={() => console.error('Title Image Failed:', post.titleImage)}
@@ -917,23 +915,23 @@ const PostPage = memo(() => {
                 <PostVideo
                   controls
                   preload="metadata"
-                  poster={`${post.titleVideoPoster || post.titleImage}?w=80&format=webp&q=5`}
+                  poster={`${post.titleVideoPoster || post.titleImage}?w=60&format=webp&q=5`}
                   width="280"
                   height="157.5"
                   loading="eager"
                   decoding="async"
                   aria-label={`Video for ${post.title}`}
-                  fetchpriority="low"
+                  fetchpriority="high"
                 >
                   <source src={`${post.titleVideo}#t=0.1`} type="video/mp4" />
                 </PostVideo>
               </VideoContainer>
             )}
 
-            <p style={{ fontSize: '0.875rem', lineHeight: '1.6' }}>
+            <p style={{ fontSize: '0.875rem' }}>
               <time dateTime={post.date}>{post.date}</time> | Author: {post.author || 'Zedemy Team'}
             </p>
-            <ContentSection className="sc-jBqEzj hPvEo">{parsedContent || post.content}</ContentSection>
+            <ContentSection>{parsedContent || post.content}</ContentSection>
 
             <Suspense fallback={<Placeholder minHeight="100px">Loading additional content...</Placeholder>}>
               {(post.subtitles || []).map((subtitle, i) => (
@@ -949,7 +947,7 @@ const PostPage = memo(() => {
               {post.summary && (
                 <section id="summary" aria-labelledby="summary-heading">
                   <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
-                  <p style={{ fontSize: '1rem', lineHeight: '1.8' }}>{parsedSummary || post.summary}</p>
+                  <p style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>{parsedSummary || post.summary}</p>
                 </section>
               )}
 
