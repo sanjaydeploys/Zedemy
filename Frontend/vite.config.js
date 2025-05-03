@@ -97,8 +97,10 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
+        experimentalMinChunkSize: 5000, // Merge chunks smaller than 5 KiB
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
+          uiLibs: ['popper.js', 'framer-motion', 'jss', 'react-toastify'],
           utilities: ['react-helmet-async', 'dompurify', 'react-copy-to-clipboard'],
           syntax_highlighter: ['react-syntax-highlighter', 'highlight.js'],
           codemirror: ['@codemirror/view', '@codemirror/state'],
@@ -110,7 +112,7 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     assetsInlineLimit: 4096,
-    chunkSizeWarningLimit: 800,
+    chunkSizeWarningLimit: 250, // Stricter limit for bundle size monitoring
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
