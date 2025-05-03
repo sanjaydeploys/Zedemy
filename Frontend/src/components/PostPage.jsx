@@ -28,172 +28,349 @@ const debounce = (func, wait) => {
   };
 };
 
-// Minimal critical CSS for LCP elements only
-const criticalCSS = `
-  html { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; }
-  .container { display: flex; min-height: 100vh; flex-direction: column; }
-  main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 2000px; }
-  h1 { font-size: clamp(1.25rem, 3vw, 1.75rem); color: #111827; font-weight: 800; margin: 0.5rem 0; line-height: 1.2; }
-  .content-section { font-size: 0.95rem; line-height: 1.5; margin-bottom: 1rem; content-visibility: auto; contain-intrinsic-size: 1px 300px; }
-  figure { width: 100%; max-width: 100%; margin: 0.5rem 0; position: relative; }
-  img { width: 100%; max-width: 200px; aspect-ratio: 16 / 9; border-radius: 0.375rem; }
+const Container = styled.div`
+  display: flex;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  flex-direction: column;
   @media (min-width: 769px) {
-    .container { flex-direction: row; }
-    main { padding: 1.5rem; margin-right: 250px; }
-    h1 { font-size: clamp(1.5rem, 4vw, 2rem); }
-    .content-section { font-size: 1rem; line-height: 1.6; }
-    img { max-width: 480px; }
+    flex-direction: row;
   }
-  @media (max-width: 480px) {
-    h1 { font-size: 1.25rem; }
-    .content-section { font-size: 0.9rem; line-height: 1.4; }
-    img { max-width: 180px; }
+`;
+
+const MainContent = styled.main`
+  flex: 1;
+  padding: 1rem;
+  background: #f4f4f9;
+  contain: paint;
+  @media (min-width: 769px) {
+    margin-right: 220px;
+    padding: 1.5rem;
+  }
+`;
+
+const SidebarWrapper = styled.aside`
+  @media (min-width: 769px) {
+    width: 220px;
+    flex-shrink: 0;
+  }
+`;
+
+const LoadingOverlay = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.5);
+  min-height: 100vh;
+  width: 100%;
+`;
+
+const SkeletonHeader = styled.div`
+  width: 60%;
+  height: 1.5rem;
+  background: #e0e0e0;
+  border-radius: 0.25rem;
+  margin: 0.5rem 0 0.75rem;
+`;
+
+const PostHeader = styled.h1`
+  font-size: clamp(1.25rem, 3.5vw, 1.75rem);
+  color: #111827;
+  margin: 0.5rem 0 0.75rem;
+  font-weight: 800;
+  line-height: 1.2;
+  @media (min-width: 769px) {
+    font-size: clamp(1.5rem, 4vw, 2rem);
+  }
+`;
+
+const ContentSection = styled.section`
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+  content-visibility: auto;
+  contain-intrinsic-size: 100% 300px;
+  @media (min-width: 769px) {
+    font-size: 1rem;
+    line-height: 1.6;
+    contain-intrinsic-size: 100% 400px;
+  }
+`;
+
+const ImageContainer = styled.figure`
+  width: 100%;
+  max-width: 100%;
+  margin: 0.75rem 0;
+  position: relative;
+`;
+
+const PostImage = styled.img`
+  width: 100%;
+  max-width: 240px;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  border-radius: 0.25rem;
+  position: relative;
+  z-index: 2;
+  @media (min-width: 769px) {
+    max-width: 400px;
   }
   @media (max-width: 320px) {
-    h1 { font-size: 1.1rem; }
-    .content-section { font-size: 0.85rem; }
-    img { max-width: 160px; }
+    max-width: 200px;
   }
-  @font-face {
-    font-family: 'Segoe UI';
-    src: local('Segoe UI'), local('BlinkMacSystemFont'), local('-apple-system');
-    font-display: swap;
+`;
+
+const LQIPImage = styled.img`
+  width: 100%;
+  max-width: 240px;
+  aspect-ratio: 16 / 9;
+  object-fit: contain;
+  border-radius: 0.25rem;
+  filter: blur(8px);
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  @media (min-width: 769px) {
+    max-width: 400px;
+  }
+  @media (max-width: 320px) {
+    max-width: 200px;
+  }
+`;
+
+const VideoContainer = styled.figure`
+  width: 100%;
+  max-width: 100%;
+  margin: 0.75rem 0;
+`;
+
+const PostVideo = styled.video`
+  width: 100%;
+  max-width: 240px;
+  aspect-ratio: 16 / 9;
+  border-radius: 0.25rem;
+  @media (min-width: 769px) {
+    max-width: 400px;
+  }
+  @media (max-width: 320px) {
+    max-width: 200px;
+  }
+`;
+
+const Placeholder = styled.div`
+  width: 100%;
+  min-height: ${(props) => props.minHeight || '150px'};
+  background: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+`;
+
+const criticalCSS = `
+  html {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  body {
+    margin: 0;
+  }
+  .container {
+    display: flex;
+    min-height: 100vh;
+  }
+  main {
+    flex: 1;
+    padding: 1rem;
+    background: #f4f4f9;
+  }
+  aside {
+    width: 220px;
+    flex-shrink: 0;
+  }
+  h1 {
+    font-size: clamp(1.25rem, 3.5vw, 1.75rem);
+    color: #111827;
+    font-weight: 800;
+    margin: 0.5rem 0 0.75rem;
+    line-height: 1.2;
+  }
+  section {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+    content-visibility: auto;
+    contain-intrinsic-size: 100% 300px;
+  }
+  figure {
+    width: 100%;
+    max-width: 100%;
+    margin: 0.75rem 0;
+    position: relative;
+  }
+  img {
+    width: 100%;
+    max-width: 240px;
+    aspect-ratio: 16 / 9;
+    border-radius: 0.25rem;
+  }
+  video {
+    width: 100%;
+    max-width: 240px;
+    aspect-ratio: 16 / 9;
+    border-radius: 0.25rem;
+  }
+  p {
+    font-size: 0.85rem;
+  }
+  @media (min-width: 769px) {
+    main {
+      padding: 1.5rem;
+      margin-right: 220px;
+    }
+    h1 {
+      font-size: clamp(1.5rem, 4vw, 2rem);
+    }
+    section {
+      font-size: 1rem;
+      line-height: 1.6;
+      contain-intrinsic-size: 100% 400px;
+    }
+    img, video {
+      max-width: 400px;
+    }
+  }
+  @media (max-width: 320px) {
+    img, video {
+      max-width: 200px;
+    }
   }
 `;
 
 const PostContentCritical = memo(({ post, calculateReadTimeAndWordCount }) => {
-  const [visibleContent, setVisibleContent] = useState('');
+  const [visibleContent, setVisibleContent] = useState([]);
   const [remainingContent, setRemainingContent] = useState(null);
-  const contentRef = useRef(null);
 
   useEffect(() => {
-    if (!post?.content) return;
+    if (!post?.content) {
+      setVisibleContent([]);
+      return;
+    }
 
-    // Split content based on words (first 100 words for above-the-fold)
-    const content = post.content || '';
-    const words = content.split(/\s+/).filter(w => w);
-    let aboveFoldWords = words.slice(0, 100).join(' ');
-    let belowFoldWords = words.slice(100).join(' ');
+    // Lightweight splitting: Extract plain text for above-the-fold content
+    const paragraphs = post.content.split(/(<p[^>]*>.*?<\/p>)/gi).filter(p => p.trim());
+    let wordCount = 0;
+    const aboveFoldContent = [];
+    const belowFoldContent = [];
+    let isAboveFold = true;
 
-    // Wrap in a div to ensure valid HTML
-    setVisibleContent(`<div>${aboveFoldWords}</div>`);
+    for (let i = 0; i < paragraphs.length; i++) {
+      const para = paragraphs[i];
+      const text = para.replace(/<[^>]+>/g, '');
+      const words = text.split(/\s+/).filter(w => w).length;
+      wordCount += words;
 
-    if (belowFoldWords) {
-      requestAnimationFrame(() => {
-        setRemainingContent(`<div>${belowFoldWords}</div>`);
-      });
+      if (isAboveFold && (wordCount < 200 || i < 1)) { // Reduced to 200 words for faster render
+        aboveFoldContent.push(para);
+      } else {
+        isAboveFold = false;
+        belowFoldContent.push(para);
+      }
+    }
+
+    setVisibleContent(aboveFoldContent);
+
+    if (belowFoldContent.length > 0) {
+      if (typeof scheduler !== 'undefined' && scheduler.postTask) {
+        scheduler.postTask(() => {
+          setRemainingContent(belowFoldContent);
+        }, { priority: 'background' });
+      } else if (typeof window !== 'undefined' && window.requestIdleCallback) {
+        window.requestIdleCallback(() => {
+          setRemainingContent(belowFoldContent);
+        }, { timeout: 3000 });
+      } else {
+        setTimeout(() => {
+          setRemainingContent(belowFoldContent);
+        }, 3000);
+      }
     }
   }, [post?.content]);
 
   return (
     <>
-      <header style={{ marginBottom: '0.5rem' }}>
-        <h1 style={{
-          fontSize: 'clamp(1.25rem, 3vw, 1.75rem)',
-          color: '#111827',
-          fontWeight: 800,
-          margin: '0.5rem 0',
-          lineHeight: 1.2,
-        }}>{post.title}</h1>
-        <div style={{ color: '#666', fontSize: '0.7rem' }}>
+      <header>
+        <PostHeader>{post.title}</PostHeader>
+        <div style={{ marginBottom: '0.5rem', color: '#666', fontSize: '0.7rem' }}>
           Read time: {calculateReadTimeAndWordCount.readTime} min
         </div>
       </header>
 
       {post.titleImage && (
-        <figure style={{ width: '100%', maxWidth: '100%', margin: '0.5rem 0', position: 'relative' }}>
-          <img
+        <ImageContainer>
+          <LQIPImage
             src={`${post.titleImage}?w=20&format=webp&q=1`}
             alt="Low quality placeholder"
-            style={{
-              width: '100%',
-              maxWidth: '200px',
-              aspectRatio: '16 / 9',
-              borderRadius: '0.375rem',
-              filter: 'blur(10px)',
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              zIndex: 1,
-            }}
-            width="200"
-            height="112.5"
+            width="240"
+            height="135"
           />
-          <img
-            src={`${post.titleImage}?w=160&format=avif&q=40`}
+          <PostImage
+            src={`${post.titleImage}?w=200&format=avif&q=50`}
             srcSet={`
-              ${post.titleImage}?w=100&format=avif&q=40 100w,
-              ${post.titleImage}?w=160&format=avif&q=40 160w,
-              ${post.titleImage}?w=200&format=avif&q=40 200w,
-              ${post.titleImage}?w=480&format=avif&q=40 480w
+              ${post.titleImage}?w=100&format=avif&q=50 100w,
+              ${post.titleImage}?w=150&format=avif&q=50 150w,
+              ${post.titleImage}?w=200&format=avif&q=50 200w,
+              ${post.titleImage}?w=240&format=avif&q=50 240w,
+              ${post.titleImage}?w=400&format=avif&q=50 400w
             `}
-            sizes="(max-width: 320px) 160px, (max-width: 480px) 180px, (max-width: 768px) 200px, 480px"
+            sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 240px, 400px"
             alt={`Illustration for ${post.title}`}
-            style={{
-              width: '100%',
-              maxWidth: '200px',
-              aspectRatio: '16 / 9',
-              borderRadius: '0.375rem',
-              position: 'relative',
-              zIndex: 2,
-            }}
-            width="200"
-            height="112.5"
-            fetchpriority="high"
+            width="240"
+            height="135"
+            fetchpriority="low" // Since LCP is the content section, not the image
             loading="eager"
             decoding="async"
             onError={() => console.error('Title Image Failed:', post.titleImage)}
           />
-        </figure>
+        </ImageContainer>
       )}
 
       {post.titleVideo && (
-        <figure style={{ width: '100%', maxWidth: '100%', margin: '0.5rem 0' }}>
-          <video
+        <VideoContainer>
+          <PostVideo
             controls
             preload="metadata"
             poster={`${post.titleVideoPoster || post.titleImage}?w=80&format=webp&q=5`}
-            style={{
-              width: '100%',
-              maxWidth: '200px',
-              aspectRatio: '16 / 9',
-              borderRadius: '0.375rem',
-            }}
-            width="200"
-            height="112.5"
+            width="240"
+            height="135"
             loading="eager"
             decoding="async"
             aria-label={`Video for ${post.title}`}
-            fetchpriority="high"
+            fetchpriority="low"
           >
             <source src={`${post.titleVideo}#t=0.1`} type="video/mp4" />
-          </video>
-        </figure>
+          </PostVideo>
+        </VideoContainer>
       )}
 
-      <p style={{ fontSize: '0.8rem', marginBottom: '0.5rem' }}>
+      <p style={{ fontSize: '0.85rem', marginBottom: '0.75rem' }}>
         <time dateTime={post.date}>{post.date}</time> | Author: {post.author || 'Zedemy Team'}
       </p>
-      <section
-        className="content-section"
-        ref={contentRef}
-        style={{
-          fontSize: '0.95rem',
-          lineHeight: 1.5,
-          marginBottom: '1rem',
-        }}
-        dangerouslySetInnerHTML={{ __html: visibleContent || post.content }}
-      />
+      <ContentSection>
+        {visibleContent.map((para, idx) => (
+          <div key={idx} dangerouslySetInnerHTML={{ __html: para }} />
+        ))}
+      </ContentSection>
       {remainingContent && (
-        <section
-          className="content-section"
-          style={{
-            fontSize: '0.95rem',
-            lineHeight: 1.5,
-            marginBottom: '1rem',
-          }}
-          dangerouslySetInnerHTML={{ __html: remainingContent }}
-        />
+        <ContentSection>
+          {remainingContent.map((para, idx) => (
+            <div key={idx} dangerouslySetInnerHTML={{ __html: para }} />
+          ))}
+        </ContentSection>
       )}
     </>
   );
@@ -212,7 +389,9 @@ const PostPage = memo(() => {
   const [readTime, setReadTime] = useState(0);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.requestIdleCallback) {
+    if (typeof scheduler !== 'undefined' && scheduler.postTask) {
+      scheduler.postTask(() => loadDependencies().then(setDeps), { priority: 'background' });
+    } else if (typeof window !== 'undefined' && window.requestIdleCallback) {
       window.requestIdleCallback(() => loadDependencies().then(setDeps), { timeout: 3000 });
     } else {
       setTimeout(() => loadDependencies().then(setDeps), 3000);
@@ -247,7 +426,7 @@ const PostPage = memo(() => {
       setHasFetched(false);
       setActiveSection(null);
     });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, [slug]);
 
   useEffect(() => {
@@ -255,9 +434,15 @@ const PostPage = memo(() => {
       try {
         await dispatch(fetchPostBySlug(slug));
         startTransition(() => setHasFetched(true));
-        setTimeout(() => {
-          Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-        }, 3000);
+        if (typeof scheduler !== 'undefined' && scheduler.postTask) {
+          scheduler.postTask(() => {
+            Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
+          }, { priority: 'background' });
+        } else {
+          setTimeout(() => {
+            Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
+          }, 3000);
+        }
       } catch (error) {
         console.error('Fetch failed:', error);
         if (retries > 0) {
@@ -276,7 +461,18 @@ const PostPage = memo(() => {
 
   useEffect(() => {
     if (!post) return;
-    if (typeof window !== 'undefined' && window.requestIdleCallback) {
+    if (typeof scheduler !== 'undefined' && scheduler.postTask) {
+      scheduler.postTask(() => {
+        const text = [
+          post.title || '',
+          post.content || '',
+          post.summary || '',
+          ...(post.subtitles?.map(s => (s.title || '') + (s.bulletPoints?.map(b => b.text || '').join('') || '')) || []),
+        ].join(' ');
+        const words = text.split(/\s+/).filter(w => w).length;
+        setReadTime(Math.ceil(words / 200));
+      }, { priority: 'background' });
+    } else if (typeof window !== 'undefined' && window.requestIdleCallback) {
       window.requestIdleCallback(() => {
         const text = [
           post.title || '',
@@ -286,7 +482,7 @@ const PostPage = memo(() => {
         ].join(' ');
         const words = text.split(/\s+/).filter(w => w).length;
         setReadTime(Math.ceil(words / 200));
-      }, { timeout: 4000 });
+      }, { timeout: 3000 });
     } else {
       setTimeout(() => {
         const text = [
@@ -297,13 +493,92 @@ const PostPage = memo(() => {
         ].join(' ');
         const words = text.split(/\s+/).filter(w => w).length;
         setReadTime(Math.ceil(words / 200));
-      }, 4000);
+      }, 3000);
     }
   }, [post]);
 
   useEffect(() => {
     if (!post) return;
-    if (typeof window !== 'undefined' && window.requestIdleCallback) {
+    if (typeof scheduler !== 'undefined' && scheduler.postTask) {
+      scheduler.postTask(() => {
+        const pageTitle = `${post.title} | Zedemy, India`;
+        const pageDescription = truncateText(post.summary || post.content, 160) || `Learn ${post.title?.toLowerCase() || ''} with Zedemy's tutorials.`;
+        const pageKeywords = post.keywords
+          ? `${post.keywords}, Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`
+          : `Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`;
+        const canonicalUrl = `https://zedemy.vercel.app/post/${slug}`;
+        const ogImage = post.titleImage
+          ? `${post.titleImage}?w=1200&format=webp&q=75`
+          : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
+        const schemas = [
+          {
+            '@context': 'https://schema.org',
+            '@type': 'BlogPosting',
+            headline: post.title || '',
+            description: pageDescription,
+            keywords: pageKeywords.split(', ').filter(Boolean),
+            articleSection: post.category || 'Tech Tutorials',
+            author: { '@type': 'Person', name: post.author || 'Zedemy Team' },
+            publisher: {
+              '@type': 'Organization',
+              name: 'Zedemy',
+              logo: { '@type': 'ImageObject', url: ogImage },
+            },
+            datePublished: post.date || new Date().toISOString(),
+            dateModified: post.date || new Date().toISOString(),
+            image: ogImage,
+            url: canonicalUrl,
+            mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
+            timeRequired: `PT${readTime}M`,
+            wordCount: 0,
+            inLanguage: 'en',
+            sameAs: ['https://x.com/zedemy', 'https://linkedin.com/company/zedemy'],
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              {
+                '@type': 'ListItem',
+                position: 1,
+                name: 'Home',
+                item: 'https://zedemy.vercel.app/',
+              },
+              {
+                '@type': 'ListItem',
+                position: 2,
+                name: post.category || 'Blog',
+                item: `https://zedemy.vercel.app/category/${post.category?.toLowerCase() || 'blog'}`,
+              },
+              {
+                '@type': 'ListItem',
+                position: 3,
+                name: post.title || '',
+                item: canonicalUrl,
+              },
+            ],
+          },
+        ];
+        if (post.titleVideo) {
+          schemas.push({
+            '@context': 'https://schema.org',
+            '@type': 'VideoObject',
+            name: post.title || '',
+            description: pageDescription,
+            thumbnailUrl: post.titleVideoPoster || ogImage,
+            contentUrl: post.titleVideo,
+            uploadDate: post.date || new Date().toISOString(),
+            duration: `PT${readTime}M`,
+            publisher: {
+              '@type': 'Organization',
+              name: 'Zedemy',
+              logo: { '@type': 'ImageObject', url: ogImage },
+            },
+          });
+        }
+        startTransition(() => setStructuredData(schemas));
+      }, { priority: 'background' });
+    } else if (typeof window !== 'undefined' && window.requestIdleCallback) {
       window.requestIdleCallback(() => {
         const pageTitle = `${post.title} | Zedemy, India`;
         const pageDescription = truncateText(post.summary || post.content, 160) || `Learn ${post.title?.toLowerCase() || ''} with Zedemy's tutorials.`;
@@ -381,79 +656,48 @@ const PostPage = memo(() => {
           });
         }
         startTransition(() => setStructuredData(schemas));
-      }, { timeout: 4000 });
+      }, { timeout: 3000 });
     }
   }, [post, slug, readTime]);
 
   useEffect(() => {
     if (post?.titleImage) {
       if (typeof scheduler !== 'undefined' && scheduler.postTask) {
-        scheduler.postTask(
-          () => {
-            const img = new Image();
-            img.src = `${post.titleImage}?w=160&format=avif&q=40`;
-            img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
-          },
-          { priority: 'background' }
-        );
+        scheduler.postTask(() => {
+          const img = new Image();
+          img.src = `${post.titleImage}?w=200&format=avif&q=50`;
+          img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
+        }, { priority: 'background' });
       } else if (typeof window !== 'undefined' && window.requestIdleCallback) {
-        window.requestIdleCallback(
-          () => {
-            const img = new Image();
-            img.src = `${post.titleImage}?w=160&format=avif&q=40`;
-            img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
-          },
-          { timeout: 2000 }
-        );
+        window.requestIdleCallback(() => {
+          const img = new Image();
+          img.src = `${post.titleImage}?w=200&format=avif&q=50`;
+          img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
+        }, { timeout: 1000 });
       }
     }
   }, [post?.titleImage]);
 
   if (!post && !hasFetched) {
     return (
-      <div className="container">
-        <main>
-          <div style={{
-            width: '60%',
-            height: '2rem',
-            background: '#e0e0e0',
-            borderRadius: '0.375rem',
-            margin: '0.75rem 0 1rem',
-          }} />
-        </main>
-        <aside style={{ width: '250px', minHeight: '1200px', flexShrink: 0, display: 'none' }}>
-          <div style={{
-            width: '100%',
-            minHeight: '1200px',
-            background: '#e0e0e0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#666',
-            borderRadius: '0.375rem',
-            fontSize: '0.875rem',
-          }}>
-            Loading sidebar...
-          </div>
-        </aside>
-      </div>
+      <Container>
+        <MainContent>
+          <SkeletonHeader />
+        </MainContent>
+        <SidebarWrapper>
+          <Placeholder minHeight="800px">Loading sidebar...</Placeholder>
+        </SidebarWrapper>
+      </Container>
     );
   }
 
   if (!post) {
     return (
-      <div className="container">
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          background: 'rgba(0, 0, 0, 0.5)',
-          minHeight: '100vh',
-          width: '100%',
-        }} aria-live="polite">
-          {deps?.ClipLoader ? <deps.ClipLoader color="#2c3e50" size={50} /> : <div>Loading...</div>}
-        </div>
-      </div>
+      <Container>
+        <LoadingOverlay aria-live="polite">
+          {deps?.ClipLoader ? <deps.ClipLoader color="#2c3e50" size={40} /> : <div>Loading...</div>}
+        </LoadingOverlay>
+      </Container>
     );
   }
 
@@ -477,16 +721,17 @@ const PostPage = memo(() => {
           <link
             rel="preload"
             as="image"
-            href={`${post.titleImage}?w=160&format=avif&q=40`}
+            href={`${post.titleImage}?w=200&format=avif&q=50`}
             crossOrigin="anonymous"
-            fetchpriority="high"
+            fetchpriority="low"
             imagesrcset={`
-              ${post.titleImage}?w=100&format=avif&q=40 100w,
-              ${post.titleImage}?w=160&format=avif&q=40 160w,
-              ${post.titleImage}?w=200&format=avif&q=40 200w,
-              ${post.titleImage}?w=480&format=avif&q=40 480w
+              ${post.titleImage}?w=100&format=avif&q=50 100w,
+              ${post.titleImage}?w=150&format=avif&q=50 150w,
+              ${post.titleImage}?w=200&format=avif&q=50 200w,
+              ${post.titleImage}?w=240&format=avif&q=50 240w,
+              ${post.titleImage}?w=400&format=avif&q=50 400w
             `}
-            imagesizes="(max-width: 320px) 160px, (max-width: 480px) 180px, (max-width: 768px) 200px, 480px"
+            imagesizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 240px, 400px"
           />
         )}
         <meta property="og:title" content={`${post.title} | Zedemy`} />
@@ -511,24 +756,14 @@ const PostPage = memo(() => {
         <style>{criticalCSS}</style>
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
-      <div className="container">
-        <main role="main" aria-label="Main content">
+      <Container>
+        <MainContent role="main" aria-label="Main content">
           <article>
             <PostContentCritical
               post={post}
               calculateReadTimeAndWordCount={calculateReadTimeAndWordCount}
             />
-            <Suspense fallback={<div style={{
-              width: '100%',
-              minHeight: '500px',
-              background: '#e0e0e0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#666',
-              borderRadius: '0.375rem',
-              fontSize: '0.875rem',
-            }}>Loading additional content...</div>}>
+            <Suspense fallback={<Placeholder minHeight="400px">Loading additional content...</Placeholder>}>
               <PostContentNonCritical
                 post={post}
                 relatedPosts={relatedPosts}
@@ -542,19 +777,9 @@ const PostPage = memo(() => {
               />
             </Suspense>
           </article>
-        </main>
-        <aside style={{ width: '250px', minHeight: '1200px', flexShrink: 0, display: 'none' }}>
-          <Suspense fallback={<div style={{
-            width: '100%',
-            minHeight: '1200px',
-            background: '#e0e0e0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#666',
-            borderRadius: '0.375rem',
-            fontSize: '0.875rem',
-          }}>Loading sidebar...</div>}>
+        </MainContent>
+        <SidebarWrapper>
+          <Suspense fallback={<Placeholder minHeight="800px">Loading sidebar...</Placeholder>}>
             <Sidebar
               post={post}
               isSidebarOpen={isSidebarOpen}
@@ -578,8 +803,8 @@ const PostPage = memo(() => {
               subtitlesListRef={subtitlesListRef}
             />
           </Suspense>
-        </aside>
-      </div>
+        </SidebarWrapper>
+      </Container>
     </HelmetProvider>
   );
 });
