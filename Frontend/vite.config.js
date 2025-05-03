@@ -86,6 +86,7 @@ export default defineConfig({
       '@pages': '/src/pages',
       '@actions': '/src/actions',
     },
+    dedupe: ['react', 'react-dom', 'react-router-dom', 'popper.js'],
   },
   build: {
     minify: 'esbuild',
@@ -93,24 +94,40 @@ export default defineConfig({
     target: 'esnext',
     treeshake: 'recommended',
     modulePreload: {
-      polyfill: false, // Disable polyfill for non-critical chunks
+      polyfill: true,
     },
     rollupOptions: {
       output: {
         experimentalMinChunkSize: 10000,
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
-          syntax_highlighter_core: ['react-syntax-highlighter'],
-          utilities: ['react-helmet-async', 'dompurify', 'react-copy-to-clipboard'],
-          codemirror: ['@codemirror/view', '@codemirror/state'],
-          parse5: ['parse5'],
-          lodash: ['lodash'],
-          framer_motion: ['framer-motion'],
-          jss: ['jss'],
-          react_toastify: ['react-toastify'],
-          add_post_form: ['/src/components/AddPostForm.jsx'],
-          dashboard: ['/src/pages/Dashboard.jsx'],
-          home: ['/src/pages/Home.jsx'],
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom') || id.includes('redux') || id.includes('react-redux')) {
+              return 'vendor';
+            }
+            if (id.includes('framer-motion') || id.includes('jss') || id.includes('react-toastify')) {
+              return 'uiLibs';
+            }
+            if (id.includes('react-syntax-highlighter') || id.includes('highlight.js') || id.includes('refractor')) {
+              return 'syntax_highlighter';
+            }
+            if (id.includes('@codemirror')) {
+              return 'codemirror';
+            }
+            if (id.includes('parse5')) {
+              return 'parse5';
+            }
+            if (id.includes('lodash')) {
+              return 'lodash';
+            }
+            if (id.includes('popper.js') || id.includes('@react-spring')) {
+              return 'unused_libs'; // Isolate unused libraries
+            }
+          }
+          if (id.includes('src/pages')) {
+            if (id.includes('AddPostForm.jsx')) return 'addPostForm';
+            if (id.includes('Dashboard.jsx')) return 'dashboard';
+            if (id.includes('Home.jsx')) return 'home';
+          }
         },
       },
     },
@@ -121,7 +138,7 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
-    exclude: ['highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'react-syntax-highlighter', 'framer-motion', 'jss', 'react-toastify'],
+    exclude: ['highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'popper.js', 'react-syntax-highlighter', 'framer-motion', 'jss', 'react-toastify', '@react-spring/core'],
     force: true,
   },
   server: {
