@@ -86,6 +86,7 @@ export default defineConfig({
       '@pages': '/src/pages',
       '@actions': '/src/actions',
     },
+    dedupe: ['popper.js'], // Prevent duplicate popper.js inclusions
   },
   build: {
     minify: 'esbuild',
@@ -97,7 +98,7 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        experimentalMinChunkSize: 5000, // Merge chunks smaller than 5 KiB
+        experimentalMinChunkSize: 10000, // Increased to merge smaller chunks
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
           uiLibs: ['framer-motion', 'jss', 'react-toastify'],
@@ -112,13 +113,13 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     assetsInlineLimit: 4096,
-    chunkSizeWarningLimit: 250, // Stricter limit for bundle size monitoring
+    chunkSizeWarningLimit: 250,
   },
- optimizeDeps: {
-  include: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
-  exclude: ['highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'popper.js'],
-  force: true,
-},
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
+    exclude: ['highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'popper.js', 'react-syntax-highlighter'],
+    force: true,
+  },
   server: {
     fs: { allow: ['.'] },
     hmr: { overlay: true },
