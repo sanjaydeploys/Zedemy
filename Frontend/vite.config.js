@@ -86,7 +86,6 @@ export default defineConfig({
       '@pages': '/src/pages',
       '@actions': '/src/actions',
     },
-    dedupe: ['popper.js'], // Prevent duplicate popper.js inclusions
   },
   build: {
     minify: 'esbuild',
@@ -94,19 +93,24 @@ export default defineConfig({
     target: 'esnext',
     treeshake: 'recommended',
     modulePreload: {
-      polyfill: true,
+      polyfill: false, // Disable polyfill for non-critical chunks
     },
     rollupOptions: {
       output: {
-        experimentalMinChunkSize: 10000, // Increased to merge smaller chunks
+        experimentalMinChunkSize: 10000,
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
-          uiLibs: ['framer-motion', 'jss', 'react-toastify'],
+          syntax_highlighter_core: ['react-syntax-highlighter'],
           utilities: ['react-helmet-async', 'dompurify', 'react-copy-to-clipboard'],
-          syntax_highlighter: ['react-syntax-highlighter', 'highlight.js'],
           codemirror: ['@codemirror/view', '@codemirror/state'],
           parse5: ['parse5'],
           lodash: ['lodash'],
+          framer_motion: ['framer-motion'],
+          jss: ['jss'],
+          react_toastify: ['react-toastify'],
+          add_post_form: ['/src/components/AddPostForm.jsx'],
+          dashboard: ['/src/pages/Dashboard.jsx'],
+          home: ['/src/pages/Home.jsx'],
         },
       },
     },
@@ -117,7 +121,7 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
-    exclude: ['highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'popper.js', 'react-syntax-highlighter'],
+    exclude: ['highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'react-syntax-highlighter', 'framer-motion', 'jss', 'react-toastify'],
     force: true,
   },
   server: {
