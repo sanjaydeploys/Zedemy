@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 
-// Memoized ChatWindow to prevent re-renders
+// Memoized ChatWindow
 const ChatWindow = React.memo(({ id, category, filteredPosts, onClose, initialPosition }) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [isPinned, setIsPinned] = useState(false);
@@ -19,31 +19,40 @@ const ChatWindow = React.memo(({ id, category, filteredPosts, onClose, initialPo
   const [editedText, setEditedText] = useState('');
   const [chatSize, setChatSize] = useState({ width: 380, height: 550 });
 
-  // Lazy-load heavy dependencies only when needed
+  // Lazy-load dependencies
   const loadDependencies = useCallback(async () => {
     const [
       { default: ReactMarkdown },
       { default: remarkGfm },
       { default: rehypeRaw },
-      { Prism: SyntaxHighlighter },
-      { oneDark },
       { default: Draggable },
+      { PrismAsyncLight: SyntaxHighlighter },
+      { default: highlight },
+      { default: javascript },
+      { default: python },
+      { oneDark },
     ] = await Promise.all([
       import('react-markdown'),
       import('remark-gfm'),
       import('rehype-raw'),
-      import('react-syntax-highlighter'),
-      import('react-syntax-highlighter/dist/esm/styles/prism/one-dark'),
       import('react-draggable'),
+      import('react-syntax-highlighter/dist/esm/prism-async-light'),
+      import('highlight.js/lib/core'),
+      import('highlight.js/lib/languages/javascript'),
+      import('highlight.js/lib/languages/python'),
+      import('react-syntax-highlighter/dist/esm/styles/prism/one-dark'),
     ]);
 
-    return { ReactMarkdown, remarkGfm, rehypeRaw, SyntaxHighlighter, oneDark, Draggable };
+    // Register only needed languages
+    highlight.registerLanguage('javascript', javascript);
+    highlight.registerLanguage('python', python);
+
+    return { ReactMarkdown, remarkGfm, rehypeRaw, Draggable, SyntaxHighlighter, highlight, oneDark };
   }, []);
 
   const [deps, setDeps] = useState(null);
 
   useEffect(() => {
-    // Load dependencies during idle time
     const load = () => {
       loadDependencies().then(setDeps);
     };
@@ -54,9 +63,8 @@ const ChatWindow = React.memo(({ id, category, filteredPosts, onClose, initialPo
     }
   }, [loadDependencies]);
 
-  // Update localStorage during idle time
   useEffect(() => {
-    if (typeof window === '　　　　　　undefined') return;
+    if (typeof window === 'undefined') return;
     const save = () => {
       localStorage.setItem(`chat-${category}-${id}`, JSON.stringify(messages));
     };
@@ -67,7 +75,6 @@ const ChatWindow = React.memo(({ id, category, filteredPosts, onClose, initialPo
     }
   }, [messages, category, id]);
 
-  // Memoized sendMessageToGemini
   const sendMessageToGemini = useCallback(async (message, isPostSuggestion = false) => {
     if (!message.trim()) return;
 
@@ -126,7 +133,6 @@ const ChatWindow = React.memo(({ id, category, filteredPosts, onClose, initialPo
     if (e.key === 'Enter' && !isLoading) sendMessageToGemini(input);
   }, [isLoading, input, sendMessageToGemini]);
 
-  // Speech recognition setup (deferred)
   const [speech, setSpeech] = useState(null);
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -220,7 +226,7 @@ const ChatWindow = React.memo(({ id, category, filteredPosts, onClose, initialPo
     return <div>Loading chat dependencies...</div>;
   }
 
-  const { ReactMarkdown, remarkGfm, rehypeRaw, SyntaxHighlighter, oneDark, Draggable } = deps;
+  const { ReactMarkdown, remarkGfm, rehypeRaw, Draggable, SyntaxHighlighter, highlight, oneDark } = deps;
 
   return (
     <Draggable handle=".chat-header" bounds="parent">
@@ -286,6 +292,7 @@ const ChatWindow = React.memo(({ id, category, filteredPosts, onClose, initialPo
                                     style={oneDark}
                                     language={match[1]}
                                     PreTag="div"
+                                    customStyle={{ background: 'transparent' }}
                                     {...props}
                                   >
                                     {String(children).replace(/\n$/, '')}
@@ -356,6 +363,7 @@ const ChatWindow = React.memo(({ id, category, filteredPosts, onClose, initialPo
                               style={oneDark}
                               language={match[1]}
                               PreTag="div"
+                              customStyle={{ background: 'transparent' }}
                               {...props}
                             >
                               {String(children).replace(/\n$/, '')}
