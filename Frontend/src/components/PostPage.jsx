@@ -72,17 +72,24 @@ const PostHeader = styled.h1`
   margin: 0.75rem 0 1rem;
   font-weight: 800;
   line-height: 1.3;
+  will-change: transform;
 `;
 
 const ContentSection = styled.section`
-  font-size: 1.1rem;
-  line-height: 1.7;
+  font-size: 1rem;
+  line-height: 1.6;
   margin-bottom: 1.5rem;
   content-visibility: auto;
-  contain-intrinsic-size: 1px 300px;
+  contain-intrinsic-size: 1px 200px;
+  contain: content;
+  will-change: transform;
   @media (min-width: 769px) {
-    font-size: 1rem;
-    line-height: 1.6;
+    font-size: 1.1rem;
+    line-height: 1.7;
+  }
+  @media (max-width: 480px) {
+    font-size: 0.9rem;
+    line-height: 1.5;
   }
 `;
 
@@ -203,8 +210,8 @@ const criticalCSS = `
   html { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; }
   .container { display: flex; min-height: 100vh; flex-direction: column; }
   main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 2000px; }
-  h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; margin: 0.75rem 0 1rem; line-height: 1.3; }
-  section { font-size: 1.1rem; line-height: 1.7; margin-bottom: 1.5rem; content-visibility: auto; contain-intrinsic-size: 1px 300px; }
+  h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; margin: 0.75rem 0 1rem; line-height: 1.3; will-change: transform; }
+  section { font-size: 1rem; line-height: 1.6; margin-bottom: 1.5rem; content-visibility: auto; contain-intrinsic-size: 1px 200px; contain: content; will-change: transform; }
   figure { width: 100%; max-width: 100%; margin: 1rem 0; position: relative; aspect-ratio: 16 / 9; height: 157.5px; }
   img { width: 100%; max-width: 280px; height: 157.5px; border-radius: 0.375rem; }
   video { width: 100%; max-width: 280px; height: 157.5px; border-radius: 0.375rem; }
@@ -213,12 +220,13 @@ const criticalCSS = `
   @media (min-width: 769px) {
     .container { flex-direction: row; }
     main { margin-right: 250px; padding: 2rem; }
-    section { font-size: 1rem; line-height: 1.6; }
+    section { font-size: 1.1rem; line-height: 1.7; }
     figure { height: 270px; }
     img { max-width: 480px; height: 270px; }
     video { max-width: 480px; height: 270px; }
   }
   @media (max-width: 480px) {
+    section { font-size: 0.9rem; line-height: 1.5; }
     figure { height: 135px; }
     img { max-width: 240px; height: 135px; }
     video { max-width: 240px; height: 135px; }
@@ -250,10 +258,12 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
       {post.titleImage && (
         <ImageContainer>
           <LQIPImage
-            src={`${post.titleImage}?w=20&format=webp&q=1`}
+            src={`${post.titleImage}?w=10&format=webp&q=1`}
             alt="Low quality placeholder"
             width="280"
             height="157.5"
+            loading="eager"
+            decoding="async"
           />
           <PostImage
             src={`${post.titleImage}?w=200&format=avif&q=40`}
@@ -269,7 +279,7 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
             width="280"
             height="157.5"
             fetchpriority="high"
-            loading="eager"
+            loading="lazy"
             decoding="async"
             onError={() => console.error('Title Image Failed:', post.titleImage)}
           />
@@ -284,10 +294,10 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
             poster={`${post.titleVideoPoster || post.titleImage}?w=80&format=webp&q=5`}
             width="280"
             height="157.5"
-            loading="eager"
+            loading="lazy"
             decoding="async"
             aria-label={`Video for ${post.title}`}
-            fetchpriority="high"
+            fetchpriority="low"
           >
             <source src={`${post.titleVideo}#t=0.1`} type="video/mp4" />
           </PostVideo>
@@ -316,9 +326,9 @@ const PostPage = memo(() => {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(() => loadDependencies().then(setDeps), { timeout: 2000 });
+      window.requestIdleCallback(() => loadDependencies().then(setDeps), { timeout: 3000 });
     } else {
-      setTimeout(() => loadDependencies().then(setDeps), 2000);
+      setTimeout(() => loadDependencies().then(setDeps), 3000);
     }
   }, []);
 
@@ -358,9 +368,15 @@ const PostPage = memo(() => {
       try {
         await dispatch(fetchPostBySlug(slug));
         startTransition(() => setHasFetched(true));
-        setTimeout(() => {
-          Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-        }, 2000);
+        if (typeof window !== 'undefined' && window.requestIdleCallback) {
+          window.requestIdleCallback(() => {
+            Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
+          }, { timeout: 5000 });
+        } else {
+          setTimeout(() => {
+            Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
+          }, 5000);
+        }
       } catch (error) {
         console.error('Fetch failed:', error);
         if (retries > 0) {
@@ -389,7 +405,7 @@ const PostPage = memo(() => {
         ].join(' ');
         const words = text.split(/\s+/).filter(w => w).length;
         setReadTime(Math.ceil(words / 200));
-      }, { timeout: 3000 });
+      }, { timeout: 4000 });
     } else {
       setTimeout(() => {
         const text = [
@@ -400,7 +416,7 @@ const PostPage = memo(() => {
         ].join(' ');
         const words = text.split(/\s+/).filter(w => w).length;
         setReadTime(Math.ceil(words / 200));
-      }, 3000);
+      }, 4000);
     }
   }, [post]);
 
@@ -489,7 +505,7 @@ const PostPage = memo(() => {
           });
         }
         startTransition(() => setStructuredData(schemas));
-      }, { timeout: 3000 });
+      }, { timeout: 5000 });
     }
   }, [post, slug, readTime]);
 
@@ -511,7 +527,7 @@ const PostPage = memo(() => {
             img.src = `${post.titleImage}?w=200&format=avif&q=40`;
             img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
           },
-          { timeout: 1000 }
+          { timeout: 2000 }
         );
       }
     }
@@ -563,7 +579,7 @@ const PostPage = memo(() => {
               as="image"
               href={`${post.titleImage}?w=200&format=avif&q=40`}
               crossOrigin="anonymous"
-              fetchpriority="high"
+              fetchpriority="low"
               imagesrcset={`
                 ${post.titleImage}?w=100&format=avif&q=40 100w,
                 ${post.titleImage}?w=150&format=avif&q=40 150w,
