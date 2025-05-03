@@ -244,6 +244,8 @@ const criticalCSS = `
 `;
 
 const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
+  const parsedContent = useMemo(() => parseLinks(post.content || '', post.category || '', false), [post.content, post.category]);
+
   return (
     <>
       <header>
@@ -253,7 +255,7 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
         </div>
       </header>
 
-      <ContentSection className="sc-jBqEzj YWAkL" dangerouslySetInnerHTML={{ __html: post.content }} />
+      <ContentSection className="sc-jBqEzj YWAkL">{parsedContent}</ContentSection>
 
       {post.titleImage && (
         <ImageContainer>
