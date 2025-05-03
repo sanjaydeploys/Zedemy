@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import { addPost } from '../actions/postActions';
 import { loadUser } from '../actions/authActions';
 import '../styles/AddPostForm.css';
-
 // Lazy-load heavy dependencies
 const loadDependencies = async () => {
   const [
