@@ -2,11 +2,22 @@ import React, { useState, useEffect, useRef, memo, useMemo, useCallback, Suspens
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPostBySlug, fetchCompletedPosts, fetchPosts, markPostAsCompleted } from '../actions/postActions';
 import { useParams, Link } from 'react-router-dom';
-import { Helmet, HelmetProvider } from 'react-helmet-async';
 import styled from 'styled-components';
-import { ClipLoader } from 'react-spinners';
-import { createSelector } from 'reselect';
 import { parseLinks, slugify, truncateText } from './utils';
+
+// Lazy-loaded dependencies
+const loadDependencies = async () => {
+  const [
+    { Helmet, HelmetProvider },
+    { ClipLoader },
+    { createSelector },
+  ] = await Promise.all([
+    import('react-helmet-async'),
+    import('react-spinners'),
+    import('reselect'),
+  ]);
+  return { Helmet, HelmetProvider, ClipLoader, createSelector };
+};
 
 // Lazy-loaded components
 const Sidebar = React.lazy(() => import('./Sidebar'));
@@ -210,240 +221,57 @@ const criticalCSS = `
   img { width: 100%; height: auto; max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 0.375rem; }
 `;
 
-// Memoized selectors
-const selectPostReducer = (state) => state.postReducer;
-const selectPost = createSelector([selectPostReducer], (postReducer) => postReducer.post);
-const selectPosts = createSelector([selectPostReducer], (postReducer) => postReducer.posts || []);
-const selectCompletedPosts = createSelector([selectPostReducer], (postReducer) => postReducer.completedPosts || []);
-const selectRelatedPosts = createSelector(
-  [selectPosts, selectPost],
-  (posts, post) =>
-    posts
-      .filter((p) => p.postId !== post?.postId && p.category?.toLowerCase() === post?.category?.toLowerCase())
-      .slice(0, 3),
-  { memoizeOptions: { resultEqualityCheck: (a, b) => JSON.stringify(a) === JSON.stringify(b) } }
-);
-
-// Subtitle Section Component
-const SubtitleSection = memo(({ subtitle, index, category }) => {
-  if (!subtitle) return null;
-
-  return (
-    <section id={`subtitle-${index}`} aria-labelledby={`subtitle-${index}-heading`}>
-      <SubtitleHeader id={`subtitle-${index}-heading`}>{parseLinks(subtitle.title || '', category)}</SubtitleHeader>
-      {subtitle.image && (
-        <ImageContainer>
-          <Suspense fallback={<Placeholder minHeight="270px">Loading image...</Placeholder>}>
-            <AccessibleZoom caption={subtitle.title || ''}>
-              <PostImage
-                src={`${subtitle.image}?w=480&format=avif&q=75`}
-                srcSet={`
-                  ${subtitle.image}?w=320&format=avif&q=75 320w,
-                  ${subtitle.image}?w=480&format=avif&q=75 480w,
-                  ${subtitle.image}?w=768&format=avif&q=75 768w,
-                  ${subtitle.image}?w=1024&format=avif&q=75 1024w
-                `}
-                sizes="(max-width: 480px) 320px, (max-width: 768px) 480px, (max-width: 1024px) 768px, 1024px"
-                alt={subtitle.title || 'Subtitle image'}
-                loading="lazy"
-                decoding="async"
-                fetchpriority="low"
-                onError={() => console.error('Subtitle Image Failed:', subtitle.image)}
-              />
-            </AccessibleZoom>
-          </Suspense>
-        </ImageContainer>
-      )}
-      {subtitle.video && (
-        <VideoContainer>
-          <PostVideo
-            controls
-            preload="none"
-            poster={`${subtitle.videoPoster || subtitle.image}?w=480&format=webp&q=75`}
-            loading="lazy"
-            decoding="async"
-            aria-label={`Video for ${subtitle.title || 'subtitle'}`}
-            fetchpriority="low"
-          >
-            <source src={`${subtitle.video}#t=0.1`} type="video/mp4" />
-          </PostVideo>
-        </VideoContainer>
-      )}
-      <ul style={{ paddingLeft: '1.25rem', fontSize: '0.875rem' }}>
-        {(subtitle.bulletPoints || []).map((point, j) => (
-          <li key={j} style={{ marginBottom: '0.5rem' }}>
-            {parseLinks(point.text || '', category)}
-            {point.image && (
-              <ImageContainer>
-                <Suspense fallback={<Placeholder minHeight="270px">Loading image...</Placeholder>}>
-                  <AccessibleZoom caption={`Example for ${point.text || ''}`}>
-                    <PostImage
-                      src={`${point.image}?w=480&format=avif&q=75`}
-                      srcSet={`
-                        ${point.image}?w=320&format=avif&q=75 320w,
-                        ${point.image}?w=480&format=avif&q=75 480w,
-                        ${point.image}?w=768&format=avif&q=75 768w,
-                        ${point.image}?w=1024&format=avif&q=75 1024w
-                      `}
-                      sizes="(max-width: 480px) 320px, (max-width: 768px) 480px, (max-width: 1024px) 768px, 1024px"
-                      alt={`Example for ${point.text || 'bullet point'}`}
-                      loading="lazy"
-                      decoding="async"
-                      fetchpriority="low"
-                      onError={() => console.error('Point Image Failed:', point.image)}
-                    />
-                  </AccessibleZoom>
-                </Suspense>
-              </ImageContainer>
-            )}
-            {point.video && (
-              <VideoContainer>
-                <PostVideo
-                  controls
-                  preload="none"
-                  poster={`${point.videoPoster || point.image}?w=480&format=webp&q=75`}
-                  loading="lazy"
-                  decoding="async"
-                  aria-label={`Video example for ${point.text || 'bullet point'}`}
-                  fetchpriority="low"
-                  onLoad={() => console.log('Point Video Loaded:', point.video)}
-                >
-                  <source src={`${point.video}#t=0.1`} type="video/mp4" />
-                </PostVideo>
-              </VideoContainer>
-            )}
-            {point.codeSnippet && (
-              <Suspense fallback={<Placeholder>Loading code...</Placeholder>}>
-                <CodeHighlighter
-                  code={point.codeSnippet}
-                  language={point.language || 'javascript'}
-                  onCopy={async () => {
-                    try {
-                      await navigator.clipboard.writeText(point.codeSnippet);
-                      alert('Code copied!');
-                    } catch {
-                      alert('Failed to copy code');
-                    }
-                  }}
-                />
-              </Suspense>
-            )}
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-});
-
-// Lazy Subtitle Section
-const LazySubtitleSection = memo(({ subtitle, index, category }) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const ref = useRef();
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: '200px', threshold: 0.1 }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div ref={ref}>
-      {isVisible ? (
-        <SubtitleSection subtitle={subtitle} index={index} category={category} />
-      ) : (
-        <Placeholder minHeight="200px">Loading section...</Placeholder>
-      )}
-    </div>
-  );
-});
-
-// Lazy References Section
-const LazyReferencesSection = memo(({ post }) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const ref = useRef();
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: '200px', threshold: 0.1 }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div ref={ref}>
-      {isVisible ? (
-        <ReferencesSection aria-labelledby="references-heading">
-          <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
-          {post.references?.length > 0 ? (
-            post.references.map((ref, i) => (
-              <ReferenceLink key={i} href={ref.url} target="_blank" rel="noopener" aria-label={`Visit ${ref.title}`}>
-                {ref.title}
-              </ReferenceLink>
-            ))
-          ) : (
-            <>
-              <ReferenceLink
-                href={`https://www.geeksforgeeks.org/${
-                  post.category?.toLowerCase().replace(/\s+/g, '-') || 'tutorials'
-                }-tutorials`}
-                target="_blank"
-                rel="noopener"
-                aria-label={`GeeksforGeeks ${post.category || 'Tutorials'} Tutorials`}
-              >
-                GeeksforGeeks: {post.category || 'Tutorials'} Tutorials
-              </ReferenceLink>
-              <ReferenceLink
-                href={`https://developer.mozilla.org/en-US/docs/Web/${post.category?.replace(/\s+/g, '') || 'Guide'}`}
-                target="_blank"
-                rel="noopener"
-                aria-label={`MDN ${post.category || 'Documentation'} Documentation`}
-              >
-                MDN: {post.category || 'Documentation'} Documentation
-              </ReferenceLink>
-            </>
-          )}
-        </ReferencesSection>
-      ) : (
-        <Placeholder minHeight="100px">Loading references...</Placeholder>
-      )}
-    </div>
-  );
-});
-
 // PostPage Component
 const PostPage = memo(() => {
   const { slug } = useParams();
   const dispatch = useDispatch();
-  const post = useSelector(selectPost);
-  const relatedPosts = useSelector(selectRelatedPosts);
-  const completedPosts = useSelector(selectCompletedPosts);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState(null);
   const deferredActiveSection = useDeferredValue(activeSection);
   const subtitlesListRef = useRef(null);
   const [hasFetched, setHasFetched] = useState(false);
+  const [deps, setDeps] = useState(null);
+
+  // Load dependencies
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.requestIdleCallback) {
+      window.requestIdleCallback(() => loadDependencies().then(setDeps));
+    } else {
+      loadDependencies().then(setDeps);
+    }
+  }, []);
+
+  // Define selectors after dependencies are loaded
+  const selectors = useMemo(() => {
+    if (!deps?.createSelector) return null;
+
+    const selectPostReducer = state => state.postReducer;
+    const selectPost = deps.createSelector([selectPostReducer], postReducer => postReducer.post);
+    const selectPosts = deps.createSelector([selectPostReducer], postReducer => postReducer.posts || []);
+    const selectCompletedPosts = deps.createSelector([selectPostReducer], postReducer => postReducer.completedPosts || []);
+    const selectRelatedPosts = deps.createSelector(
+      [selectPosts, selectPost],
+      (posts, post) =>
+        posts
+          .filter(p => p.postId !== post?.postId && p.category?.toLowerCase() === post?.category?.toLowerCase())
+          .slice(0, 3),
+      { memoizeOptions: { resultEqualityCheck: (a, b) => JSON.stringify(a) === JSON.stringify(b) } }
+    );
+
+    return { selectPost, selectPosts, selectCompletedPosts, selectRelatedPosts };
+  }, [deps]);
+
+  const post = useSelector(selectors?.selectPost || (state => state.postReducer.post));
+  const relatedPosts = useSelector(selectors?.selectRelatedPosts || (state => []));
+  const completedPosts = useSelector(selectors?.selectCompletedPosts || (state => []));
+
   // Debounced Intersection Observer
   const debouncedObserve = useMemo(
     () =>
-      debounce((entries) => {
+      debounce(entries => {
         let highestSection = null;
         let maxRatio = 0;
-        entries.forEach((entry) => {
+        entries.forEach(entry => {
           if (entry.isIntersecting && entry.intersectionRatio > maxRatio) {
             highestSection = entry.target.id;
             maxRatio = entry.intersectionRatio;
@@ -472,8 +300,11 @@ const PostPage = memo(() => {
     const fetchData = async (retries = 3) => {
       try {
         await dispatch(fetchPostBySlug(slug));
-        await Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
         setHasFetched(true);
+        // Defer non-critical fetches
+        setTimeout(() => {
+          Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
+        }, 1000);
       } catch (error) {
         console.error('Fetch failed:', error);
         if (retries > 0) {
@@ -499,7 +330,7 @@ const PostPage = memo(() => {
   useEffect(() => {
     const hash = window.location.hash.slice(1);
     if (hash) {
-      const sectionId = Object.keys(subtitleSlugs).find((id) => subtitleSlugs[id] === hash);
+      const sectionId = Object.keys(subtitleSlugs).find(id => subtitleSlugs[id] === hash);
       if (sectionId) {
         setTimeout(() => scrollToSection(sectionId, false), 0);
       }
@@ -512,9 +343,9 @@ const PostPage = memo(() => {
       post.title || '',
       post.content || '',
       post.summary || '',
-      ...(post.subtitles?.map((s) => (s.title || '') + (s.bulletPoints?.map((b) => b.text || '').join('') || '')) || []),
+      ...(post.subtitles?.map(s => (s.title || '') + (s.bulletPoints?.map(b => b.text || '').join('') || '')) || []),
     ].join(' ');
-    const words = text.split(/\s+/).filter((w) => w).length;
+    const words = text.split(/\s+/).filter(w => w).length;
     return { readTime: Math.ceil(words / 200), wordCount: words };
   }, [post]);
 
@@ -529,7 +360,7 @@ const PostPage = memo(() => {
       rootMargin: '0px',
       threshold: [0.1, 0.3, 0.5],
     });
-    document.querySelectorAll('[id^="subtitle-"], #summary').forEach((section) => observer.observe(section));
+    document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
     return () => observer.disconnect();
   }, [post, debouncedObserve]);
 
@@ -580,8 +411,7 @@ const PostPage = memo(() => {
   const structuredData = useMemo(() => {
     if (!post) return [];
     const pageTitle = `${post.title} | Zedemy, India`;
-    const pageDescription =
-      truncateText(post.summary || post.content, 160) || `Learn ${post.title?.toLowerCase() || ''} with Zedemy's tutorials.`;
+    const pageDescription = truncateText(post.summary || post.content, 160) || `Learn ${post.title?.toLowerCase() || ''} with Zedemy's tutorials.`;
     const pageKeywords = post.keywords
       ? `${post.keywords}, Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`
       : `Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`;
@@ -589,7 +419,7 @@ const PostPage = memo(() => {
     const ogImage = post.titleImage
       ? `${post.titleImage}?w=1200&format=webp&q=75`
       : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
-    return [
+    const schemas = [
       {
         '@context': 'https://schema.org',
         '@type': 'BlogPosting',
@@ -611,6 +441,7 @@ const PostPage = memo(() => {
         timeRequired: `PT${calculateReadTimeAndWordCount.readTime}M`,
         wordCount: calculateReadTimeAndWordCount.wordCount,
         inLanguage: 'en',
+        sameAs: ['https://x.com/zedemy', 'https://linkedin.com/company/zedemy'],
       },
       {
         '@context': 'https://schema.org',
@@ -637,7 +468,238 @@ const PostPage = memo(() => {
         ],
       },
     ];
+    if (post.titleVideo) {
+      schemas.push({
+        '@context': 'https://schema.org',
+        '@type': 'VideoObject',
+        name: post.title || '',
+        description: pageDescription,
+        thumbnailUrl: post.titleVideoPoster || ogImage,
+        contentUrl: post.titleVideo,
+        uploadDate: post.date || new Date().toISOString(),
+        duration: `PT${calculateReadTimeAndWordCount.readTime}M`,
+        publisher: {
+          '@type': 'Organization',
+          name: 'Zedemy',
+          logo: { '@type': 'ImageObject', url: ogImage },
+        },
+      });
+    }
+    return schemas;
   }, [post, slug, calculateReadTimeAndWordCount]);
+
+  // Subtitle Section Component
+  const SubtitleSection = memo(({ subtitle, index, category }) => {
+    if (!subtitle) return null;
+
+    return (
+      <section id={`subtitle-${index}`} aria-labelledby={`subtitle-${index}-heading`}>
+        <SubtitleHeader id={`subtitle-${index}-heading`}>{parseLinks(subtitle.title || '', category)}</SubtitleHeader>
+        {subtitle.image && (
+          <ImageContainer>
+            <Suspense fallback={<Placeholder minHeight="270px">Loading image...</Placeholder>}>
+              <AccessibleZoom caption={subtitle.title || ''}>
+                <PostImage
+                  src={`${subtitle.image}?w=480&format=avif&q=75`}
+                  srcSet={`
+                    ${subtitle.image}?w=320&format=avif&q=75 320w,
+                    ${subtitle.image}?w=480&format=avif&q=75 480w,
+                    ${subtitle.image}?w=768&format=avif&q=75 768w,
+                    ${subtitle.image}?w=1024&format=avif&q=75 1024w
+                  `}
+                  sizes="(max-width: 480px) 320px, (max-width: 768px) 480px, (max-width: 1024px) 768px, 1024px"
+                  alt={subtitle.title || 'Subtitle image'}
+                  width="480"
+                  height="270"
+                  loading="lazy"
+                  decoding="async"
+                  fetchpriority="low"
+                  onError={() => console.error('Subtitle Image Failed:', subtitle.image)}
+                />
+              </AccessibleZoom>
+            </Suspense>
+          </ImageContainer>
+        )}
+        {subtitle.video && (
+          <VideoContainer>
+            <PostVideo
+              controls
+              preload="none"
+              poster={`${subtitle.videoPoster || subtitle.image}?w=480&format=webp&q=75`}
+              width="480"
+              height="270"
+              loading="lazy"
+              decoding="async"
+              aria-label={`Video for ${subtitle.title || 'subtitle'}`}
+              fetchpriority="low"
+            >
+              <source src={`${subtitle.video}#t=0.1`} type="video/mp4" />
+            </PostVideo>
+          </VideoContainer>
+        )}
+        <ul style={{ paddingLeft: '1.25rem', fontSize: '0.875rem' }}>
+          {(subtitle.bulletPoints || []).map((point, j) => (
+            <li key={j} style={{ marginBottom: '0.5rem' }}>
+              {parseLinks(point.text || '', category)}
+              {point.image && (
+                <ImageContainer>
+                  <Suspense fallback={<Placeholder minHeight="270px">Loading image...</Placeholder>}>
+                    <AccessibleZoom caption={`Example for ${point.text || ''}`}>
+                      <PostImage
+                        src={`${point.image}?w=480&format=avif&q=75`}
+                        srcSet={`
+                          ${point.image}?w=320&format=avif&q=75 320w,
+                          ${point.image}?w=480&format=avif&q=75 480w,
+                          ${point.image}?w=768&format=avif&q=75 768w,
+                          ${point.image}?w=1024&format=avif&q=75 1024w
+                        `}
+                        sizes="(max-width: 480px) 320px, (max-width: 768px) 480px, (max-width: 1024px) 768px, 1024px"
+                        alt={`Example for ${point.text || 'bullet point'}`}
+                        width="480"
+                        height="270"
+                        loading="lazy"
+                        decoding="async"
+                        fetchpriority="low"
+                        onError={() => console.error('Point Image Failed:', point.image)}
+                      />
+                    </AccessibleZoom>
+                  </Suspense>
+                </ImageContainer>
+              )}
+              {point.video && (
+                <VideoContainer>
+                  <PostVideo
+                    controls
+                    preload="none"
+                    poster={`${point.videoPoster || point.image}?w=480&format=webp&q=75`}
+                    width="480"
+                    height="270"
+                    loading="lazy"
+                    decoding="async"
+                    aria-label={`Video example for ${point.text || 'bullet point'}`}
+                    fetchpriority="low"
+                    onLoad={() => console.log('Point Video Loaded:', point.video)}
+                  >
+                    <source src={`${point.video}#t=0.1`} type="video/mp4" />
+                  </PostVideo>
+                </VideoContainer>
+              )}
+              {point.codeSnippet && (
+                <Suspense fallback={<Placeholder>Loading code...</Placeholder>}>
+                  <CodeHighlighter
+                    code={point.codeSnippet}
+                    language={point.language || 'javascript'}
+                    onCopy={async () => {
+                      try {
+                        await navigator.clipboard.writeText(point.codeSnippet);
+                        alert('Code copied!');
+                      } catch {
+                        alert('Failed to copy code');
+                      }
+                    }}
+                  />
+                </Suspense>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+    );
+  });
+
+  // Lazy Subtitle Section
+  const LazySubtitleSection = memo(({ subtitle, index, category }) => {
+    const [isVisible, setIsVisible] = useState(false);
+    const ref = useRef();
+
+    useEffect(() => {
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true);
+            observer.disconnect();
+          }
+        },
+        { rootMargin: '200px', threshold: 0.1 }
+      );
+      if (ref.current) observer.observe(ref.current);
+      return () => observer.disconnect();
+    }, []);
+
+    return (
+      <div ref={ref}>
+        {isVisible ? (
+          <SubtitleSection subtitle={subtitle} index={index} category={category} />
+        ) : (
+          <Placeholder minHeight="200px">Loading section...</Placeholder>
+        )}
+      </div>
+    );
+  });
+
+  // Lazy References Section
+  const LazyReferencesSection = memo(({ post }) => {
+    const [isVisible, setIsVisible] = useState(false);
+    const ref = useRef();
+
+    useEffect(() => {
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true);
+            observer.disconnect();
+          }
+        },
+        { rootMargin: '200px', threshold: 0.1 }
+      );
+      if (ref.current) observer.observe(ref.current);
+      return () => observer.disconnect();
+    }, []);
+
+    return (
+      <div ref={ref}>
+        {isVisible ? (
+          <ReferencesSection aria-labelledby="references-heading">
+            <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
+            {post.references?.length > 0 ? (
+              post.references.map((ref, i) => (
+                <ReferenceLink key={i} href={ref.url} target="_blank" rel="noopener" aria-label={`Visit ${ref.title}`}>
+                  {ref.title}
+                </ReferenceLink>
+              ))
+            ) : (
+              <>
+                <ReferenceLink
+                  href={`https://www.geeksforgeeks.org/${post.category?.toLowerCase().replace(/\s+/g, '-') || 'tutorials'}-tutorials`}
+                  target="_blank"
+                  rel="noopener"
+                  aria-label={`GeeksforGeeks ${post.category || 'Tutorials'} Tutorials`}
+                >
+                  GeeksforGeeks: {post.category || 'Tutorials'} Tutorials
+                </ReferenceLink>
+                <ReferenceLink
+                  href={`https://developer.mozilla.org/en-US/docs/Web/${post.category?.replace(/\s+/g, '') || 'Guide'}`}
+                  target="_blank"
+                  rel="noopener"
+                  aria-label={`MDN ${post.category || 'Documentation'} Documentation`}
+                >
+                  MDN: {post.category || 'Documentation'} Documentation
+                </ReferenceLink>
+              </>
+            )}
+          </ReferencesSection>
+        ) : (
+          <Placeholder minHeight="100px">Loading references...</Placeholder>
+        )}
+      </div>
+    );
+  });
+
+  if (!deps) {
+    return <LoadingOverlay><div>Loading dependencies...</div></LoadingOverlay>;
+  }
+
+  const { Helmet, HelmetProvider, ClipLoader } = deps;
 
   if (!post && !hasFetched) {
     return (
@@ -696,11 +758,7 @@ const PostPage = memo(() => {
         <meta property="og:description" content={truncateText(post.summary || post.content, 160)} />
         <meta
           property="og:image"
-          content={
-            post.titleImage
-              ? `${post.titleImage}?w=1200&format=webp&q=75`
-              : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'
-          }
+          content={post.titleImage ? `${post.titleImage}?w=1200&format=webp&q=75` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
         />
         <meta property="og:image:alt" content={`${post.title} tutorial`} />
         <meta property="og:image:width" content="1200" />
@@ -713,11 +771,7 @@ const PostPage = memo(() => {
         <meta name="twitter:description" content={truncateText(post.summary || post.content, 160)} />
         <meta
           name="twitter:image"
-          content={
-            post.titleImage
-              ? `${post.titleImage}?w=1200&format=webp&q=75`
-              : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'
-          }
+          content={post.titleImage ? `${post.titleImage}?w=1200&format=webp&q=75` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
         />
         <style>{criticalCSS}</style>
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
@@ -731,17 +785,13 @@ const PostPage = memo(() => {
                 Read time: {calculateReadTimeAndWordCount.readTime} min
               </div>
               <NavigationLinks aria-label="Page navigation">
-                <Link to="/explore" aria-label="Back to blog">
-                  Blog
-                </Link>
+                <Link to="/explore" aria-label="Back to blog">Blog</Link>
                 {post.category && (
                   <Link to={`/category/${post.category.toLowerCase()}`} aria-label={`Explore ${post.category}`}>
                     {post.category}
                   </Link>
                 )}
-                <Link to="/" aria-label="Home">
-                  Home
-                </Link>
+                <Link to="/" aria-label="Home">Home</Link>
               </NavigationLinks>
             </header>
 
@@ -759,6 +809,8 @@ const PostPage = memo(() => {
                       `}
                       sizes="(max-width: 480px) 320px, (max-width: 768px) 480px, (max-width: 1024px) 768px, 1024px"
                       alt={`Illustration for ${post.title}`}
+                      width="480"
+                      height="270"
                       fetchpriority="high"
                       loading="eager"
                       decoding="async"
@@ -775,6 +827,8 @@ const PostPage = memo(() => {
                   controls
                   preload="metadata"
                   poster={`${post.titleVideoPoster || post.titleImage}?w=480&format=webp&q=75`}
+                  width="480"
+                  height="270"
                   loading="eager"
                   decoding="async"
                   aria-label={`Video for ${post.title}`}
@@ -809,11 +863,11 @@ const PostPage = memo(() => {
 
             <CompleteButton
               onClick={handleMarkAsCompleted}
-              disabled={completedPosts.some((p) => p.postId === post.postId)}
-              isCompleted={completedPosts.some((p) => p.postId === post.postId)}
-              aria-label={completedPosts.some((p) => p.postId === post.postId) ? 'Post completed' : 'Mark as completed'}
+              disabled={completedPosts.some(p => p.postId === post.postId)}
+              isCompleted={completedPosts.some(p => p.postId === post.postId)}
+              aria-label={completedPosts.some(p => p.postId === post.postId) ? 'Post completed' : 'Mark as completed'}
             >
-              {completedPosts.some((p) => p.postId === post.postId) ? 'Completed' : 'Mark as Completed'}
+              {completedPosts.some(p => p.postId === post.postId) ? 'Completed' : 'Mark as Completed'}
             </CompleteButton>
 
             <section aria-labelledby="related-posts-heading">
