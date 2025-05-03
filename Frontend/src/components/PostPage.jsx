@@ -95,6 +95,9 @@ const ContentSection = styled.section`
     font-size: 1rem;
     line-height: 1.6;
   }
+  /* Optimize for mobile by deferring off-screen content rendering */
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 500px; /* Estimate height to reduce layout shifts */
 `;
 
 const ImageContainer = styled.figure`
@@ -167,7 +170,7 @@ const criticalCSS = `
   main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 2000px; }
   aside { width: 250px; min-height: 1200px; flex-shrink: 0; }
   h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; margin: 0.75rem 0 1rem; line-height: 1.3; }
-  section { font-size: 1.1rem; line-height: 1.7; margin-bottom: 1.5rem; }
+  section { font-size: 1.1rem; line-height: 1.7; margin-bottom: 1.5rem; content-visibility: auto; contain-intrinsic-size: 1px 500px; }
   figure { width: 100%; max-width: 100%; margin: 1rem 0; position: relative; }
   img { width: 100%; max-width: 280px; aspect-ratio: 16 / 9; border-radius: 0.375rem; }
   video { width: 100%; max-width: 280px; aspect-ratio: 16 / 9; border-radius: 0.375rem; }
@@ -186,6 +189,61 @@ const criticalCSS = `
 `;
 
 const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
+  // Split content into above-the-fold and below-the-fold
+  const [visibleContent, setVisibleContent] = useState('');
+  const [remainingContent, setRemainingContent] = useState(null);
+  const contentRef = useRef(null);
+
+  useEffect(() => {
+    if (!post?.content) return;
+
+    // Parse content and split into chunks
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<div>${post.content}</div>`, 'text/html');
+    const paragraphs = doc.querySelectorAll('p, div, span, li');
+    
+    // Estimate above-the-fold content (first 2 paragraphs or ~300 words)
+    let wordCount = 0;
+    let aboveFoldNodes = [];
+    let belowFoldNodes = [];
+    let isAboveFold = true;
+
+    paragraphs.forEach((node, index) => {
+      const text = node.textContent || '';
+      const words = text.split(/\s+/).filter(w => w).length;
+      wordCount += words;
+
+      if (isAboveFold && (wordCount < 300 || index < 2)) {
+        aboveFoldNodes.push(node);
+      } else {
+        isAboveFold = false;
+        belowFoldNodes.push(node);
+      }
+    });
+
+    // Serialize above-the-fold content
+    const aboveFoldDiv = document.createElement('div');
+    aboveFoldNodes.forEach(node => aboveFoldDiv.appendChild(node.cloneNode(true)));
+    setVisibleContent(aboveFoldDiv.innerHTML);
+
+    // Serialize below-the-fold content (deferred)
+    if (belowFoldNodes.length > 0) {
+      if (typeof window !== 'undefined' && window.requestIdleCallback) {
+        window.requestIdleCallback(() => {
+          const belowFoldDiv = document.createElement('div');
+          belowFoldNodes.forEach(node => belowFoldDiv.appendChild(node.cloneNode(true)));
+          setRemainingContent(belowFoldDiv.innerHTML);
+        }, { timeout: 2000 });
+      } else {
+        setTimeout(() => {
+          const belowFoldDiv = document.createElement('div');
+          belowFoldNodes.forEach(node => belowFoldDiv.appendChild(node.cloneNode(true)));
+          setRemainingContent(belowFoldDiv.innerHTML);
+        }, 2000);
+      }
+    }
+  }, [post?.content]);
+
   return (
     <>
       <header>
@@ -244,7 +302,10 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
       <p style={{ fontSize: '0.875rem', marginBottom: '1rem' }}>
         <time dateTime={post.date}>{post.date}</time> | Author: {post.author || 'Zedemy Team'}
       </p>
-      <ContentSection>{post.content}</ContentSection>
+      <ContentSection ref={contentRef} dangerouslySetInnerHTML={{ __html: visibleContent || post.content }} />
+      {remainingContent && (
+        <ContentSection dangerouslySetInnerHTML={{ __html: remainingContent }} />
+      )}
     </>
   );
 });
@@ -260,6 +321,7 @@ const PostPage = memo(() => {
   const [deps, setDeps] = useState(null);
   const [structuredData, setStructuredData] = useState([]);
   const [parsedTitle, setParsedTitle] = useState('');
+  const [readTime, setReadTime] = useState(0);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
@@ -320,16 +382,37 @@ const PostPage = memo(() => {
     }
   }, [dispatch, slug, hasFetched]);
 
+  // Defer read time calculation to avoid blocking initial render
   const calculateReadTimeAndWordCount = useMemo(() => {
-    if (!post) return { readTime: 0, wordCount: 0 };
-    const text = [
-      post.title || '',
-      post.content || '',
-      post.summary || '',
-      ...(post.subtitles?.map(s => (s.title || '') + (s.bulletPoints?.map(b => b.text || '').join('') || '')) || []),
-    ].join(' ');
-    const words = text.split(/\s+/).filter(w => w).length;
-    return { readTime: Math.ceil(words / 200), wordCount: words };
+    return { readTime, wordCount: 0 }; // Use state for readTime
+  }, [readTime]);
+
+  useEffect(() => {
+    if (!post) return;
+    // Defer read time calculation
+    if (typeof window !== 'undefined' && window.requestIdleCallback) {
+      window.requestIdleCallback(() => {
+        const text = [
+          post.title || '',
+          post.content || '',
+          post.summary || '',
+          ...(post.subtitles?.map(s => (s.title || '') + (s.bulletPoints?.map(b => b.text || '').join('') || '')) || []),
+        ].join(' ');
+        const words = text.split(/\s+/).filter(w => w).length;
+        setReadTime(Math.ceil(words / 200));
+      }, { timeout: 3000 });
+    } else {
+      setTimeout(() => {
+        const text = [
+          post.title || '',
+          post.content || '',
+          post.summary || '',
+          ...(post.subtitles?.map(s => (s.title || '') + (s.bulletPoints?.map(b => b.text || '').join('') || '')) || []),
+        ].join(' ');
+        const words = text.split(/\s+/).filter(w => w).length;
+        setReadTime(Math.ceil(words / 200));
+      }, 3000);
+    }
   }, [post]);
 
   useEffect(() => {
@@ -369,8 +452,8 @@ const PostPage = memo(() => {
             image: ogImage,
             url: canonicalUrl,
             mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
-            timeRequired: `PT${calculateReadTimeAndWordCount.readTime}M`,
-            wordCount: calculateReadTimeAndWordCount.wordCount,
+            timeRequired: `PT${readTime}M`,
+            wordCount: 0, // Word count deferred
             inLanguage: 'en',
             sameAs: ['https://x.com/zedemy', 'https://linkedin.com/company/zedemy'],
           },
@@ -408,7 +491,7 @@ const PostPage = memo(() => {
             thumbnailUrl: post.titleVideoPoster || ogImage,
             contentUrl: post.titleVideo,
             uploadDate: post.date || new Date().toISOString(),
-            duration: `PT${calculateReadTimeAndWordCount.readTime}M`,
+            duration: `PT${readTime}M`,
             publisher: {
               '@type': 'Organization',
               name: 'Zedemy',
@@ -419,7 +502,7 @@ const PostPage = memo(() => {
         startTransition(() => setStructuredData(schemas));
       }, { timeout: 3000 });
     }
-  }, [post, slug, calculateReadTimeAndWordCount]);
+  }, [post, slug, readTime]);
 
   useEffect(() => {
     if (post?.titleImage) {
