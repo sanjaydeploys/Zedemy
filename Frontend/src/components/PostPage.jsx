@@ -215,8 +215,8 @@ const criticalCSS = `
 
 const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
   const [visibleContent, setVisibleContent] = useState('');
-  const [visibleContentHtml, setVisibleContentHtml] = useState(null);
   const [remainingContent, setRemainingContent] = useState(null);
+  const [isEnhanced, setIsEnhanced] = useState(false);
   const contentRef = useRef(null);
 
   useEffect(() => {
@@ -238,38 +238,32 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
       wordCount += words;
 
       if (isAboveFold && (wordCount < 300 || i < 2)) {
-        aboveFoldContent.push(para);
+        aboveFoldContent.push(text); // Strip HTML for initial render
       } else {
         isAboveFold = false;
         belowFoldContent.push(para);
       }
     }
 
-    // Initial render with plain text
-    const plainText = aboveFoldContent.map(p => p.replace(/<[^>]+>/g, '')).join('\n');
-    setVisibleContent(plainText);
+    setVisibleContent(aboveFoldContent.join('\n'));
 
-    // Defer HTML parsing
+    // Defer HTML enhancement and below-the-fold content
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
       window.requestIdleCallback(() => {
-        setVisibleContentHtml(aboveFoldContent.join(''));
-      }, { timeout: 1000 });
+        setVisibleContent(aboveFoldContent.map(p => `<p>${p}</p>`).join(''));
+        setIsEnhanced(true);
+        if (belowFoldContent.length > 0) {
+          setRemainingContent(belowFoldContent.join(''));
+        }
+      }, { timeout: 2000 });
     } else {
       setTimeout(() => {
-        setVisibleContentHtml(aboveFoldContent.join(''));
-      }, 1000);
-    }
-
-    if (belowFoldContent.length > 0) {
-      if (typeof window !== 'undefined' && window.requestIdleCallback) {
-        window.requestIdleCallback(() => {
+        setVisibleContent(aboveFoldContent.map(p => `<p>${p}</p>`).join(''));
+        setIsEnhanced(true);
+        if (belowFoldContent.length > 0) {
           setRemainingContent(belowFoldContent.join(''));
-        }, { timeout: 2000 });
-      } else {
-        setTimeout(() => {
-          setRemainingContent(belowFoldContent.join(''));
-        }, 2000);
-      }
+        }
+      }, 2000);
     }
   }, [post?.content]);
 
@@ -333,10 +327,10 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
         <time dateTime={post.date}>{post.date}</time> | Author: {post.author || 'Zedemy Team'}
       </p>
       <ContentSection ref={contentRef}>
-        {visibleContentHtml ? (
-          <div dangerouslySetInnerHTML={{ __html: visibleContentHtml }} />
+        {isEnhanced ? (
+          <div dangerouslySetInnerHTML={{ __html: visibleContent }} />
         ) : (
-          <p>{visibleContent}</p>
+          visibleContent.split('\n').map((line, i) => <p key={i}>{line}</p>)
         )}
       </ContentSection>
       {remainingContent && (
@@ -361,9 +355,9 @@ const PostPage = memo(() => {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(() => loadDependencies().then(setDeps), { timeout: 5000 });
+      window.requestIdleCallback(() => loadDependencies().then(setDeps), { timeout: 3000 });
     } else {
-      setTimeout(() => loadDependencies().then(setDeps), 5000);
+      setTimeout(() => loadDependencies().then(setDeps), 3000);
     }
   }, []);
 
@@ -386,18 +380,9 @@ const PostPage = memo(() => {
     return { selectPost, selectPosts, selectCompletedPosts, selectRelatedPosts };
   }, [deps]);
 
-  const post = useSelector(
-    selectors?.selectPost || (state => state.postReducer.post),
-    (prev, next) => prev?.postId === next?.postId
-  );
-  const relatedPosts = useSelector(
-    selectors?.selectRelatedPosts || (state => []),
-    (prev, next) => JSON.stringify(prev) === JSON.stringify(next)
-  );
-  const completedPosts = useSelector(
-    selectors?.selectCompletedPosts || (state => []),
-    (prev, next) => JSON.stringify(prev) === JSON.stringify(next)
-  );
+  const post = useSelector(selectors?.selectPost || (state => state.postReducer.post));
+  const relatedPosts = useSelector(selectors?.selectRelatedPosts || (state => []));
+  const completedPosts = useSelector(selectors?.selectCompletedPosts || (state => []));
 
   useEffect(() => {
     startTransition(() => {
@@ -414,7 +399,7 @@ const PostPage = memo(() => {
         startTransition(() => setHasFetched(true));
         setTimeout(() => {
           Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-        }, 2000);
+        }, 3000);
       } catch (error) {
         console.error('Fetch failed:', error);
         if (retries > 0) {
@@ -443,7 +428,7 @@ const PostPage = memo(() => {
         ].join(' ');
         const words = text.split(/\s+/).filter(w => w).length;
         setReadTime(Math.ceil(words / 200));
-      }, { timeout: 5000 });
+      }, { timeout: 4000 });
     } else {
       setTimeout(() => {
         const text = [
@@ -454,21 +439,13 @@ const PostPage = memo(() => {
         ].join(' ');
         const words = text.split(/\s+/).filter(w => w).length;
         setReadTime(Math.ceil(words / 200));
-      }, 5000);
+      }, 4000);
     }
   }, [post]);
 
   useEffect(() => {
     if (!post) return;
-    if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(() => {
-        setParsedTitle(parseLinks(post.title || '', post.category || ''));
-      }, { timeout: 1000 });
-    } else {
-      setTimeout(() => {
-        setParsedTitle(parseLinks(post.title || '', post.category || ''));
-      }, 1000);
-    }
+    setParsedTitle(post.title);
   }, [post]);
 
   useEffect(() => {
@@ -551,7 +528,7 @@ const PostPage = memo(() => {
           });
         }
         startTransition(() => setStructuredData(schemas));
-      }, { timeout: 5000 });
+      }, { timeout: 4000 });
     }
   }, [post, slug, readTime]);
 
@@ -573,7 +550,7 @@ const PostPage = memo(() => {
             img.src = `${post.titleImage}?w=200&format=avif&q=50`;
             img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
           },
-          { timeout: 1000 }
+          { timeout: 2000 }
         );
       }
     }
