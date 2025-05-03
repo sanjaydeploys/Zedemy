@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, memo,useMemo, useCallback, Suspense, startTransition } from 'react';
+import React, { useState, useEffect, useRef, memo, useCallback, Suspense, startTransition } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { parseLinks, slugify } from './utils';
@@ -373,11 +373,11 @@ const LazyReferencesSection = memo(({ post }) => {
 
 // PostContentNonCritical Component
 const PostContentNonCritical = memo(
-  ({ post, relatedPosts, completedPosts, dispatch, isSidebarOpen, setSidebarOpen, activeSection, subtitlesListRef }) => {
+  ({ post, relatedPosts, completedPosts, dispatch, isSidebarOpen, setSidebarOpen, activeSection, setActiveSection, subtitlesListRef }) => {
     const [parsedSummary, setParsedSummary] = useState('');
 
     // Debounced Intersection Observer
-    const debouncedObserve = useMemo(
+    const debouncedObserve = React.useMemo(
       () =>
         debounce(entries => {
           let highestSection = null;
@@ -398,10 +398,10 @@ const PostContentNonCritical = memo(
             });
           }
         }, 150),
-      []
+      [setActiveSection, subtitlesListRef]
     );
 
-    const subtitleSlugs = useMemo(() => {
+    const subtitleSlugs = React.useMemo(() => {
       if (!post?.subtitles) return {};
       const slugs = {};
       post.subtitles.forEach((s, i) => {
@@ -468,7 +468,7 @@ const PostContentNonCritical = memo(
           }
         }
       },
-      [isSidebarOpen, subtitleSlugs]
+      [isSidebarOpen, setSidebarOpen, setActiveSection, subtitleSlugs]
     );
 
     return (
