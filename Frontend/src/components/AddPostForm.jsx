@@ -1,128 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addPost } from '../actions/postActions';
 import { loadUser } from '../actions/authActions';
-import axios from 'axios';
-import DOMPurify from 'dompurify';
-import styled from 'styled-components';
-import { Tooltip } from '@material-ui/core';
+import '../styles/AddPostForm.css';
 
-// Styled Components
-const FormContainer = styled.div`
-  max-width: 1200px;
-  margin: 20px auto;
-  padding: 20px;
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-`;
+// Lazy-load heavy dependencies
+const loadDependencies = async () => {
+  const [
+    { default: axios },
+    { default: DOMPurify },
+  ] = await Promise.all([
+    import('axios'),
+    import('dompurify'),
+  ]);
+  return { axios, DOMPurify };
+};
 
-const FormGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-gap: 20px;
-`;
+// Custom Tooltip Component
+const Tooltip = ({ title, children }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const tooltipRef = React.useRef(null);
 
-const Section = styled.div`
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
-`;
+  const handleMouseEnter = () => setIsVisible(true);
+  const handleMouseLeave = () => setIsVisible(false);
 
-const FullWidthSection = styled(Section)`
-  grid-column: span 2;
-`;
+  return (
+    <div className="tooltip-container" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+      {children}
+      {isVisible && (
+        <div className="tooltip" ref={tooltipRef}>
+          {title}
+        </div>
+      )}
+    </div>
+  );
+};
 
-const SectionTitle = styled.h3`
-  margin-bottom: 20px;
-  color: #333;
-  border-bottom: 2px solid #007bff;
-  padding-bottom: 5px;
-`;
+// Memoized FormGroup Component
+const FormGroup = React.memo(({ children }) => (
+  <div className="form-group">{children}</div>
+));
 
-const FormGroup = styled.div`
-  display: grid;
-  gap: 10px;
-`;
-
-const Label = styled.label`
-  font-weight: bold;
-  margin-bottom: 5px;
-`;
-
-const Input = styled.input`
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-`;
-
-const TextArea = styled.textarea`
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-`;
-
-const Select = styled.select`
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-`;
-
-const Button = styled.button`
-  padding: 10px 20px;
-  background-color: #007bff;
-  color: #fff;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  margin-top: 10px;
-  opacity: ${(props) => (props.disabled ? 0.6 : 1)};
-  pointer-events: ${(props) => (props.disabled ? 'none' : 'auto')};
-
-  &:hover {
-    background-color: #0056b3;
-  }
-`;
-
-const IconButton = styled(Button)`
-  background: none;
-  color: #007bff;
-  border: 1px solid #007bff;
-  padding: 5px 10px;
-  font-size: 0.9em;
-  margin: 5px 0;
-
-  &:hover {
-    background-color: #e6f7ff;
-    border-color: #0056b3;
-  }
-`;
-
-const PreviewImage = styled.img`
-  max-width: 200px;
-  margin-top: 10px;
-  border-radius: 5px;
-`;
-
-const PreviewVideo = styled.video`
-  max-width: 200px;
-  margin-top: 10px;
-  border-radius: 5px;
-`;
-
-const ErrorMessage = styled.div`
-  color: red;
-  font-size: 0.9em;
-  margin-top: 5px;
-`;
-
-const AddPostForm = () => {
+// Memoized AddPostForm
+const AddPostForm = React.memo(() => {
   const dispatch = useDispatch();
+  const [deps, setDeps] = useState(null);
   const [title, setTitle] = useState('');
   const [titleImage, setTitleImage] = useState(null);
   const [titleImageHash, setTitleImageHash] = useState(null);
@@ -144,29 +66,40 @@ const AddPostForm = () => {
   const [videoPreview, setVideoPreview] = useState(null);
   const [error, setError] = useState('');
   const [isUploading, setIsUploading] = useState(false);
-  const { user } = useSelector((state) => state.auth);
-  const categories = [
+  const { user } = useSelector(state => state.auth);
+
+  const categories = useMemo(() => [
     'VS Code', 'HTML', 'CSS', 'JavaScript', 'Node.js', 'React', 'Angular', 'Vue.js', 'Next.js', 'Nuxt.js',
     'Gatsby', 'Svelte', 'TypeScript', 'GraphQL', 'PHP', 'Python', 'Ruby', 'Java', 'C#', 'C++', 'Swift',
     'Kotlin', 'Dart', 'Flutter', 'React Native',
-  ];
+  ], []);
+
   const [superTitles, setSuperTitles] = useState([
     { superTitle: '', attributes: [{ attribute: '', items: [{ title: '', bulletPoints: [''] }] }] },
   ]);
 
-  // Sanitization configuration for code snippets
-  const codeSanitizeConfig = {
+  // Load dependencies during idle time
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.requestIdleCallback) {
+      window.requestIdleCallback(() => loadDependencies().then(setDeps));
+    } else {
+      loadDependencies().then(setDeps);
+    }
+  }, []);
+
+  // Sanitization configuration
+  const codeSanitizeConfig = useMemo(() => ({
     ALLOWED_TAGS: [],
     ALLOWED_ATTR: [],
-  };
+  }), []);
 
-  // Sanitize code snippets
-  const sanitizeCodeSnippet = (code) => {
-    return DOMPurify.sanitize(code, codeSanitizeConfig);
-  };
+  const sanitizeCodeSnippet = useCallback((code) => {
+    if (!deps?.DOMPurify) return code;
+    return deps.DOMPurify.sanitize(code, codeSanitizeConfig);
+  }, [deps, codeSanitizeConfig]);
 
   // File validation
-  async function validateFile(file, type) {
+  const validateFile = useCallback(async (file, type) => {
     if (!file) return 'No file selected';
 
     const maxSize = type === 'image' ? 10 * 1024 * 1024 : 50 * 1024 * 1024;
@@ -206,39 +139,39 @@ const AddPostForm = () => {
     }
 
     return '';
-  }
+  }, []);
 
   // Generate file hash
-  async function generateFileHash(file) {
+  const generateFileHash = useCallback(async (file) => {
     try {
       const arrayBuffer = await file.arrayBuffer();
       const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     } catch (err) {
       throw new Error(`Failed to generate file hash: ${err.message}`);
     }
-  }
+  }, []);
 
   // Compress and convert to WebP
-  async function compressAndConvertToWebP(file, targetSizeKB = 50) {
-    async function supportsWebP() {
-      return new Promise((resolve) => {
+  const compressAndConvertToWebP = useCallback(async (file, targetSizeKB = 50) => {
+    const supportsWebP = async () => {
+      return new Promise(resolve => {
         const img = new Image();
         img.onload = () => resolve(true);
         img.onerror = () => resolve(false);
         img.src = 'data:image/webp;base64,UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEADsD+JaQAA3AAAAAA';
       });
-    }
+    };
 
     return new Promise((resolve, reject) => {
       const img = new Image();
       const reader = new FileReader();
 
-      function handleReaderLoad(event) {
+      const handleReaderLoad = event => {
         img.src = event.target.result;
 
-        async function handleImageLoad() {
+        const handleImageLoad = async () => {
           try {
             const useWebP = await supportsWebP();
             const format = useWebP ? 'image/webp' : 'image/jpeg';
@@ -246,9 +179,7 @@ const AddPostForm = () => {
 
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            if (!ctx) {
-              throw new Error('Failed to get canvas context');
-            }
+            if (!ctx) throw new Error('Failed to get canvas context');
 
             const maxDimension = 1920;
             let width = img.width;
@@ -276,22 +207,14 @@ const AddPostForm = () => {
             let blob;
 
             while (quality > 0.1) {
-              blob = await new Promise((resolveBlob) => {
-                canvas.toBlob(
-                  (b) => resolveBlob(b),
-                  format,
-                  quality
-                );
+              blob = await new Promise(resolveBlob => {
+                canvas.toBlob(b => resolveBlob(b), format, quality);
               });
 
-              if (!blob) {
-                throw new Error(`Failed to create ${format} blob`);
-              }
+              if (!blob) throw new Error(`Failed to create ${format} blob`);
 
               const sizeKB = blob.size / 1024;
-              if (sizeKB <= targetSizeKB * 1.2) {
-                break;
-              }
+              if (sizeKB <= targetSizeKB * 1.2) break;
 
               width *= 0.9;
               height *= 0.9;
@@ -303,49 +226,38 @@ const AddPostForm = () => {
             }
 
             if (!blob) {
-              blob = await new Promise((resolveBlob) => {
-                canvas.toBlob(
-                  (b) => resolveBlob(b),
-                  'image/jpeg',
-                  0.7
-                );
+              blob = await new Promise(resolveBlob => {
+                canvas.toBlob(b => resolveBlob(b), 'image/jpeg', 0.7);
               });
               if (!blob) {
                 reject(new Error(`Failed to compress ${file.name} to target size`));
                 return;
               }
-              const jpegFile = new File(
-                [blob],
-                file.name.replace(/\.[^/.]+$/, '.jpg'),
-                { type: 'image/jpeg' }
-              );
+              const jpegFile = new File([blob], file.name.replace(/\.[^/.]+$/, '.jpg'), { type: 'image/jpeg' });
               resolve(jpegFile);
               return;
             }
 
-            const compressedFile = new File(
-              [blob],
-              file.name.replace(/\.[^/.]+$/, extension),
-              { type: format }
-            );
+            const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, extension), { type: format });
             resolve(compressedFile);
           } catch (err) {
             reject(new Error(`Image processing failed for ${file.name}: ${err.message}`));
           }
-        }
+        };
 
         img.onload = handleImageLoad;
         img.onerror = () => reject(new Error(`Failed to load image: ${file.name}`));
-      }
+      };
 
       reader.onload = handleReaderLoad;
       reader.onerror = () => reject(new Error(`Failed to read file: ${file.name}`));
       reader.readAsDataURL(file);
     });
-  }
+  }, []);
 
   // Handle image upload
-  async function handleImageUpload(event, setImage, setImageHash, categoryOverride = category, retries = 3) {
+  const handleImageUpload = useCallback(async (event, setImage, setImageHash, categoryOverride = category, retries = 3) => {
+    if (!deps?.axios) return;
     const file = event.target.files[0];
     setError('');
     setIsUploading(true);
@@ -374,12 +286,11 @@ const AddPostForm = () => {
 
     const previewUrl = URL.createObjectURL(compressedFile);
 
-    // For subtitle or bullet point images, update state immediately with preview
     if (setImage !== setTitleImage) {
       setImage({ url: null, preview: previewUrl, file: compressedFile });
     } else {
       setTitleImagePreview(previewUrl);
-      setTitleImage(null); // Clear until upload is complete
+      setTitleImage(null);
     }
 
     let attempt = 1;
@@ -392,7 +303,7 @@ const AddPostForm = () => {
           category: categoryOverride,
         });
 
-        const res = await axios.post(
+        const res = await deps.axios.post(
           'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/get-presigned-url',
           {
             fileType: compressedFile.type,
@@ -402,13 +313,13 @@ const AddPostForm = () => {
         );
         const { signedUrl, publicUrl, key } = res.data;
 
-        await axios.put(signedUrl, compressedFile, {
+        await deps.axios.put(signedUrl, compressedFile, {
           headers: { 'Content-Type': compressedFile.type },
         });
 
         const fileHash = await generateFileHash(compressedFile);
 
-        await axios.post(
+        await deps.axios.post(
           'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
           {
             fileKey: key,
@@ -424,12 +335,10 @@ const AddPostForm = () => {
           throw new Error(`S3 URL not accessible: ${response.status}`);
         }
 
-        // Set the final URL and hash in a single state update
         if (setImage === setTitleImage) {
           setTitleImage(publicUrl);
           setTitleImagePreview(previewUrl);
         } else {
-          // For subtitles and bullet points, set only the URL
           setImage(publicUrl);
         }
         setImageHash(fileHash);
@@ -450,13 +359,14 @@ const AddPostForm = () => {
           return;
         }
         attempt++;
-        await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
       }
     }
-  }
+  }, [deps, category, user, validateFile, compressAndConvertToWebP, generateFileHash, setTitleImage, setTitleImagePreview]);
 
   // Handle video upload
-  async function handleVideoUpload(event, setVideo, setVideoHash, categoryOverride = category, retries = 3) {
+  const handleVideoUpload = useCallback(async (event, setVideo, setVideoHash, categoryOverride = category, retries = 3) => {
+    if (!deps?.axios) return;
     const file = event.target.files[0];
     setError('');
     setIsUploading(true);
@@ -475,12 +385,11 @@ const AddPostForm = () => {
 
     const previewUrl = URL.createObjectURL(file);
 
-    // For subtitle or bullet point videos, update state immediately with preview
     if (setVideo !== setVideo) {
       setVideo({ url: null, preview: previewUrl, file });
     } else {
       setVideoPreview(previewUrl);
-      setVideo(null); // Clear until upload is complete
+      setVideo(null);
     }
 
     let attempt = 1;
@@ -493,7 +402,7 @@ const AddPostForm = () => {
           category: categoryOverride,
         });
 
-        const res = await axios.post(
+        const res = await deps.axios.post(
           'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/get-presigned-url',
           {
             fileType: file.type,
@@ -503,13 +412,13 @@ const AddPostForm = () => {
         );
         const { signedUrl, publicUrl, key } = res.data;
 
-        await axios.put(signedUrl, file, {
+        await deps.axios.put(signedUrl, file, {
           headers: { 'Content-Type': file.type },
         });
 
         const fileHash = await generateFileHash(file);
 
-        await axios.post(
+        await deps.axios.post(
           'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
           {
             fileKey: key,
@@ -525,12 +434,10 @@ const AddPostForm = () => {
           throw new Error(`S3 URL not accessible: ${response.status}`);
         }
 
-        // Set the final URL and hash in a single state update
         if (setVideo === setVideo) {
           setVideo(publicUrl);
           setVideoPreview(previewUrl);
         } else {
-          // For bullet points, set only the URL
           setVideo(publicUrl);
         }
         setVideoHash(fileHash);
@@ -551,75 +458,78 @@ const AddPostForm = () => {
           return;
         }
         attempt++;
-        await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
       }
     }
-  }
+  }, [deps, category, user, validateFile, generateFileHash, setVideo, setVideoPreview]);
 
-  const handleSuperTitleChange = (index, field, value) => {
-    const newSuperTitles = [...superTitles];
-    newSuperTitles[index][field] = value;
-    setSuperTitles(newSuperTitles);
-  };
+  // Memoized handlers
+  const handleSuperTitleChange = useCallback((index, field, value) => {
+    setSuperTitles(prev => {
+      const newSuperTitles = [...prev];
+      newSuperTitles[index][field] = value;
+      return newSuperTitles;
+    });
+  }, []);
 
-  const handleAttributeChange = (superTitleIndex, attributeIndex, field, value) => {
-    const newSuperTitles = [...superTitles];
-    newSuperTitles[superTitleIndex].attributes[attributeIndex][field] = value;
-    setSuperTitles(newSuperTitles);
-  };
+  const handleAttributeChange = useCallback((superTitleIndex, attributeIndex, field, value) => {
+    setSuperTitles(prev => {
+      const newSuperTitles = [...prev];
+      newSuperTitles[superTitleIndex].attributes[attributeIndex][field] = value;
+      return newSuperTitles;
+    });
+  }, []);
 
-  const handleItemChange = (superTitleIndex, attributeIndex, itemIndex, field, value) => {
-    const newSuperTitles = [...superTitles];
-    newSuperTitles[superTitleIndex].attributes[attributeIndex].items[itemIndex][field] = value;
-    setSuperTitles(newSuperTitles);
-  };
+  const handleItemChange = useCallback((superTitleIndex, attributeIndex, itemIndex, field, value) => {
+    setSuperTitles(prev => {
+      const newSuperTitles = [...prev];
+      newSuperTitles[superTitleIndex].attributes[attributeIndex].items[itemIndex][field] = value;
+      return newSuperTitles;
+    });
+  }, []);
 
-  const addSuperTitle = () => {
-    setSuperTitles([...superTitles, { superTitle: '', attributes: [{ attribute: '', items: [{ title: '', bulletPoints: [''] }] }] }]);
-  };
+  const addSuperTitle = useCallback(() => {
+    setSuperTitles(prev => [
+      ...prev,
+      { superTitle: '', attributes: [{ attribute: '', items: [{ title: '', bulletPoints: [''] }] }] },
+    ]);
+  }, []);
 
-  const addAttribute = (superTitleIndex) => {
-    const newSuperTitles = [...superTitles];
-    newSuperTitles[superTitleIndex].attributes.push({ attribute: '', items: [{ title: '', bulletPoints: [''] }] });
-    setSuperTitles(newSuperTitles);
-  };
+  const addAttribute = useCallback((superTitleIndex) => {
+    setSuperTitles(prev => {
+      const newSuperTitles = [...prev];
+      newSuperTitles[superTitleIndex].attributes.push({ attribute: '', items: [{ title: '', bulletPoints: [''] }] });
+      return newSuperTitles;
+    });
+  }, []);
 
-  const addItem = (superTitleIndex, attributeIndex) => {
-    const newSuperTitles = [...superTitles];
-    newSuperTitles[superTitleIndex].attributes[attributeIndex].items.push({ title: '', bulletPoints: [''] });
-    setSuperTitles(newSuperTitles);
-  };
+  const addItem = useCallback((superTitleIndex, attributeIndex) => {
+    setSuperTitles(prev => {
+      const newSuperTitles = [...prev];
+      newSuperTitles[superTitleIndex].attributes[attributeIndex].items.push({ title: '', bulletPoints: [''] });
+      return newSuperTitles;
+    });
+  }, []);
 
-  useEffect(() => {
-    if (!user) {
-      const storedUser = JSON.parse(localStorage.getItem('user'));
-      if (storedUser) {
-        dispatch({ type: 'FETCH_USER_SUCCESS', payload: { user: storedUser, token: localStorage.getItem('token') } });
-      } else {
-        dispatch(loadUser());
-      }
-    }
-    return () => {
-      if (titleImagePreview) URL.revokeObjectURL(titleImagePreview);
-      if (videoPreview) URL.revokeObjectURL(videoPreview);
-    };
-  }, [dispatch, user, titleImagePreview, videoPreview]);
+  const handleSubtitleChange = useCallback((index, field, value) => {
+    setSubtitles(prev => {
+      const newSubtitles = [...prev];
+      newSubtitles[index][field] = value;
+      return newSubtitles;
+    });
+  }, []);
 
-  const handleSubtitleChange = (index, field, value) => {
-    const newSubtitles = [...subtitles];
-    newSubtitles[index][field] = value;
-    setSubtitles(newSubtitles);
-  };
+  const handleBulletPointChange = useCallback((index, pointIndex, field, value) => {
+    setSubtitles(prev => {
+      const newSubtitles = [...prev];
+      newSubtitles[index].bulletPoints[pointIndex][field] = value;
+      return newSubtitles;
+    });
+  }, []);
 
-  const handleBulletPointChange = (index, pointIndex, field, value) => {
-    const newSubtitles = [...subtitles];
-    newSubtitles[index].bulletPoints[pointIndex][field] = value;
-    setSubtitles(newSubtitles);
-  };
-
-  const addSubtitle = () => {
-    setSubtitles([
-      ...subtitles,
+  const addSubtitle = useCallback(() => {
+    setSubtitles(prev => [
+      ...prev,
       {
         title: '',
         image: null,
@@ -628,23 +538,25 @@ const AddPostForm = () => {
         bulletPoints: [{ text: '', image: null, imageHash: null, video: null, videoHash: null, codeSnippet: '' }],
       },
     ]);
-  };
+  }, []);
 
-  const addBulletPoint = (subtitleIndex) => {
-    const newSubtitles = [...subtitles];
-    newSubtitles[subtitleIndex].bulletPoints.push({
-      text: '',
-      image: null,
-      imageHash: null,
-      video: null,
-      videoHash: null,
-      codeSnippet: '',
+  const addBulletPoint = useCallback((subtitleIndex) => {
+    setSubtitles(prev => {
+      const newSubtitles = [...prev];
+      newSubtitles[subtitleIndex].bulletPoints.push({
+        text: '',
+        image: null,
+        imageHash: null,
+        video: null,
+        videoHash: null,
+        codeSnippet: '',
+      });
+      return newSubtitles;
     });
-    setSubtitles(newSubtitles);
-  };
+  }, []);
 
-  // Validate media fields before submission
-  const validateMediaFields = () => {
+  // Validate media fields
+  const validateMediaFields = useCallback(() => {
     for (let i = 0; i < subtitles.length; i++) {
       const sub = subtitles[i];
       if (sub.image && typeof sub.image !== 'string') {
@@ -672,9 +584,10 @@ const AddPostForm = () => {
       return false;
     }
     return true;
-  };
+  }, [subtitles, titleImage, video]);
 
-  async function handleSubmit(event) {
+  // Handle form submission
+  const handleSubmit = useCallback(async event => {
     event.preventDefault();
     if (!user) {
       setError('User not found');
@@ -690,14 +603,12 @@ const AddPostForm = () => {
       return;
     }
     try {
-      console.log('Subtitles before submission:', JSON.stringify(subtitles, null, 2));
-
-      const processedSubtitles = subtitles.map((sub) => ({
+      const processedSubtitles = subtitles.map(sub => ({
         title: sub.title || '',
         isFAQ: sub.isFAQ || false,
         image: sub.image || null,
         imageHash: sub.imageHash || null,
-        bulletPoints: sub.bulletPoints.map((point) => ({
+        bulletPoints: sub.bulletPoints.map(point => ({
           text: point.text || '',
           codeSnippet: sanitizeCodeSnippet(point.codeSnippet || ''),
           image: point.image || null,
@@ -707,11 +618,11 @@ const AddPostForm = () => {
         })),
       }));
 
-      const processedSuperTitles = superTitles.map((superTitle) => ({
+      const processedSuperTitles = superTitles.map(superTitle => ({
         superTitle: superTitle.superTitle || '',
-        attributes: superTitle.attributes.map((attr) => ({
+        attributes: superTitle.attributes.map(attr => ({
           attribute: attr.attribute || '',
-          items: attr.items.map((item) => ({
+          items: attr.items.map(item => ({
             title: item.title || '',
             bulletPoints: item.bulletPoints || [],
           })),
@@ -772,46 +683,83 @@ const AddPostForm = () => {
       setError(`Error adding post: ${err.message}`);
       console.error('Error adding post:', err);
     }
+  }, [
+    user,
+    category,
+    subtitles,
+    superTitles,
+    title,
+    content,
+    summary,
+    titleImage,
+    video,
+    titleImageHash,
+    videoHash,
+    dispatch,
+    validateMediaFields,
+    sanitizeCodeSnippet,
+  ]);
+
+  // User loading and cleanup
+  useEffect(() => {
+    if (!user) {
+      const storedUser = JSON.parse(localStorage.getItem('user'));
+      if (storedUser) {
+        dispatch({ type: 'FETCH_USER_SUCCESS', payload: { user: storedUser, token: localStorage.getItem('token') } });
+      } else {
+        dispatch(loadUser());
+      }
+    }
+    return () => {
+      if (titleImagePreview) URL.revokeObjectURL(titleImagePreview);
+      if (videoPreview) URL.revokeObjectURL(videoPreview);
+    };
+  }, [dispatch, user, titleImagePreview, videoPreview]);
+
+  if (!deps) {
+    return <div>Loading form dependencies...</div>;
   }
 
   return (
-    <FormContainer>
-      <FullWidthSection>
+    <div className="form-container">
+      <div className="full-width-section">
         <h2>Add New Post</h2>
-        {error && <ErrorMessage>{error}</ErrorMessage>}
+        {error && <div className="error-message">{error}</div>}
         <form onSubmit={handleSubmit}>
-          <Section>
-            <SectionTitle>Post Details</SectionTitle>
+          <div className="section">
+            <h3 className="section-title">Post Details</h3>
             <FormGroup>
               <Tooltip title="Select the category for your post">
-                <Label>Category</Label>
+                <label className="label">Category</label>
               </Tooltip>
-              <Select value={category} onChange={(e) => setCategory(e.target.value)}>
+              <select className="select" value={category} onChange={e => setCategory(e.target.value)}>
                 <option value="">Select Category</option>
-                {categories.map((cat) => (
+                {categories.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
-              </Select>
+              </select>
             </FormGroup>
             <FormGroup>
               <Tooltip title="Enter the title of your post. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <header> are allowed.">
-                <Label>Title</Label>
+                <label className="label">Title</label>
               </Tooltip>
-              <Input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
+              <input className="input" type="text" value={title} onChange={e => setTitle(e.target.value)} required />
             </FormGroup>
-            <FormGrid>
+            <div className="form-grid">
               <FormGroup>
-                <Label>Title Image</Label>
-                <Input
+                <label className="label">Title Image</label>
+                <input
+                  className="input"
                   type="file"
                   accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/tiff"
-                  onChange={(e) => handleImageUpload(e, setTitleImage, setTitleImageHash, category)}
+                  onChange={e => handleImageUpload(e, setTitleImage, setTitleImageHash, category)}
                 />
                 {titleImagePreview && (
-                  <PreviewImage
+                  <img
+                    className="preview-image"
                     src={titleImagePreview}
                     alt="Title preview"
-                    onError={(e) => {
+                    onError={e => {
                       console.error('Failed to load title image:', titleImagePreview);
                       setError('Failed to preview title image');
                     }}
@@ -819,73 +767,77 @@ const AddPostForm = () => {
                 )}
               </FormGroup>
               <FormGroup>
-                <Label>Video</Label>
-                <Input
+                <label className="label">Video</label>
+                <input
+                  className="input"
                   type="file"
                   accept="video/mp4,video/mpeg,video/webm"
-                  onChange={(e) => handleVideoUpload(e, setVideo, setVideoHash, category)}
+                  onChange={e => handleVideoUpload(e, setVideo, setVideoHash, category)}
                 />
                 {videoPreview && (
-                  <PreviewVideo
+                  <video
+                    className="preview-video"
                     src={videoPreview}
                     controls
-                    onError={(e) => {
+                    onError={e => {
                       console.error('Failed to load video:', videoPreview);
                       setError('Failed to preview video');
                     }}
                   />
                 )}
               </FormGroup>
-            </FormGrid>
+            </div>
             <FormGroup>
               <Tooltip title="Enter the main content of your post. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <section> are allowed.">
-                <Label>Content</Label>
+                <label className="label">Content</label>
               </Tooltip>
-              <TextArea rows="10" value={content} onChange={(e) => setContent(e.target.value)} required />
+              <textarea className="textarea" rows="10" value={content} onChange={e => setContent(e.target.value)} required />
             </FormGroup>
-          </Section>
+          </div>
 
-          <Section>
-            <SectionTitle>Subtitles</SectionTitle>
+          <div className="section">
+            <h3 className="section-title">Subtitles</h3>
             {subtitles.map((subtitle, index) => (
               <div key={index}>
                 <FormGroup>
-                  <Label>Subtitle</Label>
+                  <label className="label">Subtitle</label>
                   <Tooltip title="Enter the subtitle. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <h2> are allowed.">
-                    <Input
+                    <input
+                      className="input"
                       type="text"
                       value={subtitle.title}
-                      onChange={(e) => handleSubtitleChange(index, 'title', e.target.value)}
+                      onChange={e => handleSubtitleChange(index, 'title', e.target.value)}
                     />
                   </Tooltip>
                 </FormGroup>
                 <FormGroup>
-                  <Label>
+                  <label className="label">
                     <input
                       type="checkbox"
                       checked={subtitle.isFAQ}
-                      onChange={(e) => handleSubtitleChange(index, 'isFAQ', e.target.checked)}
+                      onChange={e => handleSubtitleChange(index, 'isFAQ', e.target.checked)}
                     />
                     Mark as FAQ
-                  </Label>
+                  </label>
                 </FormGroup>
                 <FormGroup>
-                  <Label>Subtitle Image</Label>
-                  <Input
+                  <label className="label">Subtitle Image</label>
+                  <input
+                    className="input"
                     type="file"
                     accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/tiff"
-                    onChange={(e) =>
+                    onChange={e =>
                       handleImageUpload(
                         e,
-                        (url) => {
-                          setSubtitles((prev) => {
+                        url => {
+                          setSubtitles(prev => {
                             const newSubtitles = [...prev];
                             newSubtitles[index].image = url;
                             return newSubtitles;
                           });
                         },
-                        (hash) => {
-                          setSubtitles((prev) => {
+                        hash => {
+                          setSubtitles(prev => {
                             const newSubtitles = [...prev];
                             newSubtitles[index].imageHash = hash;
                             return newSubtitles;
@@ -896,10 +848,11 @@ const AddPostForm = () => {
                     }
                   />
                   {subtitle.image && (
-                    <PreviewImage
+                    <img
+                      className="preview-image"
                       src={typeof subtitle.image === 'string' ? subtitle.image : subtitle.image.preview}
                       alt="Subtitle preview"
-                      onError={(e) => {
+                      onError={e => {
                         console.error('Failed to load subtitle image:', subtitle.image);
                         setError('Failed to preview subtitle image');
                       }}
@@ -909,32 +862,34 @@ const AddPostForm = () => {
                 {subtitle.bulletPoints.map((point, pointIndex) => (
                   <div key={pointIndex}>
                     <FormGroup>
-                      <Label>Bullet Point</Label>
+                      <label className="label">Bullet Point</label>
                       <Tooltip title="Enter the bullet point text. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <strong> are allowed.">
-                        <Input
+                        <input
+                          className="input"
                           type="text"
                           value={point.text}
-                          onChange={(e) => handleBulletPointChange(index, pointIndex, 'text', e.target.value)}
+                          onChange={e => handleBulletPointChange(index, pointIndex, 'text', e.target.value)}
                         />
                       </Tooltip>
                     </FormGroup>
                     <FormGroup>
-                      <Label>Bullet Point Image</Label>
-                      <Input
+                      <label className="label">Bullet Point Image</label>
+                      <input
+                        className="input"
                         type="file"
                         accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/tiff"
-                        onChange={(e) =>
+                        onChange={e =>
                           handleImageUpload(
                             e,
-                            (url) => {
-                              setSubtitles((prev) => {
+                            url => {
+                              setSubtitles(prev => {
                                 const newSubtitles = [...prev];
                                 newSubtitles[index].bulletPoints[pointIndex].image = url;
                                 return newSubtitles;
                               });
                             },
-                            (hash) => {
-                              setSubtitles((prev) => {
+                            hash => {
+                              setSubtitles(prev => {
                                 const newSubtitles = [...prev];
                                 newSubtitles[index].bulletPoints[pointIndex].imageHash = hash;
                                 return newSubtitles;
@@ -945,10 +900,11 @@ const AddPostForm = () => {
                         }
                       />
                       {point.image && (
-                        <PreviewImage
+                        <img
+                          className="preview-image"
                           src={typeof point.image === 'string' ? point.image : point.image.preview}
                           alt="Bullet point preview"
-                          onError={(e) => {
+                          onError={e => {
                             console.error('Failed to load bullet point image:', point.image);
                             setError('Failed to preview bullet point image');
                           }}
@@ -956,22 +912,23 @@ const AddPostForm = () => {
                       )}
                     </FormGroup>
                     <FormGroup>
-                      <Label>Bullet Point Video</Label>
-                      <Input
-                        type="file"
+                      <label className="label">Bullet Point Video</label>
+                      <input
+                        className="input"
+                        type="file"
                         accept="video/mp4,video/mpeg,video/webm"
-                        onChange={(e) =>
+                        onChange={e =>
                           handleVideoUpload(
                             e,
-                            (url) => {
-                              setSubtitles((prev) => {
+                            url => {
+                              setSubtitles(prev => {
                                 const newSubtitles = [...prev];
                                 newSubtitles[index].bulletPoints[pointIndex].video = url;
                                 return newSubtitles;
                               });
                             },
-                            (hash) => {
-                              setSubtitles((prev) => {
+                            hash => {
+                              setSubtitles(prev => {
                                 const newSubtitles = [...prev];
                                 newSubtitles[index].bulletPoints[pointIndex].videoHash = hash;
                                 return newSubtitles;
@@ -982,10 +939,11 @@ const AddPostForm = () => {
                         }
                       />
                       {point.video && (
-                        <PreviewVideo
+                        <video
+                          className="preview-video"
                           src={typeof point.video === 'string' ? point.video : point.video.preview}
                           controls
-                          onError={(e) => {
+                          onError={e => {
                             console.error('Failed to load bullet point video:', point.video);
                             setError('Failed to preview bullet point video');
                           }}
@@ -993,113 +951,125 @@ const AddPostForm = () => {
                       )}
                     </FormGroup>
                     <FormGroup>
-                      <Label>Code Snippet</Label>
+                      <label className="label">Code Snippet</label>
                       <Tooltip title="Enter a code snippet. This will be sanitized to prevent XSS attacks.">
-                        <TextArea
+                        <textarea
+                          className="textarea"
                           rows="4"
                           value={point.codeSnippet}
-                          onChange={(e) => handleBulletPointChange(index, pointIndex, 'codeSnippet', e.target.value)}
+                          onChange={e => handleBulletPointChange(index, pointIndex, 'codeSnippet', e.target.value)}
                         />
                       </Tooltip>
                     </FormGroup>
                   </div>
                 ))}
-                <IconButton type="button" onClick={() => addBulletPoint(index)}>Add Bullet Point</IconButton>
+                <button className="icon-button" type="button" onClick={() => addBulletPoint(index)}>Add Bullet Point</button>
               </div>
             ))}
-            <IconButton type="button" onClick={addSubtitle}>Add Subtitle</IconButton>
-          </Section>
-          <Section>
-            <SectionTitle>Comparison Section</SectionTitle>
+            <button className="icon-button" type="button" onClick={addSubtitle}>Add Subtitle</button>
+          </div>
+
+          <div className="section">
+            <h3 className="section-title">Comparison Section</h3>
             {superTitles.map((superTitle, superTitleIndex) => (
               <div key={superTitleIndex}>
                 <FormGroup>
-                  <Label>Super Title</Label>
+                  <label className="label">Super Title</label>
                   <Tooltip title="Enter the super title. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <h3> are allowed.">
-                    <Input
+                    <input
+                      className="input"
                       type="text"
                       value={superTitle.superTitle}
-                      onChange={(e) => handleSuperTitleChange(superTitleIndex, 'superTitle', e.target.value)}
+                      onChange={e => handleSuperTitleChange(superTitleIndex, 'superTitle', e.target.value)}
                     />
                   </Tooltip>
                 </FormGroup>
                 {superTitle.attributes.map((attribute, attributeIndex) => (
                   <div key={attributeIndex}>
                     <FormGroup>
-                      <Label>Attribute</Label>
+                      <label className="label">Attribute</label>
                       <Tooltip title="Enter the attribute. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <strong> are allowed.">
-                        <Input
+                        <input
+                          className="input"
                           type="text"
                           value={attribute.attribute}
-                          onChange={(e) => handleAttributeChange(superTitleIndex, attributeIndex, 'attribute', e.target.value)}
+                          onChange={e => handleAttributeChange(superTitleIndex, attributeIndex, 'attribute', e.target.value)}
                         />
                       </Tooltip>
                     </FormGroup>
                     {attribute.items.map((item, itemIndex) => (
                       <div key={itemIndex}>
                         <FormGroup>
-                          <Label>Item Title</Label>
+                          <label className="label">Item Title</label>
                           <Tooltip title="Enter the item title. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <strong> are allowed.">
-                            <Input
+                            <input
+                              className="input"
                               type="text"
                               value={item.title}
-                              onChange={(e) => handleItemChange(superTitleIndex, attributeIndex, itemIndex, 'title', e.target.value)}
+                              onChange={e => handleItemChange(superTitleIndex, attributeIndex, itemIndex, 'title', e.target.value)}
                             />
                           </Tooltip>
                         </FormGroup>
                         {item.bulletPoints.map((bulletPoint, bpIndex) => (
                           <FormGroup key={bpIndex}>
-                            <Label>Bullet Point</Label>
+                            <label className="label">Bullet Point</label>
                             <Tooltip title="Enter the bullet point. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <li> are allowed.">
-                              <Input
+                              <input
+                                className="input"
                                 type="text"
                                 value={bulletPoint}
-                                onChange={(e) => {
-                                  const newSuperTitles = [...superTitles];
-                                  newSuperTitles[superTitleIndex].attributes[attributeIndex].items[itemIndex].bulletPoints[bpIndex] = e.target.value;
-                                  setSuperTitles(newSuperTitles);
+                                onChange={e => {
+                                  setSuperTitles(prev => {
+                                    const newSuperTitles = [...prev];
+                                    newSuperTitles[superTitleIndex].attributes[attributeIndex].items[itemIndex].bulletPoints[bpIndex] = e.target.value;
+                                    return newSuperTitles;
+                                  });
                                 }}
                               />
                             </Tooltip>
                           </FormGroup>
                         ))}
-                        <IconButton
+                        <button
+                          className="icon-button"
                           type="button"
                           onClick={() => {
-                            const newSuperTitles = [...superTitles];
-                            newSuperTitles[superTitleIndex].attributes[attributeIndex].items[itemIndex].bulletPoints.push('');
-                            setSuperTitles(newSuperTitles);
+                            setSuperTitles(prev => {
+                              const newSuperTitles = [...prev];
+                              newSuperTitles[superTitleIndex].attributes[attributeIndex].items[itemIndex].bulletPoints.push('');
+                              return newSuperTitles;
+                            });
                           }}
                         >
                           Add Bullet Point
-                        </IconButton>
+                        </button>
                       </div>
                     ))}
-                    <IconButton type="button" onClick={() => addItem(superTitleIndex, attributeIndex)}>Add Item</IconButton>
+                    <button className="icon-button" type="button" onClick={() => addItem(superTitleIndex, attributeIndex)}>Add Item</button>
                   </div>
                 ))}
-                <IconButton type="button" onClick={() => addAttribute(superTitleIndex)}>Add Attribute</IconButton>
+                <button className="icon-button" type="button" onClick={() => addAttribute(superTitleIndex)}>Add Attribute</button>
               </div>
             ))}
-            <IconButton type="button" onClick={addSuperTitle}>Add Super Title</IconButton>
-          </Section>
-          <Section>
-            <SectionTitle>Summary</SectionTitle>
+            <button className="icon-button" type="button" onClick={addSuperTitle}>Add Super Title</button>
+          </div>
+
+          <div className="section">
+            <h3 className="section-title">Summary</h3>
             <FormGroup>
               <Tooltip title="Enter a brief summary of your post. Use [text](url) for links, e.g., [Visit Zedemy](https://zedemy.vercel.app/). HTML tags like <p> are allowed.">
-                <Label>Summary</Label>
+                <label className="label">Summary</label>
               </Tooltip>
-              <TextArea rows="5" value={summary} onChange={(e) => setSummary(e.target.value)} />
+              <textarea className="textarea" rows="5" value={summary} onChange={e => setSummary(e.target.value)} />
             </FormGroup>
-          </Section>
+          </div>
 
-          <Button type="submit" disabled={isUploading}>
+          <button className="button" type="submit" disabled={isUploading}>
             {isUploading ? 'Uploading...' : 'Add Post'}
-          </Button>
+          </button>
         </form>
-      </FullWidthSection>
-    </FormContainer>
+      </div>
+    </div>
   );
-};
+});
 
 export default AddPostForm;
