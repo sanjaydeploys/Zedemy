@@ -95,9 +95,8 @@ const ContentSection = styled.section`
     font-size: 1rem;
     line-height: 1.6;
   }
-  /* Optimize for mobile by deferring off-screen content rendering */
   content-visibility: auto;
-  contain-intrinsic-size: 1px 500px; /* Estimate height to reduce layout shifts */
+  contain-intrinsic-size: 1px 500px;
 `;
 
 const ImageContainer = styled.figure`
@@ -118,6 +117,12 @@ const PostImage = styled.img`
   @media (min-width: 769px) {
     max-width: 480px;
   }
+  @media (max-width: 480px) {
+    max-width: 240px;
+  }
+  @media (max-width: 320px) {
+    max-width: 200px;
+  }
 `;
 
 const LQIPImage = styled.img`
@@ -134,6 +139,12 @@ const LQIPImage = styled.img`
   @media (min-width: 769px) {
     max-width: 480px;
   }
+  @media (max-width: 480px) {
+    max-width: 240px;
+  }
+  @media (max-width: 320px) {
+    max-width: 200px;
+  }
 `;
 
 const VideoContainer = styled.figure`
@@ -149,6 +160,12 @@ const PostVideo = styled.video`
   border-radius: 0.375rem;
   @media (min-width: 769px) {
     max-width: 480px;
+  }
+  @media (max-width: 480px) {
+    max-width: 240px;
+  }
+  @media (max-width: 320px) {
+    max-width: 200px;
   }
 `;
 
@@ -181,6 +198,14 @@ const criticalCSS = `
     img { max-width: 480px; }
     video { max-width: 480px; }
   }
+  @media (max-width: 480px) {
+    img { max-width: 240px; }
+    video { max-width: 240px; }
+  }
+  @media (max-width: 320px) {
+    img { max-width: 200px; }
+    video { max-width: 200px; }
+  }
   @font-face {
     font-family: 'Segoe UI';
     src: local('Segoe UI'), local('BlinkMacSystemFont'), local('-apple-system');
@@ -189,7 +214,6 @@ const criticalCSS = `
 `;
 
 const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
-  // Split content into above-the-fold and below-the-fold
   const [visibleContent, setVisibleContent] = useState('');
   const [remainingContent, setRemainingContent] = useState(null);
   const contentRef = useRef(null);
@@ -197,48 +221,39 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
   useEffect(() => {
     if (!post?.content) return;
 
-    // Parse content and split into chunks
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(`<div>${post.content}</div>`, 'text/html');
-    const paragraphs = doc.querySelectorAll('p, div, span, li');
-    
-    // Estimate above-the-fold content (first 2 paragraphs or ~300 words)
+    // Lightweight text-based splitting to avoid DOM parsing
+    const content = post.content || '';
+    const paragraphs = content.split(/(<p[^>]*>.*?<\/p>)/gi).filter(p => p.trim());
+
     let wordCount = 0;
-    let aboveFoldNodes = [];
-    let belowFoldNodes = [];
+    let aboveFoldContent = [];
+    let belowFoldContent = [];
     let isAboveFold = true;
 
-    paragraphs.forEach((node, index) => {
-      const text = node.textContent || '';
+    for (let i = 0; i < paragraphs.length; i++) {
+      const para = paragraphs[i];
+      const text = para.replace(/<[^>]+>/g, '');
       const words = text.split(/\s+/).filter(w => w).length;
       wordCount += words;
 
-      if (isAboveFold && (wordCount < 300 || index < 2)) {
-        aboveFoldNodes.push(node);
+      if (isAboveFold && (wordCount < 300 || i < 2)) {
+        aboveFoldContent.push(para);
       } else {
         isAboveFold = false;
-        belowFoldNodes.push(node);
+        belowFoldContent.push(para);
       }
-    });
+    }
 
-    // Serialize above-the-fold content
-    const aboveFoldDiv = document.createElement('div');
-    aboveFoldNodes.forEach(node => aboveFoldDiv.appendChild(node.cloneNode(true)));
-    setVisibleContent(aboveFoldDiv.innerHTML);
+    setVisibleContent(aboveFoldContent.join(''));
 
-    // Serialize below-the-fold content (deferred)
-    if (belowFoldNodes.length > 0) {
+    if (belowFoldContent.length > 0) {
       if (typeof window !== 'undefined' && window.requestIdleCallback) {
         window.requestIdleCallback(() => {
-          const belowFoldDiv = document.createElement('div');
-          belowFoldNodes.forEach(node => belowFoldDiv.appendChild(node.cloneNode(true)));
-          setRemainingContent(belowFoldDiv.innerHTML);
+          setRemainingContent(belowFoldContent.join(''));
         }, { timeout: 2000 });
       } else {
         setTimeout(() => {
-          const belowFoldDiv = document.createElement('div');
-          belowFoldNodes.forEach(node => belowFoldDiv.appendChild(node.cloneNode(true)));
-          setRemainingContent(belowFoldDiv.innerHTML);
+          setRemainingContent(belowFoldContent.join(''));
         }, 2000);
       }
     }
@@ -256,20 +271,21 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
       {post.titleImage && (
         <ImageContainer>
           <LQIPImage
-            src={`${post.titleImage}?w=20&format=webp&q=5`}
+            src={`${post.titleImage}?w=20&format=webp&q=1`}
             alt="Low quality placeholder"
             width="280"
             height="157.5"
           />
           <PostImage
-            src={`${post.titleImage}?w=80&format=avif&q=5`}
+            src={`${post.titleImage}?w=200&format=avif&q=50`}
             srcSet={`
-              ${post.titleImage}?w=80&format=avif&q=5 80w,
-              ${post.titleImage}?w=120&format=avif&q=5 120w,
-              ${post.titleImage}?w=200&format=avif&q=5 200w,
-              ${post.titleImage}?w=280&format=avif&q=5 280w
+              ${post.titleImage}?w=100&format=avif&q=50 100w,
+              ${post.titleImage}?w=150&format=avif&q=50 150w,
+              ${post.titleImage}?w=200&format=avif&q=50 200w,
+              ${post.titleImage}?w=280&format=avif&q=50 280w,
+              ${post.titleImage}?w=480&format=avif&q=50 480w
             `}
-            sizes="(max-width: 320px) 80px, (max-width: 480px) 120px, (max-width: 768px) 200px, 280px"
+            sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
             alt={`Illustration for ${post.title}`}
             width="280"
             height="157.5"
@@ -382,14 +398,12 @@ const PostPage = memo(() => {
     }
   }, [dispatch, slug, hasFetched]);
 
-  // Defer read time calculation to avoid blocking initial render
   const calculateReadTimeAndWordCount = useMemo(() => {
-    return { readTime, wordCount: 0 }; // Use state for readTime
+    return { readTime, wordCount: 0 };
   }, [readTime]);
 
   useEffect(() => {
     if (!post) return;
-    // Defer read time calculation
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
       window.requestIdleCallback(() => {
         const text = [
@@ -417,7 +431,7 @@ const PostPage = memo(() => {
 
   useEffect(() => {
     if (!post) return;
-    setParsedTitle(parseLinks(post.title || '', post.category || ''));
+    setParsedTitle(post.title); // Defer parseLinks to PostContentNonCritical
   }, [post]);
 
   useEffect(() => {
@@ -453,7 +467,7 @@ const PostPage = memo(() => {
             url: canonicalUrl,
             mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
             timeRequired: `PT${readTime}M`,
-            wordCount: 0, // Word count deferred
+            wordCount: 0,
             inLanguage: 'en',
             sameAs: ['https://x.com/zedemy', 'https://linkedin.com/company/zedemy'],
           },
@@ -510,7 +524,7 @@ const PostPage = memo(() => {
         scheduler.postTask(
           () => {
             const img = new Image();
-            img.src = `${post.titleImage}?w=80&format=avif&q=5`;
+            img.src = `${post.titleImage}?w=200&format=avif&q=50`;
             img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
           },
           { priority: 'background' }
@@ -519,7 +533,7 @@ const PostPage = memo(() => {
         window.requestIdleCallback(
           () => {
             const img = new Image();
-            img.src = `${post.titleImage}?w=80&format=avif&q=5`;
+            img.src = `${post.titleImage}?w=200&format=avif&q=50`;
             img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
           },
           { timeout: 1000 }
@@ -572,16 +586,17 @@ const PostPage = memo(() => {
             <link
               rel="preload"
               as="image"
-              href={`${post.titleImage}?w=80&format=avif&q=5`}
+              href={`${post.titleImage}?w=200&format=avif&q=50`}
               crossOrigin="anonymous"
               fetchpriority="high"
               imagesrcset={`
-                ${post.titleImage}?w=80&format=avif&q=5 80w,
-                ${post.titleImage}?w=120&format=avif&q=5 120w,
-                ${post.titleImage}?w=200&format=avif&q=5 200w,
-                ${post.titleImage}?w=280&format=avif&q=5 280w
+                ${post.titleImage}?w=100&format=avif&q=50 100w,
+                ${post.titleImage}?w=150&format=avif&q=50 150w,
+                ${post.titleImage}?w=200&format=avif&q=50 200w,
+                ${post.titleImage}?w=280&format=avif&q=50 280w,
+                ${post.titleImage}?w=480&format=avif&q=50 480w
               `}
-              imagesizes="(max-width: 320px) 80px, (max-width: 480px) 120px, (max-width: 768px) 200px, 280px"
+              imagesizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
             />
           </>
         )}
