@@ -3,13 +3,11 @@ import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { parseLinks, slugify } from './utils';
 
-// Lazy-loaded components
 const RelatedPosts = React.lazy(() => import('./RelatedPosts'));
 const AccessibleZoom = React.lazy(() => import('./AccessibleZoom'));
 const ComparisonTable = React.lazy(() => import('./ComparisonTable'));
 const CodeHighlighter = React.lazy(() => import('./CodeHighlighter'));
 
-// Styled components
 const SubtitleHeader = styled.h2`
   font-size: clamp(1.25rem, 3vw, 1.5rem);
   color: #011020;
@@ -59,6 +57,12 @@ const PostImage = styled.img`
   @media (min-width: 769px) {
     max-width: 480px;
   }
+  @media (max-width: 480px) {
+    max-width: 240px;
+  }
+  @media (max-width: 320px) {
+    max-width: 200px;
+  }
 `;
 
 const LQIPImage = styled.img`
@@ -75,6 +79,12 @@ const LQIPImage = styled.img`
   @media (min-width: 769px) {
     max-width: 480px;
   }
+  @media (max-width: 480px) {
+    max-width: 240px;
+  }
+  @media (max-width: 320px) {
+    max-width: 200px;
+  }
 `;
 
 const VideoContainer = styled.figure`
@@ -90,6 +100,12 @@ const PostVideo = styled.video`
   border-radius: 0.375rem;
   @media (min-width: 769px) {
     max-width: 480px;
+  }
+  @media (max-width: 480px) {
+    max-width: 240px;
+  }
+  @media (max-width: 320px) {
+    max-width: 200px;
   }
 `;
 
@@ -143,7 +159,6 @@ const NavigationLinks = styled.nav`
   }
 `;
 
-// Debounce utility
 const debounce = (func, wait) => {
   let timeout;
   return (...args) => {
@@ -152,32 +167,55 @@ const debounce = (func, wait) => {
   };
 };
 
-// Subtitle Section Component
 const SubtitleSection = memo(({ subtitle, index, category }) => {
+  const [parsedTitle, setParsedTitle] = useState(subtitle.title || '');
+  const [parsedBulletPoints, setParsedBulletPoints] = useState(subtitle.bulletPoints || []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.requestIdleCallback) {
+      window.requestIdleCallback(() => {
+        setParsedTitle(parseLinks(subtitle.title || '', category));
+        setParsedBulletPoints((subtitle.bulletPoints || []).map(point => ({
+          ...point,
+          text: parseLinks(point.text || '', category),
+        })));
+      }, { timeout: 3000 });
+    } else {
+      setTimeout(() => {
+        setParsedTitle(parseLinks(subtitle.title || '', category));
+        setParsedBulletPoints((subtitle.bulletPoints || []).map(point => ({
+          ...point,
+          text: parseLinks(point.text || '', category),
+        })));
+      }, 3000);
+    }
+  }, [subtitle, category]);
+
   if (!subtitle) return null;
 
   return (
     <section id={`subtitle-${index}`} aria-labelledby={`subtitle-${index}-heading`}>
-      <SubtitleHeader id={`subtitle-${index}-heading`}>{parseLinks(subtitle.title || '', category)}</SubtitleHeader>
+      <SubtitleHeader id={`subtitle-${index}-heading`}>{parsedTitle}</SubtitleHeader>
       {subtitle.image && (
         <ImageContainer>
           <Suspense fallback={<Placeholder minHeight="180px">Loading image...</Placeholder>}>
             <AccessibleZoom caption={subtitle.title || ''}>
               <LQIPImage
-                src={`${subtitle.image}?w=20&format=webp&q=5`}
+                src={`${subtitle.image}?w=20&format=webp&q=1`}
                 alt="Low quality placeholder"
                 width="280"
                 height="157.5"
               />
               <PostImage
-                src={`${subtitle.image}?w=80&format=avif&q=5`}
+                src={`${subtitle.image}?w=200&format=avif&q=50`}
                 srcSet={`
-                  ${subtitle.image}?w=80&format=avif&q=5 80w,
-                  ${subtitle.image}?w=120&format=avif&q=5 120w,
-                  ${subtitle.image}?w=200&format=avif&q=5 200w,
-                  ${subtitle.image}?w=280&format=avif&q=5 280w
+                  ${subtitle.image}?w=100&format=avif&q=50 100w,
+                  ${subtitle.image}?w=150&format=avif&q=50 150w,
+                  ${subtitle.image}?w=200&format=avif&q=50 200w,
+                  ${subtitle.image}?w=280&format=avif&q=50 280w,
+                  ${subtitle.image}?w=480&format=avif&q=50 480w
                 `}
-                sizes="(max-width: 320px) 80px, (max-width: 480px) 120px, (max-width: 768px) 200px, 280px"
+                sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
                 alt={subtitle.title || 'Subtitle image'}
                 width="280"
                 height="157.5"
@@ -208,28 +246,29 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
         </VideoContainer>
       )}
       <ul style={{ paddingLeft: '1.25rem', fontSize: '1.1rem', lineHeight: '1.7' }}>
-        {(subtitle.bulletPoints || []).map((point, j) => (
+        {parsedBulletPoints.map((point, j) => (
           <li key={j} style={{ marginBottom: '0.5rem' }}>
-            {parseLinks(point.text || '', category)}
+            <span dangerouslySetInnerHTML={{ __html: point.text }} />
             {point.image && (
               <ImageContainer>
                 <Suspense fallback={<Placeholder minHeight="180px">Loading image...</Placeholder>}>
                   <AccessibleZoom caption={`Example for ${point.text || ''}`}>
                     <LQIPImage
-                      src={`${point.image}?w=20&format=webp&q=5`}
+                      src={`${point.image}?w=20&format=webp&q=1`}
                       alt="Low quality placeholder"
                       width="280"
                       height="157.5"
                     />
                     <PostImage
-                      src={`${point.image}?w=80&format=avif&q=5`}
+                      src={`${point.image}?w=200&format=avif&q=50`}
                       srcSet={`
-                        ${point.image}?w=80&format=avif&q=5 80w,
-                        ${point.image}?w=120&format=avif&q=5 120w,
-                        ${point.image}?w=200&format=avif&q=5 200w,
-                        ${point.image}?w=280&format=avif&q=5 280w
+                        ${point.image}?w=100&format=avif&q=50 100w,
+                        ${point.image}?w=150&format=avif&q=50 150w,
+                        ${point.image}?w=200&format=avif&q=50 200w,
+                        ${point.image}?w=280&format=avif&q=50 280w,
+                        ${point.image}?w=480&format=avif&q=50 480w
                       `}
-                      sizes="(max-width: 320px) 80px, (max-width: 480px) 120px, (max-width: 768px) 200px, 280px"
+                      sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
                       alt={`Example for ${point.text || 'bullet point'}`}
                       width="280"
                       height="157.5"
@@ -283,7 +322,6 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
   );
 });
 
-// Lazy Subtitle Section
 const LazySubtitleSection = memo(({ subtitle, index, category }) => {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef();
@@ -313,7 +351,6 @@ const LazySubtitleSection = memo(({ subtitle, index, category }) => {
   );
 });
 
-// Lazy References Section
 const LazyReferencesSection = memo(({ post }) => {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef();
@@ -371,12 +408,10 @@ const LazyReferencesSection = memo(({ post }) => {
   );
 });
 
-// PostContentNonCritical Component
 const PostContentNonCritical = memo(
   ({ post, relatedPosts, completedPosts, dispatch, isSidebarOpen, setSidebarOpen, activeSection, setActiveSection, subtitlesListRef }) => {
-    const [parsedSummary, setParsedSummary] = useState('');
+    const [parsedSummary, setParsedSummary] = useState(post.summary || '');
 
-    // Debounced Intersection Observer
     const debouncedObserve = React.useMemo(
       () =>
         debounce(entries => {
@@ -421,7 +456,6 @@ const PostContentNonCritical = memo(
       }
     }, [subtitleSlugs]);
 
-    // Parse summary (deferred)
     useEffect(() => {
       if (!post?.summary) return;
       if (typeof window !== 'undefined' && window.requestIdleCallback) {
@@ -435,7 +469,6 @@ const PostContentNonCritical = memo(
       }
     }, [post]);
 
-    // Intersection Observer setup (deferred)
     useEffect(() => {
       if (!post) return;
       if (typeof window !== 'undefined' && window.requestIdleCallback) {
@@ -486,7 +519,7 @@ const PostContentNonCritical = memo(
         {post.summary && (
           <section id="summary" aria-labelledby="summary-heading">
             <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
-            <p style={{ fontSize: '1.1rem', lineHeight: '1.7' }}>{parsedSummary || post.summary}</p>
+            <p style={{ fontSize: '1.1rem', lineHeight: '1.7' }} dangerouslySetInnerHTML={{ __html: parsedSummary }} />
           </section>
         )}
 
