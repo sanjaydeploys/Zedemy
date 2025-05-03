@@ -78,15 +78,12 @@ const ContentSection = styled.section`
   font-size: 1.1rem;
   line-height: 1.7;
   margin-bottom: 1.5rem;
-  content-visibility: visible; /* Changed to visible to prioritize initial render */
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 300px;
   @media (min-width: 769px) {
     font-size: 1rem;
     line-height: 1.6;
   }
-`;
-
-const ContentWrapper = styled.div`
-  display: contents; /* Prevents layout shifts while ensuring early parsing */
 `;
 
 const ImageContainer = styled.figure`
@@ -207,7 +204,7 @@ const criticalCSS = `
   .container { display: flex; min-height: 100vh; flex-direction: column; }
   main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 2000px; }
   h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; margin: 0.75rem 0 1rem; line-height: 1.3; }
-  section { font-size: 1.1rem; line-height: 1.7; margin-bottom: 1.5rem; content-visibility: visible; }
+  section { font-size: 1.1rem; line-height: 1.7; margin-bottom: 1.5rem; content-visibility: auto; contain-intrinsic-size: 1px 300px; }
   figure { width: 100%; max-width: 100%; margin: 1rem 0; position: relative; aspect-ratio: 16 / 9; height: 157.5px; }
   img { width: 100%; max-width: 280px; height: 157.5px; border-radius: 0.375rem; }
   video { width: 100%; max-width: 280px; height: 157.5px; border-radius: 0.375rem; }
@@ -239,24 +236,6 @@ const criticalCSS = `
 `;
 
 const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
-  useEffect(() => {
-    // Preload the content HTML to reduce parsing delays
-    if (post?.content) {
-      const blob = new Blob([post.content], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('link');
-      link.rel = 'preload';
-      link.as = 'document';
-      link.href = url;
-      link.fetchPriority = 'high';
-      document.head.appendChild(link);
-      return () => {
-        document.head.removeChild(link);
-        URL.revokeObjectURL(url);
-      };
-    }
-  }, [post?.content]);
-
   return (
     <>
       <header>
@@ -265,6 +244,8 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
           Read time: {calculateReadTimeAndWordCount.readTime} min
         </div>
       </header>
+
+      <ContentSection className="sc-jBqEzj YWAkL" dangerouslySetInnerHTML={{ __html: post.content }} />
 
       {post.titleImage && (
         <ImageContainer>
@@ -316,9 +297,6 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
       <p style={{ fontSize: '0.875rem', marginBottom: '1rem' }}>
         <time dateTime={post.date}>{post.date}</time> | Author: {post.author || 'Zedemy Team'}
       </p>
-      <ContentSection className="sc-jBqEzj YWAkL">
-        <ContentWrapper dangerouslySetInnerHTML={{ __html: post.content }} />
-      </ContentSection>
     </>
   );
 });
