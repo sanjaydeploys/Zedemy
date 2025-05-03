@@ -5,18 +5,19 @@ import { useParams, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { parseLinks, slugify, truncateText } from './utils';
 
-// Lazy-loaded dependencies
+// Static imports for critical dependencies
+import { Helmet, HelmetProvider } from 'react-helmet-async';
+
+// Lazy-loaded dependencies (only non-critical ones)
 const loadDependencies = async () => {
   const [
-    { Helmet, HelmetProvider },
     { ClipLoader },
     { createSelector },
   ] = await Promise.all([
-    import('react-helmet-async'),
     import('react-spinners'),
     import('reselect'),
   ]);
-  return { Helmet, HelmetProvider, ClipLoader, createSelector };
+  return { ClipLoader, createSelector };
 };
 
 // Lazy-loaded components
@@ -213,15 +214,18 @@ const NavigationLinks = styled.nav`
   }
 `;
 
-// Critical CSS (extracted to file in production)
+// Expanded Critical CSS
 const criticalCSS = `
   html { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; }
   .container { display: flex; min-height: 100vh; }
   main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 1500px; }
-  h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; }
+  h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; margin: 0.75rem 0 1rem; line-height: 1.2; }
   figure { width: 100%; max-width: 100%; margin: 0.75rem 0; aspect-ratio: 16 / 9; }
   img { width: 100%; height: auto; max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 0.375rem; aspect-ratio: 16 / 9; }
   video { width: 100%; height: auto; max-width: 100%; max-height: 60vh; border-radius: 0.375rem; aspect-ratio: 16 / 9; }
+  nav { margin: 1rem 0; display: flex; gap: 0.75rem; flex-wrap: wrap; font-size: 0.75rem; }
+  nav a { min-height: 44px; display: inline-flex; align-items: center; padding: 0.5rem; }
+  p { font-size: 0.875rem; }
   @font-face {
     font-family: 'Segoe UI';
     src: local('Segoe UI'), local('BlinkMacSystemFont'), local('-apple-system');
@@ -240,7 +244,7 @@ const PostPage = memo(() => {
   const [hasFetched, setHasFetched] = useState(false);
   const [deps, setDeps] = useState(null);
 
-  // Load dependencies
+  // Load non-critical dependencies
   useEffect(() => {
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
       window.requestIdleCallback(() => loadDependencies().then(setDeps));
@@ -273,7 +277,7 @@ const PostPage = memo(() => {
   const relatedPosts = useSelector(selectors?.selectRelatedPosts || (state => []));
   const completedPosts = useSelector(selectors?.selectCompletedPosts || (state => []));
 
-  // Debounced Intersection Observer
+  // Debounced Intersection Observer (deferred)
   const debouncedObserve = useMemo(
     () =>
       debounce(entries => {
@@ -363,13 +367,16 @@ const PostPage = memo(() => {
 
   useEffect(() => {
     if (!post) return;
-    const observer = new IntersectionObserver(debouncedObserve, {
-      root: null,
-      rootMargin: '0px',
-      threshold: [0.1, 0.3, 0.5],
-    });
-    document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
-    return () => observer.disconnect();
+    // Defer IntersectionObserver setup
+    setTimeout(() => {
+      const observer = new IntersectionObserver(debouncedObserve, {
+        root: null,
+        rootMargin: '0px',
+        threshold: [0.1, 0.3, 0.5],
+      });
+      document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
+      return () => observer.disconnect();
+    }, 1000);
   }, [post, debouncedObserve]);
 
   useEffect(() => {
@@ -378,7 +385,7 @@ const PostPage = memo(() => {
         scheduler.postTask(
           () => {
             const img = new Image();
-            img.src = `${post.titleImage}?w=480&format=avif&q=75`;
+            img.src = `${post.titleImage}?w=320&format=avif&q=50`;
             img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
           },
           { priority: 'background' }
@@ -387,7 +394,7 @@ const PostPage = memo(() => {
         requestIdleCallback(
           () => {
             const img = new Image();
-            img.src = `${post.titleImage}?w=480&format=avif&q=75`;
+            img.src = `${post.titleImage}?w=320&format=avif&q=50`;
             img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
           },
           { timeout: 1000 }
@@ -508,12 +515,12 @@ const PostPage = memo(() => {
             <Suspense fallback={<Placeholder minHeight="270px">Loading image...</Placeholder>}>
               <AccessibleZoom caption={subtitle.title || ''}>
                 <PostImage
-                  src={`${subtitle.image}?w=480&format=avif&q=75`}
+                  src={`${subtitle.image}?w=320&format=avif&q=50`}
                   srcSet={`
-                    ${subtitle.image}?w=320&format=avif&q=75 320w,
-                    ${subtitle.image}?w=480&format=avif&q=75 480w,
-                    ${subtitle.image}?w=768&format=avif&q=75 768w,
-                    ${subtitle.image}?w=1024&format=avif&q=75 1024w
+                    ${subtitle.image}?w=320&format=avif&q=50 320w,
+                    ${subtitle.image}?w=480&format=avif&q=50 480w,
+                    ${subtitle.image}?w=768&format=avif&q=50 768w,
+                    ${subtitle.image}?w=1024&format=avif&q=50 1024w
                   `}
                   sizes="(max-width: 480px) 320px, (max-width: 768px) 480px, (max-width: 1024px) 768px, 1024px"
                   alt={subtitle.title || 'Subtitle image'}
@@ -533,7 +540,7 @@ const PostPage = memo(() => {
             <PostVideo
               controls
               preload="none"
-              poster={`${subtitle.videoPoster || subtitle.image}?w=480&format=webp&q=75`}
+              poster={`${subtitle.videoPoster || subtitle.image}?w=320&format=webp&q=50`}
               width="480"
               height="270"
               loading="lazy"
@@ -554,12 +561,12 @@ const PostPage = memo(() => {
                   <Suspense fallback={<Placeholder minHeight="270px">Loading image...</Placeholder>}>
                     <AccessibleZoom caption={`Example for ${point.text || ''}`}>
                       <PostImage
-                        src={`${point.image}?w=480&format=avif&q=75`}
+                        src={`${point.image}?w=320&format=avif&q=50`}
                         srcSet={`
-                          ${point.image}?w=320&format=avif&q=75 320w,
-                          ${point.image}?w=480&format=avif&q=75 480w,
-                          ${point.image}?w=768&format=avif&q=75 768w,
-                          ${point.image}?w=1024&format=avif&q=75 1024w
+                          ${point.image}?w=320&format=avif&q=50 320w,
+                          ${point.image}?w=480&format=avif&q=50 480w,
+                          ${point.image}?w=768&format=avif&q=50 768w,
+                          ${point.image}?w=1024&format=avif&q=50 1024w
                         `}
                         sizes="(max-width: 480px) 320px, (max-width: 768px) 480px, (max-width: 1024px) 768px, 1024px"
                         alt={`Example for ${point.text || 'bullet point'}`}
@@ -579,7 +586,7 @@ const PostPage = memo(() => {
                   <PostVideo
                     controls
                     preload="none"
-                    poster={`${point.videoPoster || point.image}?w=480&format=webp&q=75`}
+                    poster={`${point.videoPoster || point.image}?w=320&format=webp&q=50`}
                     width="480"
                     height="270"
                     loading="lazy"
@@ -628,7 +635,7 @@ const PostPage = memo(() => {
             observer.disconnect();
           }
         },
-        { rootMargin: '500px', threshold: 0.1 }
+        { rootMargin: '1000px', threshold: 0.1 }
       );
       if (ref.current) observer.observe(ref.current);
       return () => observer.disconnect();
@@ -658,7 +665,7 @@ const PostPage = memo(() => {
             observer.disconnect();
           }
         },
-        { rootMargin: '500px', threshold: 0.1 }
+        { rootMargin: '1000px', threshold: 0.1 }
       );
       if (ref.current) observer.observe(ref.current);
       return () => observer.disconnect();
@@ -711,7 +718,7 @@ const PostPage = memo(() => {
     );
   }
 
-  const { Helmet, HelmetProvider, ClipLoader } = deps;
+  const { ClipLoader } = deps;
 
   if (!post && !hasFetched) {
     return (
@@ -751,19 +758,20 @@ const PostPage = memo(() => {
         <meta name="robots" content="index, follow, max-image-preview:large" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
+        <link rel="preconnect" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
         <link rel="preload" href="/highlight.js/styles/vs.css" as="style" fetchpriority="high" />
         <link rel="stylesheet" href="/highlight.js/styles/vs.css" media="print" onLoad="this.media='all'" fetchpriority="low" />
         {post.titleImage && (
           <link
             rel="preload"
             as="image"
-            href={`${post.titleImage}?w=480&format=avif&q=75`}
+            href={`${post.titleImage}?w=320&format=avif&q=50`}
             fetchpriority="high"
             imagesrcset={`
-              ${post.titleImage}?w=320&format=avif&q=75 320w,
-              ${post.titleImage}?w=480&format=avif&q=75 480w,
-              ${post.titleImage}?w=768&format=avif&q=75 768w,
-              ${post.titleImage}?w=1024&format=avif&q=75 1024w
+              ${post.titleImage}?w=320&format=avif&q=50 320w,
+              ${post.titleImage}?w=480&format=avif&q=50 480w,
+              ${post.titleImage}?w=768&format=avif&q=50 768w,
+              ${post.titleImage}?w=1024&format=avif&q=50 1024w
             `}
             imagesizes="(max-width: 480px) 320px, (max-width: 768px) 480px, (max-width: 1024px) 768px, 1024px"
           />
@@ -814,12 +822,12 @@ const PostPage = memo(() => {
                 <Suspense fallback={<Placeholder minHeight="270px">Loading image...</Placeholder>}>
                   <AccessibleZoom caption={`Illustration for ${post.title}`}>
                     <PostImage
-                      src={`${post.titleImage}?w=480&format=avif&q=75`}
+                      src={`${post.titleImage}?w=320&format=avif&q=50`}
                       srcSet={`
-                        ${post.titleImage}?w=320&format=avif&q=75 320w,
-                        ${post.titleImage}?w=480&format=avif&q=75 480w,
-                        ${post.titleImage}?w=768&format=avif&q=75 768w,
-                        ${post.titleImage}?w=1024&format=avif&q=75 1024w
+                        ${post.titleImage}?w=320&format=avif&q=50 320w,
+                        ${post.titleImage}?w=480&format=avif&q=50 480w,
+                        ${post.titleImage}?w=768&format=avif&q=50 768w,
+                        ${post.titleImage}?w=1024&format=avif&q=50 1024w
                       `}
                       sizes="(max-width: 480px) 320px, (max-width: 768px) 480px, (max-width: 1024px) 768px, 1024px"
                       alt={`Illustration for ${post.title}`}
@@ -840,7 +848,7 @@ const PostPage = memo(() => {
                 <PostVideo
                   controls
                   preload="metadata"
-                  poster={`${post.titleVideoPoster || post.titleImage}?w=480&format=webp&q=75`}
+                  poster={`${post.titleVideoPoster || post.titleImage}?w=320&format=webp&q=50`}
                   width="480"
                   height="270"
                   loading="eager"
