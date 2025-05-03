@@ -114,11 +114,11 @@ export default defineConfig({
     assetsInlineLimit: 4096,
     chunkSizeWarningLimit: 250, // Stricter limit for bundle size monitoring
   },
-  optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
-    exclude: ['highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash'],
-    force: true,
-  },
+ optimizeDeps: {
+  include: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
+  exclude: ['highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'popper.js'],
+  force: true,
+},
   server: {
     fs: { allow: ['.'] },
     hmr: { overlay: true },
