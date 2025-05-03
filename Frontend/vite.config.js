@@ -86,7 +86,7 @@ export default defineConfig({
       '@pages': '/src/pages',
       '@actions': '/src/actions',
     },
-    dedupe: ['react', 'react-dom', 'react-router-dom', 'popper.js'],
+    dedupe: ['react', 'react-dom', 'react-router-dom', 'framer-motion', 'popper.js'],
   },
   build: {
     minify: 'esbuild',
@@ -101,33 +101,26 @@ export default defineConfig({
         experimentalMinChunkSize: 10000,
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom') || id.includes('redux') || id.includes('react-redux')) {
+            // Group React-related dependencies into a single vendor chunk
+            if (
+              id.includes('react') ||
+              id.includes('react-dom') ||
+              id.includes('react-router-dom') ||
+              id.includes('redux') ||
+              id.includes('react-redux')
+            ) {
               return 'vendor';
             }
-            if (id.includes('framer-motion') || id.includes('jss') || id.includes('react-toastify')) {
-              return 'uiLibs';
-            }
-            if (id.includes('react-syntax-highlighter') || id.includes('highlight.js') || id.includes('refractor')) {
+            // Keep syntax_highlighter separate since it's lazy-loaded
+            if (
+              id.includes('react-syntax-highlighter') ||
+              id.includes('highlight.js') ||
+              id.includes('refractor')
+            ) {
               return 'syntax_highlighter';
             }
-            if (id.includes('@codemirror')) {
-              return 'codemirror';
-            }
-            if (id.includes('parse5')) {
-              return 'parse5';
-            }
-            if (id.includes('lodash')) {
-              return 'lodash';
-            }
-            if (id.includes('popper.js') || id.includes('@react-spring')) {
-              return 'unused_libs';
-            }
           }
-          if (id.includes('src/pages')) {
-            if (id.includes('AddPostForm.jsx')) return 'addPostForm';
-            if (id.includes('Dashboard.jsx')) return 'dashboard';
-            if (id.includes('Home.jsx')) return 'home';
-          }
+          // Let Vite handle page-specific chunks automatically
         },
       },
     },
@@ -137,8 +130,8 @@ export default defineConfig({
     chunkSizeWarningLimit: 250,
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux', 'framer-motion', 'jss', 'react-toastify'],
-    exclude: ['highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'popper.js', 'react-syntax-highlighter', '@react-spring/core'],
+    include: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux', 'framer-motion'],
+    exclude: ['highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'popper.js', 'react-syntax-highlighter'],
     force: true,
   },
   server: {
