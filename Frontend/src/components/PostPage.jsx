@@ -215,13 +215,14 @@ const criticalCSS = `
 
 const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
   const [visibleContent, setVisibleContent] = useState('');
+  const [visibleContentHtml, setVisibleContentHtml] = useState(null);
   const [remainingContent, setRemainingContent] = useState(null);
   const contentRef = useRef(null);
 
   useEffect(() => {
     if (!post?.content) return;
 
-    // Lightweight text-based splitting to avoid DOM parsing
+    // Lightweight text-based splitting
     const content = post.content || '';
     const paragraphs = content.split(/(<p[^>]*>.*?<\/p>)/gi).filter(p => p.trim());
 
@@ -244,7 +245,20 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
       }
     }
 
-    setVisibleContent(aboveFoldContent.join(''));
+    // Initial render with plain text
+    const plainText = aboveFoldContent.map(p => p.replace(/<[^>]+>/g, '')).join('\n');
+    setVisibleContent(plainText);
+
+    // Defer HTML parsing
+    if (typeof window !== 'undefined' && window.requestIdleCallback) {
+      window.requestIdleCallback(() => {
+        setVisibleContentHtml(aboveFoldContent.join(''));
+      }, { timeout: 1000 });
+    } else {
+      setTimeout(() => {
+        setVisibleContentHtml(aboveFoldContent.join(''));
+      }, 1000);
+    }
 
     if (belowFoldContent.length > 0) {
       if (typeof window !== 'undefined' && window.requestIdleCallback) {
@@ -318,7 +332,13 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
       <p style={{ fontSize: '0.875rem', marginBottom: '1rem' }}>
         <time dateTime={post.date}>{post.date}</time> | Author: {post.author || 'Zedemy Team'}
       </p>
-      <ContentSection ref={contentRef} dangerouslySetInnerHTML={{ __html: visibleContent || post.content }} />
+      <ContentSection ref={contentRef}>
+        {visibleContentHtml ? (
+          <div dangerouslySetInnerHTML={{ __html: visibleContentHtml }} />
+        ) : (
+          <p>{visibleContent}</p>
+        )}
+      </ContentSection>
       {remainingContent && (
         <ContentSection dangerouslySetInnerHTML={{ __html: remainingContent }} />
       )}
@@ -341,9 +361,9 @@ const PostPage = memo(() => {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(() => loadDependencies().then(setDeps), { timeout: 2000 });
+      window.requestIdleCallback(() => loadDependencies().then(setDeps), { timeout: 5000 });
     } else {
-      setTimeout(() => loadDependencies().then(setDeps), 2000);
+      setTimeout(() => loadDependencies().then(setDeps), 5000);
     }
   }, []);
 
@@ -366,9 +386,18 @@ const PostPage = memo(() => {
     return { selectPost, selectPosts, selectCompletedPosts, selectRelatedPosts };
   }, [deps]);
 
-  const post = useSelector(selectors?.selectPost || (state => state.postReducer.post));
-  const relatedPosts = useSelector(selectors?.selectRelatedPosts || (state => []));
-  const completedPosts = useSelector(selectors?.selectCompletedPosts || (state => []));
+  const post = useSelector(
+    selectors?.selectPost || (state => state.postReducer.post),
+    (prev, next) => prev?.postId === next?.postId
+  );
+  const relatedPosts = useSelector(
+    selectors?.selectRelatedPosts || (state => []),
+    (prev, next) => JSON.stringify(prev) === JSON.stringify(next)
+  );
+  const completedPosts = useSelector(
+    selectors?.selectCompletedPosts || (state => []),
+    (prev, next) => JSON.stringify(prev) === JSON.stringify(next)
+  );
 
   useEffect(() => {
     startTransition(() => {
@@ -414,7 +443,7 @@ const PostPage = memo(() => {
         ].join(' ');
         const words = text.split(/\s+/).filter(w => w).length;
         setReadTime(Math.ceil(words / 200));
-      }, { timeout: 3000 });
+      }, { timeout: 5000 });
     } else {
       setTimeout(() => {
         const text = [
@@ -425,13 +454,21 @@ const PostPage = memo(() => {
         ].join(' ');
         const words = text.split(/\s+/).filter(w => w).length;
         setReadTime(Math.ceil(words / 200));
-      }, 3000);
+      }, 5000);
     }
   }, [post]);
 
   useEffect(() => {
     if (!post) return;
-    setParsedTitle(post.title); // Defer parseLinks to PostContentNonCritical
+    if (typeof window !== 'undefined' && window.requestIdleCallback) {
+      window.requestIdleCallback(() => {
+        setParsedTitle(parseLinks(post.title || '', post.category || ''));
+      }, { timeout: 1000 });
+    } else {
+      setTimeout(() => {
+        setParsedTitle(parseLinks(post.title || '', post.category || ''));
+      }, 1000);
+    }
   }, [post]);
 
   useEffect(() => {
@@ -514,7 +551,7 @@ const PostPage = memo(() => {
           });
         }
         startTransition(() => setStructuredData(schemas));
-      }, { timeout: 3000 });
+      }, { timeout: 5000 });
     }
   }, [post, slug, readTime]);
 
