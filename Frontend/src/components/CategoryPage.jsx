@@ -9,10 +9,9 @@ import '../styles/CategoryPage.css';
 // Lazy-load ChatWindow
 const ChatWindow = lazy(() => import('./ChatWindow'));
 
-// Memoized PostItem to prevent unnecessary re-renders
-const PostItem = React.memo(({ post, style, fallbackImage }) => (
+// Memoized PostItem
+const PostItem = React.memo(({ post, fallbackImage }) => (
   <motion.div
-    style={style}
     className="post-item"
     initial={{ opacity: 0, y: 20 }}
     animate={{ opacity: 1, y: 0 }}
@@ -38,12 +37,10 @@ const CategoryPage = () => {
   const posts = useSelector(state => state.postReducer.posts);
   const [chatWindows, setChatWindows] = useState([]);
 
-  // Fetch posts only once
   useEffect(() => {
     dispatch(fetchPosts());
   }, [dispatch]);
 
-  // Normalize and memoize filtered posts
   const filteredPosts = useMemo(() => {
     console.log('Raw posts from Redux:', posts);
     console.log('Category from useParams:', category);
@@ -54,7 +51,6 @@ const CategoryPage = () => {
 
   console.log('Filtered Posts for category', category, ':', filteredPosts);
 
-  // Memoized getRelatedPosts
   const getRelatedPosts = useCallback((currentPostId) => {
     console.log('getRelatedPosts called with postId:', currentPostId);
     const related = filteredPosts
@@ -70,7 +66,6 @@ const CategoryPage = () => {
     return related;
   }, [filteredPosts]);
 
-  // Memoized event handlers
   const openNewChat = useCallback(() => {
     const newId = chatWindows.length + 1;
     const newPosition = {
@@ -88,7 +83,6 @@ const CategoryPage = () => {
     return <div>Loading...</div>;
   }
 
-  // SEO metadata
   const capitalizedCategory = category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
   const metaTitle = `Learn ${capitalizedCategory} - Zedemy by Sanjay Patidar`;
   const metaDescription = `Explore ${capitalizedCategory} courses on Zedemy, founded by Sanjay Patidar. Learn, code, and grow with our modern educational platform.`;
@@ -164,7 +158,7 @@ const CategoryPage = () => {
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
       <nav className="breadcrumbs">
-        <Link to="/">Home</Link> &gt; <span>{capitalizedCategory}</span>
+        <Link to="/">Home</Link> <span>{capitalizedCategory}</span>
       </nav>
       <h2 className="category-title">Category: {capitalizedCategory}</h2>
       {filteredPosts.length === 0 ? (
@@ -172,11 +166,10 @@ const CategoryPage = () => {
       ) : (
         <div className="post-list">
           <AnimatePresence>
-            {filteredPosts.map((post, index) => (
+            {filteredPosts.map(post => (
               <PostItem
                 key={post.postId}
                 post={post}
-                style={{}} // CSS animations handle transitions
                 fallbackImage={fallbackImage}
               />
             ))}
