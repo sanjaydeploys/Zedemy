@@ -82,6 +82,14 @@ const LoadingOverlay = styled.div`
   width: 100%;
 `;
 
+const SkeletonHeader = styled.div`
+  width: 60%;
+  height: 2rem;
+  background: #e0e0e0;
+  border-radius: 0.375rem;
+  margin: 0.75rem 0 1rem;
+`;
+
 const PostHeader = styled.h1`
   font-size: clamp(1.5rem, 4vw, 2rem);
   color: #111827;
@@ -142,6 +150,21 @@ const PostImage = styled.img`
   z-index: 2;
 `;
 
+const LQIPImage = styled.img`
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  border-radius: 0.375rem;
+  aspect-ratio: 16 / 9;
+  filter: blur(10px);
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+`;
+
 const VideoContainer = styled.figure`
   width: 100%;
   max-width: 100%;
@@ -169,21 +192,6 @@ const Placeholder = styled.div`
   color: #666;
   border-radius: 0.375rem;
   font-size: 0.875rem;
-`;
-
-const LQIPImage = styled.img`
-  width: 100%;
-  height: auto;
-  max-width: 100%;
-  max-height: 60vh;
-  object-fit: contain;
-  border-radius: 0.375rem;
-  aspect-ratio: 16 / 9;
-  filter: blur(10px);
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 1;
 `;
 
 const ReferencesSection = styled.section`
@@ -328,7 +336,7 @@ const PostPage = memo(() => {
         // Defer non-critical fetches
         setTimeout(() => {
           Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-        }, 2000);
+        }, 1000);
       } catch (error) {
         console.error('Fetch failed:', error);
         if (retries > 0) {
@@ -373,11 +381,11 @@ const PostPage = memo(() => {
     return { readTime: Math.ceil(words / 200), wordCount: words };
   }, [post]);
 
-  const parsedTitle = useMemo(() => parseLinks(post?.title || 'Loading...', post?.category || ''), [post?.title, post?.category]);
+  const parsedTitle = useMemo(() => parseLinks(post?.title || '', post?.category || ''), [post?.title, post?.category]);
   const parsedContent = useMemo(() => parseLinks(post?.content || '', post?.category || ''), [post?.content, post?.category]);
   const parsedSummary = useMemo(() => parseLinks(post?.summary || '', post?.category || ''), [post?.summary, post?.category]);
 
-  // Defer structured data generation
+  // Structured data generation
   useEffect(() => {
     if (!post) return;
     setTimeout(() => {
@@ -457,7 +465,7 @@ const PostPage = memo(() => {
         });
       }
       setStructuredData(schemas);
-    }, 3000);
+    }, 1500); // Reduced deferral
   }, [post, slug, calculateReadTimeAndWordCount]);
 
   useEffect(() => {
@@ -470,7 +478,7 @@ const PostPage = memo(() => {
       });
       document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
       return () => observer.disconnect();
-    }, 3000);
+    }, 1500); // Reduced deferral
   }, [post, debouncedObserve]);
 
   useEffect(() => {
@@ -536,6 +544,13 @@ const PostPage = memo(() => {
                 />
                 <PostImage
                   src={`${subtitle.image}?w=120&format=avif&q=20`}
+                  srcSet={`
+                    ${subtitle.image}?w=120&format=avif&q=20 120w,
+                    ${subtitle.image}?w=160&format=avif&q=20 160w,
+                    ${subtitle.image}?w=240&format=avif&q=20 240w,
+                    ${subtitle.image}?w=320&format=avif&q=20 320w
+                  `}
+                  sizes="(max-width: 320px) 120px, (max-width: 480px) 160px, (max-width: 768px) 240px, 320px"
                   alt={subtitle.title || 'Subtitle image'}
                   width="480"
                   height="270"
@@ -581,6 +596,13 @@ const PostPage = memo(() => {
                       />
                       <PostImage
                         src={`${point.image}?w=120&format=avif&q=20`}
+                        srcSet={`
+                          ${point.image}?w=120&format=avif&q=20 120w,
+                          ${point.image}?w=160&format=avif&q=20 160w,
+                          ${point.image}?w=240&format=avif&q=20 240w,
+                          ${point.image}?w=320&format=avif&q=20 320w
+                        `}
+                        sizes="(max-width: 320px) 120px, (max-width: 480px) 160px, (max-width: 768px) 240px, 320px"
                         alt={`Example for ${point.text || 'bullet point'}`}
                         width="480"
                         height="270"
@@ -736,7 +758,7 @@ const PostPage = memo(() => {
     return (
       <Container>
         <MainContent>
-          <PostHeader>Loading...</PostHeader>
+          <SkeletonHeader />
         </MainContent>
         <SidebarWrapper>
           <Placeholder minHeight="1200px">Loading sidebar...</Placeholder>
@@ -771,7 +793,6 @@ const PostPage = memo(() => {
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
         <link rel="preconnect" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
-        <link rel="preload" href={`https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/post/${slug}`} as="fetch" crossOrigin="anonymous" />
         <link rel="preload" href="/highlight.js/styles/vs.css" as="style" fetchpriority="low" />
         <link rel="stylesheet" href="/highlight.js/styles/vs.css" media="print" onLoad="this.media='all'" fetchpriority="low" />
         {post.titleImage && (
@@ -787,6 +808,13 @@ const PostPage = memo(() => {
               as="image"
               href={`${post.titleImage}?w=120&format=avif&q=20`}
               fetchpriority="high"
+              imagesrcset={`
+                ${post.titleImage}?w=120&format=avif&q=20 120w,
+                ${post.titleImage}?w=160&format=avif&q=20 160w,
+                ${post.titleImage}?w=240&format=avif&q=20 240w,
+                ${post.titleImage}?w=320&format=avif&q=20 320w
+              `}
+              imagesizes="(max-width: 320px) 120px, (max-width: 480px) 160px, (max-width: 768px) 240px, 320px"
             />
           </>
         )}
@@ -820,15 +848,6 @@ const PostPage = memo(() => {
               <div style={{ marginBottom: '0.5rem', color: '#666', fontSize: '0.75rem' }}>
                 Read time: {calculateReadTimeAndWordCount.readTime} min
               </div>
-              <NavigationLinks aria-label="Page navigation">
-                <Link to="/explore" aria-label="Back to blog">Blog</Link>
-                {post.category && (
-                  <Link to={`/category/${post.category.toLowerCase()}`} aria-label={`Explore ${post.category}`}>
-                    {post.category}
-                  </Link>
-                )}
-                <Link to="/" aria-label="Home">Home</Link>
-              </NavigationLinks>
             </header>
 
             {post.titleImage && (
@@ -843,6 +862,13 @@ const PostPage = memo(() => {
                     />
                     <PostImage
                       src={`${post.titleImage}?w=120&format=avif&q=20`}
+                      srcSet={`
+                        ${post.titleImage}?w=120&format=avif&q=20 120w,
+                        ${post.titleImage}?w=160&format=avif&q=20 160w,
+                        ${post.titleImage}?w=240&format=avif&q=20 240w,
+                        ${post.titleImage}?w=320&format=avif&q=20 320w
+                      `}
+                      sizes="(max-width: 320px) 120px, (max-width: 480px) 160px, (max-width: 768px) 240px, 320px"
                       alt={`Illustration for ${post.title}`}
                       width="480"
                       height="270"
@@ -895,6 +921,16 @@ const PostPage = memo(() => {
                 <p style={{ fontSize: '0.875rem' }}>{parsedSummary}</p>
               </section>
             )}
+
+            <NavigationLinks aria-label="Page navigation">
+              <Link to="/explore" aria-label="Back to blog">Blog</Link>
+              {post.category && (
+                <Link to={`/category/${post.category.toLowerCase()}`} aria-label={`Explore ${post.category}`}>
+                  {post.category}
+                </Link>
+              )}
+              <Link to="/" aria-label="Home">Home</Link>
+            </NavigationLinks>
 
             <CompleteButton
               onClick={handleMarkAsCompleted}
