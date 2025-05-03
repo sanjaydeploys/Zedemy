@@ -120,7 +120,7 @@ export default defineConfig({
               return 'lodash';
             }
             if (id.includes('popper.js') || id.includes('@react-spring')) {
-              return 'unused_libs'; // Isolate unused libraries
+              return 'unused_libs';
             }
           }
           if (id.includes('src/pages')) {
@@ -137,8 +137,8 @@ export default defineConfig({
     chunkSizeWarningLimit: 250,
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
-    exclude: ['highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'popper.js', 'react-syntax-highlighter', 'framer-motion', 'jss', 'react-toastify', '@react-spring/core'],
+    include: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux', 'framer-motion', 'jss', 'react-toastify'],
+    exclude: ['highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'popper.js', 'react-syntax-highlighter', '@react-spring/core'],
     force: true,
   },
   server: {
