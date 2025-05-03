@@ -101,7 +101,7 @@ export default defineConfig({
         experimentalMinChunkSize: 10000, // Increased to merge smaller chunks
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
-          uiLibs: ['framer-motion', 'jss', 'react-toastify'],
+          uiLibs: ['framer-motion', 'react-toastify'],
           utilities: ['react-helmet-async', 'dompurify', 'react-copy-to-clipboard'],
           syntax_highlighter: ['react-syntax-highlighter', 'highlight.js'],
           codemirror: ['@codemirror/view', '@codemirror/state'],
@@ -117,7 +117,7 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
-    exclude: ['highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'popper.js', 'react-syntax-highlighter'],
+    exclude: ['highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'react-syntax-highlighter'],
     force: true,
   },
   server: {
