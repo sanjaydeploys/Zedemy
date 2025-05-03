@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, memo, useCallback, Suspense, startT
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { parseLinks, slugify } from './utils';
-
 const RelatedPosts = React.lazy(() => import('./RelatedPosts'));
 const AccessibleZoom = React.lazy(() => import('./AccessibleZoom'));
 const ComparisonTable = React.lazy(() => import('./ComparisonTable'));
