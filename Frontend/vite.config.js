@@ -100,7 +100,7 @@ export default defineConfig({
         experimentalMinChunkSize: 5000, // Merge chunks smaller than 5 KiB
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
-          uiLibs: ['popper.js', 'framer-motion', 'jss', 'react-toastify'],
+          uiLibs: ['framer-motion', 'jss', 'react-toastify'],
           utilities: ['react-helmet-async', 'dompurify', 'react-copy-to-clipboard'],
           syntax_highlighter: ['react-syntax-highlighter', 'highlight.js'],
           codemirror: ['@codemirror/view', '@codemirror/state'],
