@@ -82,14 +82,6 @@ const LoadingOverlay = styled.div`
   width: 100%;
 `;
 
-const SkeletonHeader = styled.div`
-  width: 60%;
-  height: 2rem;
-  background: #e0e0e0;
-  border-radius: 0.375rem;
-  margin: 0.75rem 0 1rem;
-`;
-
 const PostHeader = styled.h1`
   font-size: clamp(1.5rem, 4vw, 2rem);
   color: #111827;
@@ -135,6 +127,7 @@ const ImageContainer = styled.figure`
   margin: 0.75rem 0;
   aspect-ratio: 16 / 9;
   overflow: hidden;
+  position: relative;
 `;
 
 const PostImage = styled.img`
@@ -145,6 +138,8 @@ const PostImage = styled.img`
   object-fit: contain;
   border-radius: 0.375rem;
   aspect-ratio: 16 / 9;
+  position: relative;
+  z-index: 2;
 `;
 
 const VideoContainer = styled.figure`
@@ -294,7 +289,7 @@ const PostPage = memo(() => {
   const relatedPosts = useSelector(selectors?.selectRelatedPosts || (state => []));
   const completedPosts = useSelector(selectors?.selectCompletedPosts || (state => []));
 
-  // Debounced Intersection Observer (deferred further)
+  // Debounced Intersection Observer
   const debouncedObserve = useMemo(
     () =>
       debounce(entries => {
@@ -333,7 +328,7 @@ const PostPage = memo(() => {
         // Defer non-critical fetches
         setTimeout(() => {
           Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-        }, 2000); // Increased delay to prioritize initial render
+        }, 2000);
       } catch (error) {
         console.error('Fetch failed:', error);
         if (retries > 0) {
@@ -378,11 +373,11 @@ const PostPage = memo(() => {
     return { readTime: Math.ceil(words / 200), wordCount: words };
   }, [post]);
 
-  const parsedTitle = useMemo(() => parseLinks(post?.title || '', post?.category || ''), [post?.title, post?.category]);
+  const parsedTitle = useMemo(() => parseLinks(post?.title || 'Loading...', post?.category || ''), [post?.title, post?.category]);
   const parsedContent = useMemo(() => parseLinks(post?.content || '', post?.category || ''), [post?.content, post?.category]);
   const parsedSummary = useMemo(() => parseLinks(post?.summary || '', post?.category || ''), [post?.summary, post?.category]);
 
-  // Defer structured data generation further
+  // Defer structured data generation
   useEffect(() => {
     if (!post) return;
     setTimeout(() => {
@@ -462,12 +457,11 @@ const PostPage = memo(() => {
         });
       }
       setStructuredData(schemas);
-    }, 3000); // Deferred further to prioritize initial render
+    }, 3000);
   }, [post, slug, calculateReadTimeAndWordCount]);
 
   useEffect(() => {
     if (!post) return;
-    // Defer IntersectionObserver setup further
     setTimeout(() => {
       const observer = new IntersectionObserver(debouncedObserve, {
         root: null,
@@ -476,7 +470,7 @@ const PostPage = memo(() => {
       });
       document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
       return () => observer.disconnect();
-    }, 3000); // Increased delay
+    }, 3000);
   }, [post, debouncedObserve]);
 
   useEffect(() => {
@@ -485,7 +479,7 @@ const PostPage = memo(() => {
         scheduler.postTask(
           () => {
             const img = new Image();
-            img.src = `${post.titleImage}?w=160&format=avif&q=30`;
+            img.src = `${post.titleImage}?w=120&format=avif&q=20`;
             img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
           },
           { priority: 'background' }
@@ -494,7 +488,7 @@ const PostPage = memo(() => {
         requestIdleCallback(
           () => {
             const img = new Image();
-            img.src = `${post.titleImage}?w=160&format=avif&q=30`;
+            img.src = `${post.titleImage}?w=120&format=avif&q=20`;
             img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
           },
           { timeout: 1000 }
@@ -534,15 +528,14 @@ const PostPage = memo(() => {
           <ImageContainer>
             <Suspense fallback={<Placeholder minHeight="270px">Loading image...</Placeholder>}>
               <AccessibleZoom caption={subtitle.title || ''}>
+                <LQIPImage
+                  src={`${subtitle.image}?w=20&format=webp&q=5`}
+                  alt="Low quality placeholder"
+                  width="480"
+                  height="270"
+                />
                 <PostImage
-                  src={`${subtitle.image}?w=160&format=avif&q=30`}
-                  srcSet={`
-                    ${subtitle.image}?w=160&format=avif&q=30 160w,
-                    ${subtitle.image}?w=240&format=avif&q=30 240w,
-                    ${subtitle.image}?w=320&format=avif&q=30 320w,
-                    ${subtitle.image}?w=480&format=avif&q=30 480w
-                  `}
-                  sizes="(max-width: 360px) 160px, (max-width: 480px) 240px, (max-width: 768px) 320px, 480px"
+                  src={`${subtitle.image}?w=120&format=avif&q=20`}
                   alt={subtitle.title || 'Subtitle image'}
                   width="480"
                   height="270"
@@ -560,7 +553,7 @@ const PostPage = memo(() => {
             <PostVideo
               controls
               preload="none"
-              poster={`${subtitle.videoPoster || subtitle.image}?w=160&format=webp&q=30`}
+              poster={`${subtitle.videoPoster || subtitle.image}?w=120&format=webp&q=20`}
               width="480"
               height="270"
               loading="lazy"
@@ -580,15 +573,14 @@ const PostPage = memo(() => {
                 <ImageContainer>
                   <Suspense fallback={<Placeholder minHeight="270px">Loading image...</Placeholder>}>
                     <AccessibleZoom caption={`Example for ${point.text || ''}`}>
+                      <LQIPImage
+                        src={`${point.image}?w=20&format=webp&q=5`}
+                        alt="Low quality placeholder"
+                        width="480"
+                        height="270"
+                      />
                       <PostImage
-                        src={`${point.image}?w=160&format=avif&q=30`}
-                        srcSet={`
-                          ${point.image}?w=160&format=avif&q=30 160w,
-                          ${point.image}?w=240&format=avif&q=30 240w,
-                          ${point.image}?w=320&format=avif&q=30 320w,
-                          ${point.image}?w=480&format=avif&q=30 480w
-                        `}
-                        sizes="(max-width: 360px) 160px, (max-width: 480px) 240px, (max-width: 768px) 320px, 480px"
+                        src={`${point.image}?w=120&format=avif&q=20`}
                         alt={`Example for ${point.text || 'bullet point'}`}
                         width="480"
                         height="270"
@@ -606,7 +598,7 @@ const PostPage = memo(() => {
                   <PostVideo
                     controls
                     preload="none"
-                    poster={`${point.videoPoster || point.image}?w=160&format=webp&q=30`}
+                    poster={`${point.videoPoster || point.image}?w=120&format=webp&q=20`}
                     width="480"
                     height="270"
                     loading="lazy"
@@ -655,7 +647,7 @@ const PostPage = memo(() => {
             observer.disconnect();
           }
         },
-        { rootMargin: '1500px', threshold: 0.1 } // Increased rootMargin
+        { rootMargin: '1500px', threshold: 0.1 }
       );
       if (ref.current) observer.observe(ref.current);
       return () => observer.disconnect();
@@ -744,7 +736,7 @@ const PostPage = memo(() => {
     return (
       <Container>
         <MainContent>
-          <SkeletonHeader />
+          <PostHeader>Loading...</PostHeader>
         </MainContent>
         <SidebarWrapper>
           <Placeholder minHeight="1200px">Loading sidebar...</Placeholder>
@@ -787,20 +779,13 @@ const PostPage = memo(() => {
             <link
               rel="preload"
               as="image"
-              href={`${post.titleImage}?w=160&format=avif&q=30`}
+              href={`${post.titleImage}?w=20&format=webp&q=5`}
               fetchpriority="high"
-              imagesrcset={`
-                ${post.titleImage}?w=160&format=avif&q=30 160w,
-                ${post.titleImage}?w=240&format=avif&q=30 240w,
-                ${post.titleImage}?w=320&format=avif&q=30 320w,
-                ${post.titleImage}?w=480&format=avif&q=30 480w
-              `}
-              imagesizes="(max-width: 360px) 160px, (max-width: 480px) 240px, (max-width: 768px) 320px, 480px"
             />
             <link
               rel="preload"
               as="image"
-              href={`${post.titleImage}?w=40&format=webp&q=10`}
+              href={`${post.titleImage}?w=120&format=avif&q=20`}
               fetchpriority="high"
             />
           </>
@@ -851,27 +836,19 @@ const PostPage = memo(() => {
                 <Suspense fallback={<Placeholder minHeight="270px">Loading image...</Placeholder>}>
                   <AccessibleZoom caption={`Illustration for ${post.title}`}>
                     <LQIPImage
-                      src={`${post.titleImage}?w=40&format=webp&q=10`}
+                      src={`${post.titleImage}?w=20&format=webp&q=5`}
                       alt="Low quality placeholder"
                       width="480"
                       height="270"
                     />
                     <PostImage
-                      src={`${post.titleImage}?w=160&format=avif&q=30`}
-                      srcSet={`
-                        ${post.titleImage}?w=160&format=avif&q=30 160w,
-                        ${post.titleImage}?w=240&format=avif&q=30 240w,
-                        ${post.titleImage}?w=320&format=avif&q=30 320w,
-                        ${post.titleImage}?w=480&format=avif&q=30 480w
-                      `}
-                      sizes="(max-width: 360px) 160px, (max-width: 480px) 240px, (max-width: 768px) 320px, 480px"
+                      src={`${post.titleImage}?w=120&format=avif&q=20`}
                       alt={`Illustration for ${post.title}`}
                       width="480"
                       height="270"
                       fetchpriority="high"
                       loading="eager"
                       decoding="async"
-                      style={{ position: 'relative', zIndex: 2 }}
                       onError={() => console.error('Title Image Failed:', post.titleImage)}
                     />
                   </AccessibleZoom>
@@ -884,7 +861,7 @@ const PostPage = memo(() => {
                 <PostVideo
                   controls
                   preload="metadata"
-                  poster={`${post.titleVideoPoster || post.titleImage}?w=160&format=webp&q=30`}
+                  poster={`${post.titleVideoPoster || post.titleImage}?w=120&format=webp&q=20`}
                   width="480"
                   height="270"
                   loading="eager"
