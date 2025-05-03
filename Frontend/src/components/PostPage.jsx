@@ -280,9 +280,9 @@ const PostPage = memo(() => {
   // Load non-critical dependencies after initial render
   useEffect(() => {
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(() => loadDependencies().then(setDeps));
+      window.requestIdleCallback(() => loadDependencies().then(setDeps), { timeout: 3000 });
     } else {
-      loadDependencies().then(setDeps);
+      setTimeout(() => loadDependencies().then(setDeps), 3000);
     }
   }, []);
 
@@ -353,7 +353,7 @@ const PostPage = memo(() => {
         // Defer non-critical fetches
         setTimeout(() => {
           Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-        }, 1000);
+        }, 2000);
       } catch (error) {
         console.error('Fetch failed:', error);
         if (retries > 0) {
@@ -401,9 +401,19 @@ const PostPage = memo(() => {
   // Defer parsing until after initial render
   useEffect(() => {
     if (!post) return;
-    setParsedTitle(parseLinks(post.title || '', post.category || ''));
-    setParsedContent(parseLinks(post.content || '', post.category || ''));
-    setParsedSummary(parseLinks(post.summary || '', post.category || ''));
+    if (typeof window !== 'undefined' && window.requestIdleCallback) {
+      window.requestIdleCallback(() => {
+        setParsedTitle(parseLinks(post.title || '', post.category || ''));
+        setParsedContent(parseLinks(post.content || '', post.category || ''));
+        setParsedSummary(parseLinks(post.summary || '', post.category || ''));
+      }, { timeout: 2000 });
+    } else {
+      setTimeout(() => {
+        setParsedTitle(parseLinks(post.title || '', post.category || ''));
+        setParsedContent(parseLinks(post.content || '', post.category || ''));
+        setParsedSummary(parseLinks(post.summary || '', post.category || ''));
+      }, 2000);
+    }
   }, [post]);
 
   // Structured data generation (deferred)
@@ -487,7 +497,7 @@ const PostPage = memo(() => {
           });
         }
         startTransition(() => setStructuredData(schemas));
-      }, { timeout: 2000 });
+      }, { timeout: 3000 });
     }
   }, [post, slug, calculateReadTimeAndWordCount]);
 
@@ -503,7 +513,7 @@ const PostPage = memo(() => {
         });
         document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
         return () => observer.disconnect();
-      }, { timeout: 2000 });
+      }, { timeout: 3000 });
     }
   }, [post, debouncedObserve]);
 
@@ -514,7 +524,7 @@ const PostPage = memo(() => {
         scheduler.postTask(
           () => {
             const img = new Image();
-            img.src = `${post.titleImage}?w=80&format=avif&q=5`;
+            img.src = `${post.titleImage}?w=60&format=avif&q=3`;
             img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
           },
           { priority: 'background' }
@@ -523,7 +533,7 @@ const PostPage = memo(() => {
         window.requestIdleCallback(
           () => {
             const img = new Image();
-            img.src = `${post.titleImage}?w=80&format=avif&q=5`;
+            img.src = `${post.titleImage}?w=60&format=avif&q=3`;
             img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
           },
           { timeout: 1000 }
@@ -564,20 +574,20 @@ const PostPage = memo(() => {
             <Suspense fallback={<Placeholder minHeight="180px">Loading image...</Placeholder>}>
               <AccessibleZoom caption={subtitle.title || ''}>
                 <LQIPImage
-                  src={`${subtitle.image}?w=20&format=webp&q=5`}
+                  src={`${subtitle.image}?w=20&format=webp&q=3`}
                   alt="Low quality placeholder"
                   width="280"
                   height="157.5"
                 />
                 <PostImage
-                  src={`${subtitle.image}?w=80&format=avif&q=5`}
+                  src={`${subtitle.image}?w=60&format=avif&q=3`}
                   srcSet={`
-                    ${subtitle.image}?w=80&format=avif&q=5 80w,
-                    ${subtitle.image}?w=120&format=avif&q=5 120w,
-                    ${subtitle.image}?w=200&format=avif&q=5 200w,
-                    ${subtitle.image}?w=280&format=avif&q=5 280w
+                    ${subtitle.image}?w=60&format=avif&q=3 60w,
+                    ${subtitle.image}?w=100&format=avif&q=3 100w,
+                    ${subtitle.image}?w=180&format=avif&q=3 180w,
+                    ${subtitle.image}?w=280&format=avif&q=3 280w
                   `}
-                  sizes="(max-width: 320px) 80px, (max-width: 480px) 120px, (max-width: 768px) 200px, 280px"
+                  sizes="(max-width: 320px) 60px, (max-width: 480px) 100px, (max-width: 768px) 180px, 280px"
                   alt={subtitle.title || 'Subtitle image'}
                   width="280"
                   height="157.5"
@@ -595,7 +605,7 @@ const PostPage = memo(() => {
             <PostVideo
               controls
               preload="none"
-              poster={`${subtitle.videoPoster || subtitle.image}?w=80&format=webp&q=5`}
+              poster={`${subtitle.videoPoster || subtitle.image}?w=60&format=webp&q=3`}
               width="280"
               height="157.5"
               loading="lazy"
@@ -616,20 +626,20 @@ const PostPage = memo(() => {
                   <Suspense fallback={<Placeholder minHeight="180px">Loading image...</Placeholder>}>
                     <AccessibleZoom caption={`Example for ${point.text || ''}`}>
                       <LQIPImage
-                        src={`${point.image}?w=20&format=webp&q=5`}
+                        src={`${point.image}?w=20&format=webp&q=3`}
                         alt="Low quality placeholder"
                         width="280"
                         height="157.5"
                       />
                       <PostImage
-                        src={`${point.image}?w=80&format=avif&q=5`}
+                        src={`${point.image}?w=60&format=avif&q=3`}
                         srcSet={`
-                          ${point.image}?w=80&format=avif&q=5 80w,
-                          ${point.image}?w=120&format=avif&q=5 120w,
-                          ${point.image}?w=200&format=avif&q=5 200w,
-                          ${point.image}?w=280&format=avif&q=5 280w
+                          ${point.image}?w=60&format=avif&q=3 60w,
+                          ${point.image}?w=100&format=avif&q=3 100w,
+                          ${point.image}?w=180&format=avif&q=3 180w,
+                          ${point.image}?w=280&format=avif&q=3 280w
                         `}
-                        sizes="(max-width: 320px) 80px, (max-width: 480px) 120px, (max-width: 768px) 200px, 280px"
+                        sizes="(max-width: 320px) 60px, (max-width: 480px) 100px, (max-width: 768px) 180px, 280px"
                         alt={`Example for ${point.text || 'bullet point'}`}
                         width="280"
                         height="157.5"
@@ -647,7 +657,7 @@ const PostPage = memo(() => {
                   <PostVideo
                     controls
                     preload="none"
-                    poster={`${point.videoPoster || point.image}?w=80&format=webp&q=5`}
+                    poster={`${point.videoPoster || point.image}?w=60&format=webp&q=3`}
                     width="280"
                     height="157.5"
                     loading="lazy"
@@ -696,7 +706,7 @@ const PostPage = memo(() => {
             observer.disconnect();
           }
         },
-        { rootMargin: '1500px', threshold: 0.1 }
+        { rootMargin: '2000px', threshold: 0.1 }
       );
       if (ref.current) observer.observe(ref.current);
       return () => observer.disconnect();
@@ -726,7 +736,7 @@ const PostPage = memo(() => {
             observer.disconnect();
           }
         },
-        { rootMargin: '1500px', threshold: 0.1 }
+        { rootMargin: '2000px', threshold: 0.1 }
       );
       if (ref.current) observer.observe(ref.current);
       return () => observer.disconnect();
@@ -771,11 +781,13 @@ const PostPage = memo(() => {
     );
   });
 
+  // Static placeholder for initial render
   if (!post && !hasFetched) {
     return (
-      <Container>
+      <Container className="container">
         <MainContent>
-          <SkeletonHeader />
+          <PostHeader>Loading Post...</PostHeader>
+          <ContentSection>Loading content...</ContentSection>
         </MainContent>
         <SidebarWrapper>
           <Placeholder minHeight="1200px">Loading sidebar...</Placeholder>
@@ -786,7 +798,7 @@ const PostPage = memo(() => {
 
   if (!post) {
     return (
-      <Container>
+      <Container className="container">
         <LoadingOverlay aria-live="polite">
           {deps?.ClipLoader ? <deps.ClipLoader color="#2c3e50" size={50} /> : <div>Loading...</div>}
         </LoadingOverlay>
@@ -815,16 +827,16 @@ const PostPage = memo(() => {
             <link
               rel="preload"
               as="image"
-              href={`${post.titleImage}?w=80&format=avif&q=5`}
+              href={`${post.titleImage}?w=60&format=avif&q=3`}
               crossOrigin="anonymous"
               fetchpriority="high"
               imagesrcset={`
-                ${post.titleImage}?w=80&format=avif&q=5 80w,
-                ${post.titleImage}?w=120&format=avif&q=5 120w,
-                ${post.titleImage}?w=200&format=avif&q=5 200w,
-                ${post.titleImage}?w=280&format=avif&q=5 280w
+                ${post.titleImage}?w=60&format=avif&q=3 60w,
+                ${post.titleImage}?w=100&format=avif&q=3 100w,
+                ${post.titleImage}?w=180&format=avif&q=3 180w,
+                ${post.titleImage}?w=280&format=avif&q=3 280w
               `}
-              imagesizes="(max-width: 320px) 80px, (max-width: 480px) 120px, (max-width: 768px) 200px, 280px"
+              imagesizes="(max-width: 320px) 60px, (max-width: 480px) 100px, (max-width: 768px) 180px, 280px"
             />
           </>
         )}
@@ -850,7 +862,7 @@ const PostPage = memo(() => {
         <style>{criticalCSS}</style>
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
-      <Container>
+      <Container className="container">
         <MainContent role="main" aria-label="Main content">
           <article>
             <header>
@@ -863,20 +875,20 @@ const PostPage = memo(() => {
             {post.titleImage && (
               <ImageContainer>
                 <LQIPImage
-                  src={`${post.titleImage}?w=20&format=webp&q=5`}
+                  src={`${post.titleImage}?w=20&format=webp&q=3`}
                   alt="Low quality placeholder"
                   width="280"
                   height="157.5"
                 />
                 <PostImage
-                  src={`${post.titleImage}?w=80&format=avif&q=5`}
+                  src={`${post.titleImage}?w=60&format=avif&q=3`}
                   srcSet={`
-                    ${post.titleImage}?w=80&format=avif&q=5 80w,
-                    ${post.titleImage}?w=120&format=avif&q=5 120w,
-                    ${post.titleImage}?w=200&format=avif&q=5 200w,
-                    ${post.titleImage}?w=280&format=avif&q=5 280w
+                    ${post.titleImage}?w=60&format=avif&q=3 60w,
+                    ${post.titleImage}?w=100&format=avif&q=3 100w,
+                    ${post.titleImage}?w=180&format=avif&q=3 180w,
+                    ${post.titleImage}?w=280&format=avif&q=3 280w
                   `}
-                  sizes="(max-width: 320px) 80px, (max-width: 480px) 120px, (max-width: 768px) 200px, 280px"
+                  sizes="(max-width: 320px) 60px, (max-width: 480px) 100px, (max-width: 768px) 180px, 280px"
                   alt={`Illustration for ${post.title}`}
                   width="280"
                   height="157.5"
@@ -893,7 +905,7 @@ const PostPage = memo(() => {
                 <PostVideo
                   controls
                   preload="metadata"
-                  poster={`${post.titleVideoPoster || post.titleImage}?w=80&format=webp&q=5`}
+                  poster={`${post.titleVideoPoster || post.titleImage}?w=60&format=webp&q=3`}
                   width="280"
                   height="157.5"
                   loading="eager"
