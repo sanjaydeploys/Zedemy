@@ -6,19 +6,19 @@ import { parseLinks, slugify } from './utils';
 const RelatedPosts = React.lazy(() => import('./RelatedPosts'));
 const AccessibleZoom = React.lazy(() => import('./AccessibleZoom'));
 const ComparisonTable = React.lazy(() => import('./ComparisonTable'));
+import { markPostAsCompleted } from '../actions/postActions';
 
 const SubtitleHeader = styled.h2`
   font-size: clamp(1.25rem, 3vw, 1.5rem);
   color: #011020;
-  margin: 1.5rem 0 0.75rem;
+  margin: 1rem 0 0.5rem;
   font-weight: 700;
   border-left: 4px solid #34db58;
   padding-left: 0.5rem;
 `;
 
 const CompleteButton = styled.button`
-  position: fixed;
-  bottom: 1rem;
+  position: sticky;
   right: 1rem;
   padding: 0.5rem 1rem;
   background: ${({ isCompleted }) => (isCompleted ? '#27ae60' : '#2c3e50')};
@@ -35,13 +35,15 @@ const CompleteButton = styled.button`
   @media (max-width: 480px) {
     font-size: 0.75rem;
     padding: 0.5rem 0.75rem;
+    bottom: 0.5rem;
+    right: 0.5rem;
   }
 `;
 
 const ImageContainer = styled.figure`
   width: 100%;
   max-width: 100%;
-  margin: 1rem 0;
+  margin: 0.5rem 0;
   position: relative;
 `;
 
@@ -89,7 +91,7 @@ const LQIPImage = styled.img`
 const VideoContainer = styled.figure`
   width: 100%;
   max-width: 100%;
-  margin: 1rem 0;
+  margin: 0.5rem 0;
 `;
 
 const PostVideo = styled.video`
@@ -121,8 +123,8 @@ const Placeholder = styled.div`
 `;
 
 const ReferencesSection = styled.section`
-  margin-top: 1.5rem;
-  padding: 1rem;
+  margin-top: 1rem;
+  padding: 0.75rem;
   background: #f9f9f9;
   border-radius: 0.375rem;
 `;
@@ -145,9 +147,9 @@ const ReferenceLink = styled.a`
 `;
 
 const NavigationLinks = styled.nav`
-  margin: 1.5rem 0;
+  margin: 1rem 0;
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
   font-size: 0.75rem;
   & a {
@@ -165,33 +167,6 @@ const debounce = (func, wait) => {
     timeout = setTimeout(() => func(...args), wait);
   };
 };
-
-const CodeSnippet = memo(({ code, language }) => {
-  const [CodeHighlighter, setCodeHighlighter] = useState(null);
-
-  useEffect(() => {
-    import('./CodeHighlighter').then(module => {
-      setCodeHighlighter(() => module.default);
-    });
-  }, []);
-
-  if (!CodeHighlighter) return <Placeholder minHeight="150px">Loading code...</Placeholder>;
-
-  return (
-    <CodeHighlighter
-      code={code}
-      language={language}
-      onCopy={async () => {
-        try {
-          await navigator.clipboard.writeText(code);
-          alert('Code copied!');
-        } catch {
-          alert('Failed to copy code');
-        }
-      }}
-    />
-  );
-});
 
 const SubtitleSection = memo(({ subtitle, index, category }) => {
   const [parsedTitle, setParsedTitle] = useState(subtitle.title || '');
@@ -271,9 +246,9 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
           </PostVideo>
         </VideoContainer>
       )}
-      <ul style={{ paddingLeft: '1.25rem', fontSize: '1.1rem', lineHeight: '1.7' }}>
+      <ul style={{ paddingLeft: '1rem', fontSize: '1.1rem', lineHeight: '1.5' }}>
         {parsedBulletPoints.map((point, j) => (
-          <li key={j} style={{ marginBottom: '0.5rem' }}>
+          <li key={j} style={{ marginBottom: '0.25rem' }}>
             <span dangerouslySetInnerHTML={{ __html: point.text }} />
             {point.image && (
               <ImageContainer>
@@ -327,10 +302,43 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
             )}
             {point.codeSnippet && (
               <Suspense fallback={<Placeholder minHeight="150px">Loading code...</Placeholder>}>
-                <CodeSnippet
-                  code={point.codeSnippet}
-                  language={point.language || 'javascript'}
-                />
+                {React.createElement(
+                  React.lazy(() =>
+                    import('./CodeHighlighter').then(module => ({
+                      default: props => {
+                        const [Highlighter, setHighlighter] = useState(null);
+                        useEffect(() => {
+                          import('react-syntax-highlighter').then(mod => {
+                            setHighlighter(() => mod.Prism);
+                          });
+                          if (props.language) {
+                            import(`react-syntax-highlighter/dist/esm/languages/prism/${props.language}`).then(mod => {
+                              mod.default(mod.Prism);
+                            });
+                          }
+                        }, [props.language]);
+                        if (!Highlighter) return null;
+                        return (
+                          <Highlighter {...props}>
+                            {props.code}
+                          </Highlighter>
+                        );
+                      }
+                    }))
+                  ),
+                  {
+                    code: point.codeSnippet,
+                    language: point.language || 'javascript',
+                    onCopy: async () => {
+                      try {
+                        await navigator.clipboard.writeText(point.codeSnippet);
+                        alert('Code copied!');
+                      } catch {
+                        alert('Failed to copy code');
+                      }
+                    },
+                  }
+                )}
               </Suspense>
             )}
           </li>
@@ -352,18 +360,18 @@ const LazySubtitleSection = memo(({ subtitle, index, category }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '1500px', threshold: 0.1 }
+      { rootMargin: '1000px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ minHeight: '450px', transition: 'min-height 0.3s ease' }}>
+    <div ref={ref} style={{ minHeight: '300px', transition: 'min-height 0.3s ease' }}>
       {isVisible ? (
         <SubtitleSection subtitle={subtitle} index={index} category={category} />
       ) : (
-        <Placeholder minHeight="450px">Loading section...</Placeholder>
+        <Placeholder minHeight="300px">Loading section...</Placeholder>
       )}
     </div>
   );
@@ -381,14 +389,14 @@ const LazyReferencesSection = memo(({ post }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '1500px', threshold: 0.1 }
+      { rootMargin: '1000px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ minHeight: '250px', transition: 'min-height 0.3s ease' }}>
+    <div ref={ref} style={{ minHeight: '200px', transition: 'min-height 0.3s ease' }}>
       {isVisible ? (
         <ReferencesSection aria-labelledby="references-heading">
           <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
@@ -420,7 +428,7 @@ const LazyReferencesSection = memo(({ post }) => {
           )}
         </ReferencesSection>
       ) : (
-        <Placeholder minHeight="250px">Loading references...</Placeholder>
+        <Placeholder minHeight="200px">Loading references...</Placeholder>
       )}
     </div>
   );
@@ -529,7 +537,7 @@ const PostContentNonCritical = memo(
         ))}
 
         {post.superTitles?.length > 0 && (
-          <Suspense fallback={<Placeholder minHeight="350px">Loading comparison...</Placeholder>}>
+          <Suspense fallback={<Placeholder minHeight="300px">Loading comparison...</Placeholder>}>
             <ComparisonTable superTitles={post.superTitles} category={post.category || ''} />
           </Suspense>
         )}
@@ -537,7 +545,7 @@ const PostContentNonCritical = memo(
         {post.summary && (
           <section id="summary" aria-labelledby="summary-heading">
             <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
-            <p style={{ fontSize: '1.1rem', lineHeight: '1.7' }} dangerouslySetInnerHTML={{ __html: parsedSummary }} />
+            <p style={{ fontSize: '1.1rem', lineHeight: '1.5', marginBottom: '0.5rem' }} dangerouslySetInnerHTML={{ __html: parsedSummary }} />
           </section>
         )}
 
@@ -560,8 +568,8 @@ const PostContentNonCritical = memo(
           {completedPosts.some(p => p.postId === post.postId) ? 'Completed' : 'Mark as Completed'}
         </CompleteButton>
 
-        <section aria-labelledby="related-posts-heading" style={{ minHeight: '450px' }}>
-          <Suspense fallback={<Placeholder minHeight="450px">Loading related posts...</Placeholder>}>
+        <section aria-labelledby="related-posts-heading" style={{ minHeight: '300px' }}>
+          <Suspense fallback={<Placeholder minHeight="300px">Loading related posts...</Placeholder>}>
             <RelatedPosts relatedPosts={relatedPosts} />
           </Suspense>
         </section>
