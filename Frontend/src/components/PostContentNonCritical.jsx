@@ -6,7 +6,7 @@ import { parseLinks, slugify } from './utils';
 const RelatedPosts = React.lazy(() => import('./RelatedPosts'));
 const AccessibleZoom = React.lazy(() => import('./AccessibleZoom'));
 const ComparisonTable = React.lazy(() => import('./ComparisonTable'));
-const CodeHighlighter = React.lazy(() => import('./CodeHighlighter'));
+const CodeHighlighterBase = React.lazy(() => import('./CodeHighlighter'));
 
 const SubtitleHeader = styled.h2`
   font-size: clamp(1.25rem, 3vw, 1.5rem);
@@ -166,6 +166,41 @@ const debounce = (func, wait) => {
     timeout = setTimeout(() => func(...args), wait);
   };
 };
+
+// Dynamically import language modules
+const loadLanguage = async (language) => {
+  const supportedLanguages = {
+    javascript: () => import('react-syntax-highlighter/dist/esm/languages/prism/javascript'),
+    python: () => import('react-syntax-highlighter/dist/esm/languages/prism/python'),
+    java: () => import('react-syntax-highlighter/dist/esm/languages/prism/java'),
+    // Add more languages as needed
+  };
+  const loader = supportedLanguages[language] || supportedLanguages.javascript;
+  return loader();
+};
+
+const CodeHighlighter = memo(({ code, language, onCopy }) => {
+  const [languageModule, setLanguageModule] = useState(null);
+
+  useEffect(() => {
+    loadLanguage(language).then(module => {
+      setLanguageModule(module.default);
+    });
+  }, [language]);
+
+  if (!languageModule) return <Placeholder minHeight="150px">Loading code...</Placeholder>;
+
+  return (
+    <Suspense fallback={<Placeholder minHeight="150px">Loading code...</Placeholder>}>
+      <CodeHighlighterBase
+        code={code}
+        language={language}
+        languageModule={languageModule}
+        onCopy={onCopy}
+      />
+    </Suspense>
+  );
+});
 
 const SubtitleSection = memo(({ subtitle, index, category }) => {
   const [parsedTitle, setParsedTitle] = useState(subtitle.title || '');
