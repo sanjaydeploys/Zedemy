@@ -54,8 +54,9 @@ const MainContent = styled.main`
   padding: 1rem;
   background: #f4f4f9;
   contain: paint;
+  min-height: 1500px; /* Reserve space for content to prevent shifts */
   @media (min-width: 769px) {
-    margin-right: 2px; /* Reserve space for sidebar */
+    margin-right: 250px; /* Fixed space for sidebar */
     min-width: 0;
   }
   @media (max-width: 768px) {
@@ -64,13 +65,12 @@ const MainContent = styled.main`
 `;
 
 const LoadingOverlay = styled.div`
-  position: fixed;
-  inset: 0;
   display: flex;
   justify-content: center;
   align-items: center;
   background: rgba(0, 0, 0, 0.5);
-  z-index: 9999;
+  min-height: 100vh;
+  width: 100%;
 `;
 
 const SkeletonHeader = styled.div`
@@ -132,7 +132,7 @@ const ImageContainer = styled.figure`
   width: 100%;
   max-width: 100%;
   margin: 0.75rem 0;
-  min-height: 270px;
+  aspect-ratio: 16 / 9;
   overflow: hidden;
 `;
 
@@ -143,13 +143,14 @@ const PostImage = styled.img`
   max-height: 60vh;
   object-fit: contain;
   border-radius: 0.375rem;
+  aspect-ratio: 16 / 9;
 `;
 
 const VideoContainer = styled.figure`
   width: 100%;
   max-width: 100%;
   margin: 0.75rem 0;
-  min-height: 270px;
+  aspect-ratio: 16 / 9;
 `;
 
 const PostVideo = styled.video`
@@ -158,6 +159,7 @@ const PostVideo = styled.video`
   max-width: 100%;
   max-height: 60vh;
   border-radius: 0.375rem;
+  aspect-ratio: 16 / 9;
 `;
 
 const Placeholder = styled.div`
@@ -215,10 +217,16 @@ const NavigationLinks = styled.nav`
 const criticalCSS = `
   html { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; }
   .container { display: flex; min-height: 100vh; }
-  main { flex: 1; padding: 1rem; background: #f4f4f9; }
+  main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 1500px; }
   h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; }
-  figure { width: 100%; max-width: 100%; margin: 0.75rem 0; min-height: 270px; }
-  img { width: 100%; height: auto; max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 0.375rem; }
+  figure { width: 100%; max-width: 100%; margin: 0.75rem 0; aspect-ratio: 16 / 9; }
+  img { width: 100%; height: auto; max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 0.375rem; aspect-ratio: 16 / 9; }
+  video { width: 100%; height: auto; max-width: 100%; max-height: 60vh; border-radius: 0.375rem; aspect-ratio: 16 / 9; }
+  @font-face {
+    font-family: 'Segoe UI';
+    src: local('Segoe UI'), local('BlinkMacSystemFont'), local('-apple-system');
+    font-display: swap;
+  }
 `;
 
 // PostPage Component
@@ -585,7 +593,7 @@ const PostPage = memo(() => {
                 </VideoContainer>
               )}
               {point.codeSnippet && (
-                <Suspense fallback={<Placeholder>Loading code...</Placeholder>}>
+                <Suspense fallback={<Placeholder minHeight="150px">Loading code...</Placeholder>}>
                   <CodeHighlighter
                     code={point.codeSnippet}
                     language={point.language || 'javascript'}
@@ -620,18 +628,18 @@ const PostPage = memo(() => {
             observer.disconnect();
           }
         },
-        { rootMargin: '200px', threshold: 0.1 }
+        { rootMargin: '500px', threshold: 0.1 }
       );
       if (ref.current) observer.observe(ref.current);
       return () => observer.disconnect();
     }, []);
 
     return (
-      <div ref={ref}>
+      <div ref={ref} style={{ minHeight: '400px', transition: 'min-height 0.3s ease' }}>
         {isVisible ? (
           <SubtitleSection subtitle={subtitle} index={index} category={category} />
         ) : (
-          <Placeholder minHeight="200px">Loading section...</Placeholder>
+          <Placeholder minHeight="400px">Loading section...</Placeholder>
         )}
       </div>
     );
@@ -650,14 +658,14 @@ const PostPage = memo(() => {
             observer.disconnect();
           }
         },
-        { rootMargin: '200px', threshold: 0.1 }
+        { rootMargin: '500px', threshold: 0.1 }
       );
       if (ref.current) observer.observe(ref.current);
       return () => observer.disconnect();
     }, []);
 
     return (
-      <div ref={ref}>
+      <div ref={ref} style={{ minHeight: '200px', transition: 'min-height 0.3s ease' }}>
         {isVisible ? (
           <ReferencesSection aria-labelledby="references-heading">
             <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
@@ -689,14 +697,18 @@ const PostPage = memo(() => {
             )}
           </ReferencesSection>
         ) : (
-          <Placeholder minHeight="100px">Loading references...</Placeholder>
+          <Placeholder minHeight="200px">Loading references...</Placeholder>
         )}
       </div>
     );
   });
 
   if (!deps) {
-    return <LoadingOverlay><div>Loading dependencies...</div></LoadingOverlay>;
+    return (
+      <Container>
+        <LoadingOverlay><div>Loading dependencies...</div></LoadingOverlay>
+      </Container>
+    );
   }
 
   const { Helmet, HelmetProvider, ClipLoader } = deps;
@@ -710,16 +722,18 @@ const PostPage = memo(() => {
           <SkeletonText width="60%" />
           <SkeletonText width="90%" />
         </MainContent>
-        <Placeholder minHeight="300px">Loading sidebar...</Placeholder>
+        <Placeholder minHeight="600px">Loading sidebar...</Placeholder>
       </Container>
     );
   }
 
   if (!post) {
     return (
-      <LoadingOverlay aria-live="polite">
-        <ClipLoader color="#2c3e50" size={50} />
-      </LoadingOverlay>
+      <Container>
+        <LoadingOverlay aria-live="polite">
+          <ClipLoader color="#2c3e50" size={50} />
+        </LoadingOverlay>
+      </Container>
     );
   }
 
@@ -849,7 +863,7 @@ const PostPage = memo(() => {
             ))}
 
             {post.superTitles?.length > 0 && (
-              <Suspense fallback={<Placeholder minHeight="200px">Loading comparison...</Placeholder>}>
+              <Suspense fallback={<Placeholder minHeight="300px">Loading comparison...</Placeholder>}>
                 <ComparisonTable superTitles={post.superTitles} category={post.category || ''} />
               </Suspense>
             )}
@@ -870,8 +884,8 @@ const PostPage = memo(() => {
               {completedPosts.some(p => p.postId === post.postId) ? 'Completed' : 'Mark as Completed'}
             </CompleteButton>
 
-            <section aria-labelledby="related-posts-heading">
-              <Suspense fallback={<Placeholder minHeight="200px">Loading related posts...</Placeholder>}>
+            <section aria-labelledby="related-posts-heading" style={{ minHeight: '400px' }}>
+              <Suspense fallback={<Placeholder minHeight="400px">Loading related posts...</Placeholder>}>
                 <RelatedPosts relatedPosts={relatedPosts} />
               </Suspense>
             </section>
@@ -879,7 +893,7 @@ const PostPage = memo(() => {
             <LazyReferencesSection post={post} />
           </article>
         </MainContent>
-        <Suspense fallback={<Placeholder minHeight="300px">Loading sidebar...</Placeholder>}>
+        <Suspense fallback={<Placeholder minHeight="600px">Loading sidebar...</Placeholder>}>
           <Sidebar
             post={post}
             isSidebarOpen={isSidebarOpen}
