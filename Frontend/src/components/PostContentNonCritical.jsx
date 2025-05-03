@@ -13,14 +13,10 @@ const SubtitleHeader = styled.h2`
   color: #011020;
   margin: 1rem 0 0.5rem;
   font-weight: 700;
-  border-left: 4px solid #34db58;
-  padding-left: 0.5rem;
-  @media (max-width: 480px) {
-    font-size: 1rem;
-    margin: 0.75rem 0 0.4rem;
-  }
-  @media (max-width: 320px) {
-    font-size: 0.95rem;
+  border-left: 3px solid #34db58;
+  padding-left: 0.4rem;
+  @media (min-width: 769px) {
+    font-size: clamp(1.25rem, 3vw, 1.5rem);
   }
 `;
 
@@ -32,92 +28,78 @@ const CompleteButton = styled.button`
   background: ${({ isCompleted }) => (isCompleted ? '#27ae60' : '#2c3e50')};
   color: #ecf0f1;
   border: none;
-  border-radius: 0.375rem;
+  border-radius: 0.25rem;
   cursor: ${({ isCompleted }) => (isCompleted ? 'not-allowed' : 'pointer')};
   font-size: 0.8rem;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 40px;
+  min-height: 40px;
   &:hover {
     background: ${({ isCompleted }) => (isCompleted ? '#27ae60' : '#34495e')};
   }
   @media (max-width: 480px) {
     font-size: 0.7rem;
     padding: 0.3rem 0.6rem;
-    min-width: 40px;
-    min-height: 40px;
-  }
-  @media (max-width: 320px) {
-    font-size: 0.65rem;
   }
 `;
 
 const ImageContainer = styled.figure`
   width: 100%;
   max-width: 100%;
-  margin: 0.5rem 0;
+  margin: 0.75rem 0;
   position: relative;
 `;
 
 const PostImage = styled.img`
   width: 100%;
-  max-width: 200px;
+  max-width: 240px;
   aspect-ratio: 16 / 9;
   object-fit: contain;
-  border-radius: 0.375rem;
+  border-radius: 0.25rem;
   position: relative;
   z-index: 2;
   @media (min-width: 769px) {
-    max-width: 480px;
-  }
-  @media (max-width: 480px) {
-    max-width: 180px;
+    max-width: 400px;
   }
   @media (max-width: 320px) {
-    max-width: 160px;
+    max-width: 200px;
   }
 `;
 
 const LQIPImage = styled.img`
   width: 100%;
-  max-width: 200px;
+  max-width: 240px;
   aspect-ratio: 16 / 9;
   object-fit: contain;
-  border-radius: 0.375rem;
-  filter: blur(10px);
+  border-radius: 0.25rem;
+  filter: blur(8px);
   position: absolute;
   top: 0;
   left: 0;
   z-index: 1;
   @media (min-width: 769px) {
-    max-width: 480px;
-  }
-  @media (max-width: 480px) {
-    max-width: 180px;
+    max-width: 400px;
   }
   @media (max-width: 320px) {
-    max-width: 160px;
+    max-width: 200px;
   }
 `;
 
 const VideoContainer = styled.figure`
   width: 100%;
   max-width: 100%;
-  margin: 0.5rem 0;
+  margin: 0.75rem 0;
 `;
 
 const PostVideo = styled.video`
   width: 100%;
-  max-width: 200px;
+  max-width: 240px;
   aspect-ratio: 16 / 9;
-  border-radius: 0.375rem;
+  border-radius: 0.25rem;
   @media (min-width: 769px) {
-    max-width: 480px;
-  }
-  @media (max-width: 480px) {
-    max-width: 180px;
+    max-width: 400px;
   }
   @media (max-width: 320px) {
-    max-width: 160px;
+    max-width: 200px;
   }
 `;
 
@@ -129,24 +111,15 @@ const Placeholder = styled.div`
   align-items: center;
   justify-content: center;
   color: #666;
-  border-radius: 0.375rem;
-  font-size: 0.8rem;
-  @media (max-width: 480px) {
-    font-size: 0.75rem;
-    min-height: ${(props) => props.minHeight || '120px'};
-  }
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
 `;
 
 const ReferencesSection = styled.section`
   margin-top: 1rem;
   padding: 0.75rem;
   background: #f9f9f9;
-  border-radius: 0.375rem;
-  content-visibility: auto;
-  contain-intrinsic-size: 1px 200px;
-  @media (max-width: 480px) {
-    padding: 0.5rem;
-  }
+  border-radius: 0.25rem;
 `;
 
 const ReferenceLink = styled.a`
@@ -163,10 +136,6 @@ const ReferenceLink = styled.a`
   }
   @media (max-width: 480px) {
     font-size: 0.7rem;
-    min-height: 36px;
-  }
-  @media (max-width: 320px) {
-    font-size: 0.65rem;
   }
 `;
 
@@ -181,14 +150,6 @@ const NavigationLinks = styled.nav`
     display: inline-flex;
     align-items: center;
     padding: 0.4rem;
-  }
-  @media (max-width: 480px) {
-    font-size: 0.65rem;
-    gap: 0.5rem;
-    & a {
-      min-height: 36px;
-      padding: 0.3rem;
-    }
   }
 `;
 
@@ -205,14 +166,22 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
   const [parsedBulletPoints, setParsedBulletPoints] = useState(subtitle.bulletPoints || []);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.requestIdleCallback) {
+    if (typeof scheduler !== 'undefined' && scheduler.postTask) {
+      scheduler.postTask(() => {
+        setParsedTitle(parseLinks(subtitle.title || '', category));
+        setParsedBulletPoints((subtitle.bulletPoints || []).map(point => ({
+          ...point,
+          text: parseLinks(point.text || '', category),
+        })));
+      }, { priority: 'background' });
+    } else if (typeof window !== 'undefined' && window.requestIdleCallback) {
       window.requestIdleCallback(() => {
         setParsedTitle(parseLinks(subtitle.title || '', category));
         setParsedBulletPoints((subtitle.bulletPoints || []).map(point => ({
           ...point,
           text: parseLinks(point.text || '', category),
         })));
-      }, { timeout: 4000 });
+      }, { timeout: 3000 });
     } else {
       setTimeout(() => {
         setParsedTitle(parseLinks(subtitle.title || '', category));
@@ -220,18 +189,14 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
           ...point,
           text: parseLinks(point.text || '', category),
         })));
-      }, 4000);
+      }, 3000);
     }
   }, [subtitle, category]);
 
   if (!subtitle) return null;
 
   return (
-    <section
-      id={`subtitle-${index}`}
-      aria-labelledby={`subtitle-${index}-heading`}
-      style={{ contentVisibility: 'auto', containIntrinsicSize: '1px 400px' }}
-    >
+    <section id={`subtitle-${index}`} aria-labelledby={`subtitle-${index}-heading`}>
       <SubtitleHeader id={`subtitle-${index}-heading`}>{parsedTitle}</SubtitleHeader>
       {subtitle.image && (
         <ImageContainer>
@@ -240,21 +205,22 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
               <LQIPImage
                 src={`${subtitle.image}?w=20&format=webp&q=1`}
                 alt="Low quality placeholder"
-                width="200"
-                height="112.5"
+                width="240"
+                height="135"
               />
               <PostImage
-                src={`${subtitle.image}?w=160&format=avif&q=40`}
+                src={`${subtitle.image}?w=200&format=avif&q=50`}
                 srcSet={`
-                  ${subtitle.image}?w=100&format=avif&q=40 100w,
-                  ${subtitle.image}?w=160&format=avif&q=40 160w,
-                  ${subtitle.image}?w=200&format=avif&q=40 200w,
-                  ${subtitle.image}?w=480&format=avif&q=40 480w
+                  ${subtitle.image}?w=100&format=avif&q=50 100w,
+                  ${subtitle.image}?w=150&format=avif&q=50 150w,
+                  ${subtitle.image}?w=200&format=avif&q=50 200w,
+                  ${subtitle.image}?w=240&format=avif&q=50 240w,
+                  ${subtitle.image}?w=400&format=avif&q=50 400w
                 `}
-                sizes="(max-width: 320px) 160px, (max-width: 480px) 180px, (max-width: 768px) 200px, 480px"
+                sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 240px, 400px"
                 alt={subtitle.title || 'Subtitle image'}
-                width="200"
-                height="112.5"
+                width="240"
+                height="135"
                 loading="lazy"
                 decoding="async"
                 fetchpriority="low"
@@ -270,8 +236,8 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
             controls
             preload="none"
             poster={`${subtitle.videoPoster || subtitle.image}?w=80&format=webp&q=5`}
-            width="200"
-            height="112.5"
+            width="240"
+            height="135"
             loading="lazy"
             decoding="async"
             aria-label={`Video for ${subtitle.title || 'subtitle'}`}
@@ -292,21 +258,22 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                     <LQIPImage
                       src={`${point.image}?w=20&format=webp&q=1`}
                       alt="Low quality placeholder"
-                      width="200"
-                      height="112.5"
+                      width="240"
+                      height="135"
                     />
                     <PostImage
-                      src={`${point.image}?w=160&format=avif&q=40`}
+                      src={`${point.image}?w=200&format=avif&q=50`}
                       srcSet={`
-                        ${point.image}?w=100&format=avif&q=40 100w,
-                        ${point.image}?w=160&format=avif&q=40 160w,
-                        ${point.image}?w=200&format=avif&q=40 200w,
-                        ${point.image}?w=480&format=avif&q=40 480w
+                        ${point.image}?w=100&format=avif&q=50 100w,
+                        ${point.image}?w=150&format=avif&q=50 150w,
+                        ${point.image}?w=200&format=avif&q=50 200w,
+                        ${point.image}?w=240&format=avif&q=50 240w,
+                        ${point.image}?w=400&format=avif&q=50 400w
                       `}
-                      sizes="(max-width: 320px) 160px, (max-width: 480px) 180px, (max-width: 768px) 200px, 480px"
+                      sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 240px, 400px"
                       alt={`Example for ${point.text || 'bullet point'}`}
-                      width="200"
-                      height="112.5"
+                      width="240"
+                      height="135"
                       loading="lazy"
                       decoding="async"
                       fetchpriority="low"
@@ -322,8 +289,8 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                   controls
                   preload="none"
                   poster={`${point.videoPoster || point.image}?w=80&format=webp&q=5`}
-                  width="200"
-                  height="112.5"
+                  width="240"
+                  height="135"
                   loading="lazy"
                   decoding="async"
                   aria-label={`Video example for ${point.text || 'bullet point'}`}
@@ -369,18 +336,18 @@ const LazySubtitleSection = memo(({ subtitle, index, category }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '1000px', threshold: 0.1 }
+      { rootMargin: '500px', threshold: 0.1 } // Reduced rootMargin for better deferral
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ minHeight: '400px', transition: 'min-height 0.3s ease' }}>
+    <div ref={ref} style={{ minHeight: '300px', transition: 'min-height 0.2s ease' }}>
       {isVisible ? (
         <SubtitleSection subtitle={subtitle} index={index} category={category} />
       ) : (
-        <Placeholder minHeight="400px">Loading section...</Placeholder>
+        <Placeholder minHeight="300px">Loading section...</Placeholder>
       )}
     </div>
   );
@@ -398,14 +365,14 @@ const LazyReferencesSection = memo(({ post }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '1000px', threshold: 0.1 }
+      { rootMargin: '500px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ minHeight: '200px', transition: 'min-height 0.3s ease' }}>
+    <div ref={ref} style={{ minHeight: '200px', transition: 'min-height 0.2s ease' }}>
       {isVisible ? (
         <ReferencesSection aria-labelledby="references-heading">
           <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
@@ -467,7 +434,7 @@ const PostContentNonCritical = memo(
               }
             });
           }
-        }, 150),
+        }, 100),
       [setActiveSection, subtitlesListRef]
     );
 
@@ -493,20 +460,34 @@ const PostContentNonCritical = memo(
 
     useEffect(() => {
       if (!post?.summary) return;
-      if (typeof window !== 'undefined' && window.requestIdleCallback) {
+      if (typeof scheduler !== 'undefined' && scheduler.postTask) {
+        scheduler.postTask(() => {
+          setParsedSummary(parseLinks(post.summary || '', post.category || ''));
+        }, { priority: 'background' });
+      } else if (typeof window !== 'undefined' && window.requestIdleCallback) {
         window.requestIdleCallback(() => {
           setParsedSummary(parseLinks(post.summary || '', post.category || ''));
-        }, { timeout: 4000 });
+        }, { timeout: 3000 });
       } else {
         setTimeout(() => {
           setParsedSummary(parseLinks(post.summary || '', post.category || ''));
-        }, 4000);
+        }, 3000);
       }
     }, [post]);
 
     useEffect(() => {
       if (!post) return;
-      if (typeof window !== 'undefined' && window.requestIdleCallback) {
+      if (typeof scheduler !== 'undefined' && scheduler.postTask) {
+        scheduler.postTask(() => {
+          const observer = new IntersectionObserver(debouncedObserve, {
+            root: null,
+            rootMargin: '0px',
+            threshold: [0.1, 0.3, 0.5],
+          });
+          document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
+          return () => observer.disconnect();
+        }, { priority: 'background' });
+      } else if (typeof window !== 'undefined' && window.requestIdleCallback) {
         window.requestIdleCallback(() => {
           const observer = new IntersectionObserver(debouncedObserve, {
             root: null,
@@ -515,7 +496,7 @@ const PostContentNonCritical = memo(
           });
           document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
           return () => observer.disconnect();
-        }, { timeout: 4000 });
+        }, { timeout: 3000 });
       }
     }, [post, debouncedObserve]);
 
@@ -546,13 +527,13 @@ const PostContentNonCritical = memo(
         ))}
 
         {post.superTitles?.length > 0 && (
-          <Suspense fallback={<Placeholder minHeight="300px">Loading comparison...</Placeholder>}>
+          <Suspense fallback={<Placeholder minHeight="250px">Loading comparison...</Placeholder>}>
             <ComparisonTable superTitles={post.superTitles} category={post.category || ''} />
           </Suspense>
         )}
 
         {post.summary && (
-          <section id="summary" aria-labelledby="summary-heading" style={{ contentVisibility: 'auto', containIntrinsicSize: '1px 200px' }}>
+          <section id="summary" aria-labelledby="summary-heading">
             <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
             <p style={{ fontSize: '0.95rem', lineHeight: '1.5' }} dangerouslySetInnerHTML={{ __html: parsedSummary }} />
           </section>
@@ -577,8 +558,8 @@ const PostContentNonCritical = memo(
           {completedPosts.some(p => p.postId === post.postId) ? 'Completed' : 'Mark as Completed'}
         </CompleteButton>
 
-        <section aria-labelledby="related-posts-heading" style={{ minHeight: '400px', contentVisibility: 'auto', containIntrinsicSize: '1px 400px' }}>
-          <Suspense fallback={<Placeholder minHeight="400px">Loading related posts...</Placeholder>}>
+        <section aria-labelledby="related-posts-heading" style={{ minHeight: '300px' }}>
+          <Suspense fallback={<Placeholder minHeight="300px">Loading related posts...</Placeholder>}>
             <RelatedPosts relatedPosts={relatedPosts} />
           </Suspense>
         </section>
