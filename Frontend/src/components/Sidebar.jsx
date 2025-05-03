@@ -85,6 +85,15 @@ const ToggleButton = styled.button`
 `;
 
 const Sidebar = ({ post, isSidebarOpen, setSidebarOpen, activeSection, scrollToSection, subtitlesListRef }) => {
+  // Ensure scrollToSection is called with the correct arguments
+  const handleScrollToSection = (sectionId) => {
+    if (typeof scrollToSection === 'function') {
+      scrollToSection(sectionId);
+    } else {
+      console.error('scrollToSection is not a function');
+    }
+  };
+
   return (
     <>
       <ToggleButton
@@ -96,23 +105,23 @@ const Sidebar = ({ post, isSidebarOpen, setSidebarOpen, activeSection, scrollToS
       <SidebarContainer isOpen={isSidebarOpen} role="navigation" aria-label="Table of contents">
         <SidebarHeader>Contents</SidebarHeader>
         <SubtitlesList ref={subtitlesListRef}>
-          {post.subtitles.map((subtitle, index) => (
+          {(post?.subtitles || []).map((subtitle, index) => (
             <SubtitleItem
               key={index}
               isActive={activeSection === `subtitle-${index}`}
               data-section={`subtitle-${index}`}
             >
               <Button
-                onClick={() => scrollToSection(`subtitle-${index}`)}
-                aria-label={`Navigate to ${subtitle.title}`}
+                onClick={() => handleScrollToSection(`subtitle-${index}`)}
+                aria-label={`Navigate to ${subtitle.title || `Section ${index + 1}`}`}
               >
-                {parseLinks(subtitle.title || '', post.category)}
+                {parseLinks(subtitle.title || `Section ${index + 1}`, post.category || '')}
               </Button>
             </SubtitleItem>
           ))}
-          {post.summary && (
+          {post?.summary && (
             <SubtitleItem isActive={activeSection === 'summary'} data-section="summary">
-              <Button onClick={() => scrollToSection('summary')} aria-label="Navigate to summary">
+              <Button onClick={() => handleScrollToSection('summary')} aria-label="Navigate to summary">
                 Summary
               </Button>
             </SubtitleItem>
@@ -123,4 +132,4 @@ const Sidebar = ({ post, isSidebarOpen, setSidebarOpen, activeSection, scrollToS
   );
 };
 
-export default Sidebar;
+export default Sidebar; 
