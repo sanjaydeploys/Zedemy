@@ -86,7 +86,6 @@ export default defineConfig({
       '@pages': '/src/pages',
       '@actions': '/src/actions',
     },
-    dedupe: ['popper.js'], // Prevent duplicate popper.js inclusions
   },
   build: {
     minify: 'esbuild',
@@ -98,15 +97,38 @@ export default defineConfig({
     },
     rollupOptions: {
       output: {
-        experimentalMinChunkSize: 10000, // Increased to merge smaller chunks
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
-          uiLibs: ['framer-motion', 'jss', 'react-toastify'],
-          utilities: ['react-helmet-async', 'dompurify', 'react-copy-to-clipboard'],
-          syntax_highlighter: ['react-syntax-highlighter', 'highlight.js'],
-          codemirror: ['@codemirror/view', '@codemirror/state'],
-          parse5: ['parse5'],
-          lodash: ['lodash'],
+        experimentalMinChunkSize: 10000,
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom') || id.includes('redux') || id.includes('react-redux')) {
+              return 'vendor';
+            }
+            if (id.includes('framer-motion')) {
+              return 'framer-motion';
+            }
+            if (id.includes('jss') || id.includes('react-toastify')) {
+              return 'uiLibs';
+            }
+            if (id.includes('react-helmet-async') || id.includes('dompurify') || id.includes('react-copy-to-clipboard')) {
+              return 'utilities';
+            }
+            if (id.includes('react-syntax-highlighter')) {
+              return 'syntax_highlighter';
+            }
+            if (id.includes('codemirror')) {
+              return 'codemirror';
+            }
+            if (id.includes('parse5')) {
+              return 'parse5';
+            }
+            if (id.includes('lodash')) {
+              return 'lodash';
+            }
+          }
+          // Exclude unused pages and components
+          if (id.includes('AddPostForm.jsx') || id.includes('Dashboard.jsx') || id.includes('Home.jsx')) {
+            return id.includes('AddPostForm') ? 'add-post-form' : id.includes('Dashboard') ? 'dashboard' : 'home';
+          }
         },
       },
     },
@@ -117,7 +139,7 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
-    exclude: ['highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'popper.js', 'react-syntax-highlighter'],
+    exclude: ['react-syntax-highlighter', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash'],
     force: true,
   },
   server: {
