@@ -10,8 +10,14 @@ import { Helmet, HelmetProvider } from 'react-helmet-async';
 
 // Lazy-loaded dependencies (only non-critical ones)
 const loadDependencies = async () => {
-  const [{ createSelector }] = await Promise.all([import('reselect')]);
-  return { createSelector };
+  const [
+    { ClipLoader },
+    { createSelector },
+  ] = await Promise.all([
+    import('react-spinners'),
+    import('reselect'),
+  ]);
+  return { ClipLoader, createSelector };
 };
 
 // Lazy-loaded components
@@ -49,13 +55,21 @@ const MainContent = styled.main`
   padding: 1rem;
   background: #f4f4f9;
   contain: paint;
-  min-height: 1500px; /* Reserve space for content to prevent shifts */
+  min-height: 2000px; /* Increased to reserve more space */
   @media (min-width: 769px) {
     margin-right: 250px; /* Fixed space for sidebar */
     min-width: 0;
   }
   @media (max-width: 768px) {
     padding: 0.75rem;
+  }
+`;
+
+const SidebarWrapper = styled.aside`
+  @media (min-width: 769px) {
+    width: 250px; /* Fixed width to prevent shifts */
+    min-height: 1200px; /* Adjusted to match typical content */
+    flex-shrink: 0;
   }
 `;
 
@@ -129,7 +143,6 @@ const ImageContainer = styled.figure`
   margin: 0.75rem 0;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  min-height: 270px; /* Fallback for failed loads */
 `;
 
 const PostImage = styled.img`
@@ -140,7 +153,6 @@ const PostImage = styled.img`
   object-fit: contain;
   border-radius: 0.375rem;
   aspect-ratio: 16 / 9;
-  min-height: 270px; /* Ensure space is reserved */
 `;
 
 const VideoContainer = styled.figure`
@@ -148,7 +160,6 @@ const VideoContainer = styled.figure`
   max-width: 100%;
   margin: 0.75rem 0;
   aspect-ratio: 16 / 9;
-  min-height: 270px; /* Fallback for failed loads */
 `;
 
 const PostVideo = styled.video`
@@ -158,13 +169,12 @@ const PostVideo = styled.video`
   max-height: 60vh;
   border-radius: 0.375rem;
   aspect-ratio: 16 / 9;
-  min-height: 270px; /* Ensure space is reserved */
 `;
 
 const Placeholder = styled.div`
   width: 100%;
   min-height: ${(props) => props.minHeight || '270px'};
-  aspect-ratio: ${(props) => props.aspectRatio || '16 / 9'};
+  aspect-ratio: 16 / 9;
   background: #e0e0e0;
   display: flex;
   align-items: center;
@@ -172,7 +182,6 @@ const Placeholder = styled.div`
   color: #666;
   border-radius: 0.375rem;
   font-size: 0.875rem;
-  transition: min-height 0.3s ease; /* Smooth height changes */
 `;
 
 const ReferencesSection = styled.section`
@@ -217,13 +226,12 @@ const NavigationLinks = styled.nav`
 const criticalCSS = `
   html { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; }
   .container { display: flex; min-height: 100vh; }
-  main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 1500px; }
+  main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 2000px; }
+  aside { width: 250px; min-height: 1200px; flex-shrink: 0; }
   h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; margin: 0.75rem 0 1rem; line-height: 1.2; }
-  .skeleton-header { width: 60%; height: 2rem; background: #e0e0e0; border-radius: 0.375rem; margin: 0.75rem 0 1rem; }
-  .skeleton-text { width: 100%; height: 0.875rem; background: #e0e0e0; border-radius: 0.25rem; margin: 0.5rem 0; }
-  figure { width: 100%; max-width: 100%; margin: 0.75rem 0; aspect-ratio: 16 / 9; min-height: 270px; }
-  img { width: 100%; height: auto; max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 0.375rem; aspect-ratio: 16 / 9; min-height: 270px; }
-  video { width: 100%; height: auto; max-width: 100%; max-height: 60vh; border-radius: 0.375rem; aspect-ratio: 16 / 9; min-height: 270px; }
+  figure { width: 100%; max-width: 100%; margin: 0.75rem 0; aspect-ratio: 16 / 9; }
+  img { width: 100%; height: auto; max-width: 100%; max-height: 60vh; object-fit: contain; border-radius: 0.375rem; aspect-ratio: 16 / 9; }
+  video { width: 100%; height: auto; max-width: 100%; max-height: 60vh; border-radius: 0.375rem; aspect-ratio: 16 / 9; }
   nav { margin: 1rem 0; display: flex; gap: 0.75rem; flex-wrap: wrap; font-size: 0.75rem; }
   nav a { min-height: 44px; display: inline-flex; align-items: center; padding: 0.5rem; }
   p { font-size: 0.875rem; }
@@ -244,6 +252,7 @@ const PostPage = memo(() => {
   const subtitlesListRef = useRef(null);
   const [hasFetched, setHasFetched] = useState(false);
   const [deps, setDeps] = useState(null);
+  const [structuredData, setStructuredData] = useState([]); // Defer structured data generation
 
   // Load non-critical dependencies
   useEffect(() => {
@@ -366,66 +375,9 @@ const PostPage = memo(() => {
   const parsedContent = useMemo(() => parseLinks(post?.content || '', post?.category || ''), [post?.content, post?.category]);
   const parsedSummary = useMemo(() => parseLinks(post?.summary || '', post?.category || ''), [post?.summary, post?.category]);
 
+  // Defer structured data generation
   useEffect(() => {
     if (!post) return;
-    // Defer IntersectionObserver setup
-    setTimeout(() => {
-      const observer = new IntersectionObserver(debouncedObserve, {
-        root: null,
-        rootMargin: '0px',
-        threshold: [0.1, 0.3, 0.5],
-      });
-      document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
-      return () => observer.disconnect();
-    }, 1500); // Increased delay to reduce initial JS execution
-  }, [post, debouncedObserve]);
-
-  useEffect(() => {
-    if (post?.titleImage) {
-      if (typeof scheduler !== 'undefined' && scheduler.postTask) {
-        scheduler.postTask(
-          () => {
-            const img = new Image();
-            img.src = `${post.titleImage}?w=320&format=avif&q=40`;
-            img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
-          },
-          { priority: 'background' }
-        );
-      } else {
-        requestIdleCallback(
-          () => {
-            const img = new Image();
-            img.src = `${post.titleImage}?w=320&format=avif&q=40`;
-            img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
-          },
-          { timeout: 1000 }
-        );
-      }
-    }
-  }, [post?.titleImage]);
-
-  const handleMarkAsCompleted = useCallback(() => {
-    if (!post) return;
-    dispatch(markPostAsCompleted(post.postId));
-  }, [dispatch, post]);
-
-  const scrollToSection = useCallback(
-    (id, updateUrl = true) => {
-      const section = document.getElementById(id);
-      if (section) {
-        section.scrollIntoView({ behavior: 'smooth' });
-        setActiveSection(id);
-        if (isSidebarOpen) setSidebarOpen(false);
-        if (updateUrl && subtitleSlugs[id]) {
-          window.history.pushState(null, '', `#${subtitleSlugs[id]}`);
-        }
-      }
-    },
-    [isSidebarOpen, subtitleSlugs]
-  );
-
-  const structuredData = useMemo(() => {
-    if (!post) return [];
     const pageTitle = `${post.title} | Zedemy, India`;
     const pageDescription = truncateText(post.summary || post.content, 160) || `Learn ${post.title?.toLowerCase() || ''} with Zedemy's tutorials.`;
     const pageKeywords = post.keywords
@@ -501,8 +453,66 @@ const PostPage = memo(() => {
         },
       });
     }
-    return schemas;
+    setStructuredData(schemas);
   }, [post, slug, calculateReadTimeAndWordCount]);
+
+  useEffect(() => {
+    if (!post) return;
+    // Defer IntersectionObserver setup
+    setTimeout(() => {
+      const observer = new IntersectionObserver(debouncedObserve, {
+        root: null,
+        rootMargin: '0px',
+        threshold: [0.1, 0.3, 0.5],
+      });
+      document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
+      return () => observer.disconnect();
+    }, 1000);
+  }, [post, debouncedObserve]);
+
+  useEffect(() => {
+    if (post?.titleImage) {
+      if (typeof scheduler !== 'undefined' && scheduler.postTask) {
+        scheduler.postTask(
+          () => {
+            const img = new Image();
+            img.src = `${post.titleImage}?w=240&format=avif&q=40`;
+            img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
+          },
+          { priority: 'background' }
+        );
+      } else {
+        requestIdleCallback(
+          () => {
+            const img = new Image();
+            img.src = `${post.titleImage}?w=240&format=avif&q=40`;
+            img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
+          },
+          { timeout: 1000 }
+        );
+      }
+    }
+  }, [post?.titleImage]);
+
+  const handleMarkAsCompleted = useCallback(() => {
+    if (!post) return;
+    dispatch(markPostAsCompleted(post.postId));
+  }, [dispatch, post]);
+
+  const scrollToSection = useCallback(
+    (id, updateUrl = true) => {
+      const section = document.getElementById(id);
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth' });
+        setActiveSection(id);
+        if (isSidebarOpen) setSidebarOpen(false);
+        if (updateUrl && subtitleSlugs[id]) {
+          window.history.pushState(null, '', `#${subtitleSlugs[id]}`);
+        }
+      }
+    },
+    [isSidebarOpen, subtitleSlugs]
+  );
 
   // Subtitle Section Component
   const SubtitleSection = memo(({ subtitle, index, category }) => {
@@ -516,14 +526,14 @@ const PostPage = memo(() => {
             <Suspense fallback={<Placeholder minHeight="270px">Loading image...</Placeholder>}>
               <AccessibleZoom caption={subtitle.title || ''}>
                 <PostImage
-                  src={`${subtitle.image}?w=320&format=avif&q=40`}
+                  src={`${subtitle.image}?w=240&format=avif&q=40`}
                   srcSet={`
+                    ${subtitle.image}?w=240&format=avif&q=40 240w,
                     ${subtitle.image}?w=320&format=avif&q=40 320w,
                     ${subtitle.image}?w=480&format=avif&q=40 480w,
-                    ${subtitle.image}?w=768&format=avif&q=40 768w,
-                    ${subtitle.image}?w=1024&format=avif&q=40 1024w
+                    ${subtitle.image}?w=768&format=avif&q=40 768w
                   `}
-                  sizes="(max-width: 480px) 320px, (max-width: 768px) 480px, (max-width: 1024px) 768px, 1024px"
+                  sizes="(max-width: 480px) 240px, (max-width: 768px) 320px, (max-width: 1024px) 480px, 768px"
                   alt={subtitle.title || 'Subtitle image'}
                   width="480"
                   height="270"
@@ -541,7 +551,7 @@ const PostPage = memo(() => {
             <PostVideo
               controls
               preload="none"
-              poster={`${subtitle.videoPoster || subtitle.image}?w=320&format=webp&q=40`}
+              poster={`${subtitle.videoPoster || subtitle.image}?w=240&format=webp&q=40`}
               width="480"
               height="270"
               loading="lazy"
@@ -562,14 +572,14 @@ const PostPage = memo(() => {
                   <Suspense fallback={<Placeholder minHeight="270px">Loading image...</Placeholder>}>
                     <AccessibleZoom caption={`Example for ${point.text || ''}`}>
                       <PostImage
-                        src={`${point.image}?w=320&format=avif&q=40`}
+                        src={`${point.image}?w=240&format=avif&q=40`}
                         srcSet={`
+                          ${point.image}?w=240&format=avif&q=40 240w,
                           ${point.image}?w=320&format=avif&q=40 320w,
                           ${point.image}?w=480&format=avif&q=40 480w,
-                          ${point.image}?w=768&format=avif&q=40 768w,
-                          ${point.image}?w=1024&format=avif&q=40 1024w
+                          ${point.image}?w=768&format=avif&q=40 768w
                         `}
-                        sizes="(max-width: 480px) 320px, (max-width: 768px) 480px, (max-width: 1024px) 768px, 1024px"
+                        sizes="(max-width: 480px) 240px, (max-width: 768px) 320px, (max-width: 1024px) 480px, 768px"
                         alt={`Example for ${point.text || 'bullet point'}`}
                         width="480"
                         height="270"
@@ -587,7 +597,7 @@ const PostPage = memo(() => {
                   <PostVideo
                     controls
                     preload="none"
-                    poster={`${point.videoPoster || point.image}?w=320&format=webp&q=40`}
+                    poster={`${point.videoPoster || point.image}?w=240&format=webp&q=40`}
                     width="480"
                     height="270"
                     loading="lazy"
@@ -636,18 +646,18 @@ const PostPage = memo(() => {
             observer.disconnect();
           }
         },
-        { rootMargin: window.innerWidth > 768 ? '500px' : '1000px', threshold: 0.1 }
+        { rootMargin: '1000px', threshold: 0.1 }
       );
       if (ref.current) observer.observe(ref.current);
       return () => observer.disconnect();
     }, []);
 
     return (
-      <div ref={ref} style={{ minHeight: window.innerWidth > 768 ? '500px' : '400px', transition: 'min-height 0.3s ease' }}>
+      <div ref={ref} style={{ minHeight: '450px', transition: 'min-height 0.3s ease' }}>
         {isVisible ? (
           <SubtitleSection subtitle={subtitle} index={index} category={category} />
         ) : (
-          <Placeholder minHeight={window.innerWidth > 768 ? '500px' : '400px'}>Loading section...</Placeholder>
+          <Placeholder minHeight="450px">Loading section...</Placeholder>
         )}
       </div>
     );
@@ -666,14 +676,14 @@ const PostPage = memo(() => {
             observer.disconnect();
           }
         },
-        { rootMargin: window.innerWidth > 768 ? '500px' : '1000px', threshold: 0.1 }
+        { rootMargin: '1000px', threshold: 0.1 }
       );
       if (ref.current) observer.observe(ref.current);
       return () => observer.disconnect();
     }, []);
 
     return (
-      <div ref={ref} style={{ minHeight: window.innerWidth > 768 ? '250px' : '200px', transition: 'min-height 0.3s ease' }}>
+      <div ref={ref} style={{ minHeight: '250px', transition: 'min-height 0.3s ease' }}>
         {isVisible ? (
           <ReferencesSection aria-labelledby="references-heading">
             <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
@@ -705,7 +715,7 @@ const PostPage = memo(() => {
             )}
           </ReferencesSection>
         ) : (
-          <Placeholder minHeight={window.innerWidth > 768 ? '250px' : '200px'}>Loading references...</Placeholder>
+          <Placeholder minHeight="250px">Loading references...</Placeholder>
         )}
       </div>
     );
@@ -719,16 +729,20 @@ const PostPage = memo(() => {
     );
   }
 
+  const { ClipLoader } = deps;
+
   if (!post && !hasFetched) {
     return (
       <Container>
         <MainContent>
-          <SkeletonHeader className="skeleton-header" />
-          <SkeletonText className="skeleton-text" width="80%" />
-          <SkeletonText className="skeleton-text" width="60%" />
-          <SkeletonText className="skeleton-text" width="90%" />
+          <SkeletonHeader />
+          <SkeletonText width="80%" />
+          <SkeletonText width="60%" />
+          <SkeletonText width="90%" />
         </MainContent>
-        <Placeholder minHeight={window.innerWidth > 768 ? '800px' : '600px'}>Loading sidebar...</Placeholder>
+        <SidebarWrapper>
+          <Placeholder minHeight="1200px">Loading sidebar...</Placeholder>
+        </SidebarWrapper>
       </Container>
     );
   }
@@ -737,7 +751,7 @@ const PostPage = memo(() => {
     return (
       <Container>
         <LoadingOverlay aria-live="polite">
-          <div>Loading...</div> {/* Replaced ClipLoader with static text */}
+          <ClipLoader color="#2c3e50" size={50} />
         </LoadingOverlay>
       </Container>
     );
@@ -758,22 +772,22 @@ const PostPage = memo(() => {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
         <link rel="preconnect" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
-        <link rel="preload" href="/highlight.js/styles/vs.css" as="style" fetchpriority="high" />
+        <link rel="prefetch" href={`https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/post/${slug}`} />
+        <link rel="preload" href="/highlight.js/styles/vs.css" as="style" fetchpriority="low" />
         <link rel="stylesheet" href="/highlight.js/styles/vs.css" media="print" onLoad="this.media='all'" fetchpriority="low" />
         {post.titleImage && (
           <link
             rel="preload"
             as="image"
-            href={`${post.titleImage}?w=320&format=avif&q=40`}
+            href={`${post.titleImage}?w=240&format=avif&q=40`}
             fetchpriority="high"
             imagesrcset={`
+              ${post.titleImage}?w=240&format=avif&q=40 240w,
               ${post.titleImage}?w=320&format=avif&q=40 320w,
               ${post.titleImage}?w=480&format=avif&q=40 480w,
-              ${post.titleImage}?w=768&format=avif&q=40 768w,
-              ${post.titleImage}?w=1024&format=avif&q=40 1024w
+              ${post.titleImage}?w=768&format=avif&q=40 768w
             `}
-            imagesizes="(max-width: 480px) 320px, (max-width: 768px) 480px, (max-width: 1024px) 768px, 1024px"
+            imagesizes="(max-width: 480px) 240px, (max-width: 768px) 320px, (max-width: 1024px) 480px, 768px"
           />
         )}
         <meta property="og:title" content={`${post.title} | Zedemy`} />
@@ -802,17 +816,13 @@ const PostPage = memo(() => {
         <MainContent role="main" aria-label="Main content">
           <article>
             <header>
-              {post ? (
-                <PostHeader>{parsedTitle}</PostHeader>
-              ) : (
-                <SkeletonHeader className="skeleton-header" />
-              )}
+              <PostHeader>{parsedTitle}</PostHeader>
               <div style={{ marginBottom: '0.5rem', color: '#666', fontSize: '0.75rem' }}>
                 Read time: {calculateReadTimeAndWordCount.readTime} min
               </div>
               <NavigationLinks aria-label="Page navigation">
                 <Link to="/explore" aria-label="Back to blog">Blog</Link>
-                {post?.category && (
+                {post.category && (
                   <Link to={`/category/${post.category.toLowerCase()}`} aria-label={`Explore ${post.category}`}>
                     {post.category}
                   </Link>
@@ -821,19 +831,19 @@ const PostPage = memo(() => {
               </NavigationLinks>
             </header>
 
-            {post?.titleImage && (
+            {post.titleImage && (
               <ImageContainer>
                 <Suspense fallback={<Placeholder minHeight="270px">Loading image...</Placeholder>}>
                   <AccessibleZoom caption={`Illustration for ${post.title}`}>
                     <PostImage
-                      src={`${post.titleImage}?w=320&format=avif&q=40`}
+                      src={`${post.titleImage}?w=240&format=avif&q=40`}
                       srcSet={`
+                        ${post.titleImage}?w=240&format=avif&q=40 240w,
                         ${post.titleImage}?w=320&format=avif&q=40 320w,
                         ${post.titleImage}?w=480&format=avif&q=40 480w,
-                        ${post.titleImage}?w=768&format=avif&q=40 768w,
-                        ${post.titleImage}?w=1024&format=avif&q=40 1024w
+                        ${post.titleImage}?w=768&format=avif&q=40 768w
                       `}
-                      sizes="(max-width: 480px) 320px, (max-width: 768px) 480px, (max-width: 1024px) 768px, 1024px"
+                      sizes="(max-width: 480px) 240px, (max-width: 768px) 320px, (max-width: 1024px) 480px, 768px"
                       alt={`Illustration for ${post.title}`}
                       width="480"
                       height="270"
@@ -847,12 +857,12 @@ const PostPage = memo(() => {
               </ImageContainer>
             )}
 
-            {post?.titleVideo && (
+            {post.titleVideo && (
               <VideoContainer>
                 <PostVideo
                   controls
                   preload="metadata"
-                  poster={`${post.titleVideoPoster || post.titleImage}?w=320&format=webp&q=40`}
+                  poster={`${post.titleVideoPoster || post.titleImage}?w=240&format=webp&q=40`}
                   width="480"
                   height="270"
                   loading="eager"
@@ -866,21 +876,21 @@ const PostPage = memo(() => {
             )}
 
             <p style={{ fontSize: '0.875rem' }}>
-              <time dateTime={post?.date}>{post?.date}</time> | Author: {post?.author || 'Zedemy Team'}
+              <time dateTime={post.date}>{post.date}</time> | Author: {post.author || 'Zedemy Team'}
             </p>
             <section style={{ fontSize: '0.875rem' }}>{parsedContent}</section>
 
-            {(post?.subtitles || []).map((subtitle, i) => (
-              <LazySubtitleSection key={i} subtitle={subtitle} index={i} category={post?.category || ''} />
+            {(post.subtitles || []).map((subtitle, i) => (
+              <LazySubtitleSection key={i} subtitle={subtitle} index={i} category={post.category || ''} />
             ))}
 
-            {post?.superTitles?.length > 0 && (
-              <Suspense fallback={<Placeholder minHeight={window.innerWidth > 768 ? '400px' : '300px'}>Loading comparison...</Placeholder>}>
-                <ComparisonTable superTitles={post.superTitles} category={post?.category || ''} />
+            {post.superTitles?.length > 0 && (
+              <Suspense fallback={<Placeholder minHeight="350px">Loading comparison...</Placeholder>}>
+                <ComparisonTable superTitles={post.superTitles} category={post.category || ''} />
               </Suspense>
             )}
 
-            {post?.summary && (
+            {post.summary && (
               <section id="summary" aria-labelledby="summary-heading">
                 <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
                 <p style={{ fontSize: '0.875rem' }}>{parsedSummary}</p>
@@ -896,8 +906,8 @@ const PostPage = memo(() => {
               {completedPosts.some(p => p.postId === post.postId) ? 'Completed' : 'Mark as Completed'}
             </CompleteButton>
 
-            <section aria-labelledby="related-posts-heading" style={{ minHeight: window.innerWidth > 768 ? '500px' : '400px' }}>
-              <Suspense fallback={<Placeholder minHeight={window.innerWidth > 768 ? '500px' : '400px'}>Loading related posts...</Placeholder>}>
+            <section aria-labelledby="related-posts-heading" style={{ minHeight: '450px' }}>
+              <Suspense fallback={<Placeholder minHeight="450px">Loading related posts...</Placeholder>}>
                 <RelatedPosts relatedPosts={relatedPosts} />
               </Suspense>
             </section>
@@ -905,16 +915,18 @@ const PostPage = memo(() => {
             <LazyReferencesSection post={post} />
           </article>
         </MainContent>
-        <Suspense fallback={<Placeholder minHeight={window.innerWidth > 768 ? '800px' : '600px'}>Loading sidebar...</Placeholder>}>
-          <Sidebar
-            post={post}
-            isSidebarOpen={isSidebarOpen}
-            setSidebarOpen={setSidebarOpen}
-            activeSection={deferredActiveSection}
-            scrollToSection={scrollToSection}
-            subtitlesListRef={subtitlesListRef}
-          />
-        </Suspense>
+        <SidebarWrapper>
+          <Suspense fallback={<Placeholder minHeight="1200px">Loading sidebar...</Placeholder>}>
+            <Sidebar
+              post={post}
+              isSidebarOpen={isSidebarOpen}
+              setSidebarOpen={setSidebarOpen}
+              activeSection={deferredActiveSection}
+              scrollToSection={scrollToSection}
+              subtitlesListRef={subtitlesListRef}
+            />
+          </Suspense>
+        </SidebarWrapper>
       </Container>
     </HelmetProvider>
   );
