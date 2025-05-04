@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchPostBySlug, fetchCompletedPosts, fetchPosts, markPostAsCompleted } from '../actions/postActions';
 import { useParams, Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { parseLinks, slugify, truncateText } from './utils';
+import { slugify, truncateText } from './utils';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 
 const loadDependencies = async () => {
@@ -83,6 +83,7 @@ const ContentSection = styled.section`
   contain-intrinsic-size: 1px 200px;
   contain: content;
   will-change: transform;
+  white-space: pre-wrap;
   @media (min-width: 769px) {
     font-size: 1.1rem;
     line-height: 1.7;
@@ -211,7 +212,7 @@ const criticalCSS = `
   .container { display: flex; min-height: 100vh; flex-direction: column; }
   main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 2000px; }
   h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; margin: 0.75rem 0 1rem; line-height: 1.3; will-change: transform; }
-  section { font-size: 1rem; line-height: 1.6; margin-bottom: 1.5rem; content-visibility: auto; contain-intrinsic-size: 1px 200px; contain: content; will-change: transform; }
+  section { font-size: 1rem; line-height: 1.6; margin-bottom: 1.5rem; content-visibility: auto; contain-intrinsic-size: 1px 200px; contain: content; will-change: transform; white-space: pre-wrap; }
   figure { width: 100%; max-width: 100%; margin: 1rem 0; position: relative; aspect-ratio: 16 / 9; height: 157.5px; }
   img { width: 100%; max-width: 280px; height: 157.5px; border-radius: 0.375rem; }
   video { width: 100%; max-width: 280px; height: 157.5px; border-radius: 0.375rem; }
@@ -243,7 +244,7 @@ const criticalCSS = `
   }
 `;
 
-const PostContentCritical = memo(({ post, parsedTitle, parsedContent, calculateReadTimeAndWordCount }) => {
+const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
   return (
     <>
       <header>
@@ -253,7 +254,7 @@ const PostContentCritical = memo(({ post, parsedTitle, parsedContent, calculateR
         </div>
       </header>
 
-      <ContentSection dangerouslySetInnerHTML={{ __html: parsedContent }} />
+      <ContentSection>{post.content || ''}</ContentSection>
 
       {post.titleImage && (
         <ImageContainer>
@@ -328,8 +329,6 @@ const PostPage = memo(() => {
   const post = useSelector(state => state.postReducer.post);
   const relatedPosts = useSelector(state => state.postReducer.posts?.filter(p => p.postId !== post?.postId && p.category?.toLowerCase() === post?.category?.toLowerCase()).slice(0, 3) || []);
   const completedPosts = useSelector(state => state.postReducer.completedPosts || []);
-
-  const parsedContent = useMemo(() => parseLinks(post?.content || '', post?.category || '', false), [post?.content, post?.category]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
@@ -603,7 +602,6 @@ const PostPage = memo(() => {
             <PostContentCritical
               post={post}
               parsedTitle={parsedTitle}
-              parsedContent={parsedContent}
               calculateReadTimeAndWordCount={calculateReadTimeAndWordCount}
             />
             <Suspense fallback={<Placeholder height="500px">Loading additional content...</Placeholder>}>
