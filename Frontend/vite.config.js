@@ -86,7 +86,7 @@ export default defineConfig({
       '@pages': '/src/pages',
       '@actions': '/src/actions',
     },
-    dedupe: ['popper.js'],
+    dedupe: ['popper.js'], // Prevent duplicate popper.js inclusions
   },
   build: {
     minify: 'esbuild',
@@ -94,11 +94,11 @@ export default defineConfig({
     target: 'esnext',
     treeshake: 'recommended',
     modulePreload: {
-      polyfill: false, // Disable module preloading for mobile
+      polyfill: true,
     },
     rollupOptions: {
       output: {
-        experimentalMinChunkSize: 5000, // Reduced for smaller chunks on mobile
+        experimentalMinChunkSize: 10000, // Increased to merge smaller chunks
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
           uiLibs: ['framer-motion', 'react-toastify'],
