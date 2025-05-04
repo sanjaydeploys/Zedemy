@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef, memo, useMemo, Suspense, useDeferredValue, startTransition } from 'react';
+import React, { useState, useEffect, useRef, memo, Suspense, useDeferredValue, startTransition } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPostBySlug, fetchCompletedPosts, fetchPosts } from '../actions/postActions';
 import { useParams } from 'react-router-dom';
-import styled from 'styled-components';
 import { parseLinks, slugify, truncateText } from './utils';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 
@@ -14,200 +13,19 @@ const loadDependencies = async () => {
 const PostContentNonCritical = React.lazy(() => import('./PostContentNonCritical'));
 const Sidebar = React.lazy(() => import('./Sidebar'));
 
-const Container = styled.div`
-  display: flex;
-  min-height: 100vh;
-  flex-direction: column;
-  @media (min-width: 769px) {
-    flex-direction: row;
-  }
-`;
-
-const MainContent = styled.main`
-  flex: 1;
-  padding: 1rem;
-  background: #f4f4f9;
-  contain: paint;
-  min-height: 2000px;
-  @media (min-width: 769px) {
-    margin-right: 250px;
-    padding: 2rem;
-  }
-`;
-
-const SidebarWrapper = styled.aside`
-  @media (min-width: 769px) {
-    width: 250px;
-    min-height: 1200px;
-    flex-shrink: 0;
-  }
-`;
-
-const LoadingOverlay = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: rgba(0, 0, 0, 0.5);
-  min-height: 100vh;
-  width: 100%;
-`;
-
-const SkeletonHeader = styled.div`
-  width: 60%;
-  height: 2rem;
-  background: #e0e0e0;
-  border-radius: 0.375rem;
-  margin: 0.75rem 0 1rem;
-`;
-
-const PostHeader = styled.h1`
-  font-size: clamp(1.5rem, 4vw, 2rem);
-  color: #111827;
-  margin: 0.75rem 0 1rem;
-  font-weight: 800;
-  line-height: 1.3;
-`;
-
-const ContentSection = styled.section`
-  font-size: 1rem;
-  line-height: 1.6;
-  margin-bottom: 1.5rem;
-  content-visibility: auto;
-  contain-intrinsic-size: 1px 200px;
-  @media (min-width: 769px) {
-    font-size: 1.1rem;
-    line-height: 1.7;
-  }
-  @media (max-width: 480px) {
-    font-size: 0.9rem;
-    line-height: 1.5;
-  }
-`;
-
-const ImageContainer = styled.figure`
-  width: 100%;
-  max-width: 100%;
-  margin: 1rem 0;
-  position: relative;
-  aspect-ratio: 16 / 9;
-  height: 157.5px;
-  @media (min-width: 769px) {
-    height: 270px;
-  }
-  @media (max-width: 480px) {
-    height: 135px;
-  }
-  @media (max-width: 320px) {
-    height: 112.5px;
-  }
-`;
-
-const PostImage = styled.img`
-  width: 100%;
-  max-width: 280px;
-  height: 157.5px;
-  object-fit: contain;
-  border-radius: 0.375rem;
-  position: relative;
-  z-index: 2;
-  @media (min-width: 769px) {
-    max-width: 480px;
-    height: 270px;
-  }
-  @media (max-width: 480px) {
-    max-width: 240px;
-    height: 135px;
-  }
-  @media (max-width: 320px) {
-    max-width: 200px;
-    height: 112.5px;
-  }
-`;
-
-const LQIPImage = styled.img`
-  width: 100%;
-  max-width: 280px;
-  height: 157.5px;
-  object-fit: contain;
-  border-radius: 0.375rem;
-  filter: blur(10px);
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 1;
-  @media (min-width: 769px) {
-    max-width: 480px;
-    height: 270px;
-  }
-  @media (max-width: 480px) {
-    max-width: 240px;
-    height: 135px;
-  }
-  @media (max-width: 320px) {
-    max-width: 200px;
-    height: 112.5px;
-  }
-`;
-
-const VideoContainer = styled.figure`
-  width: 100%;
-  max-width: 100%;
-  margin: 1rem 0;
-  aspect-ratio: 16 / 9;
-  height: 157.5px;
-  @media (min-width: 769px) {
-    height: 270px;
-  }
-  @media (max-width: 480px) {
-    height: 135px;
-  }
-  @media (max-width: 320px) {
-    height: 112.5px;
-  }
-`;
-
-const PostVideo = styled.video`
-  width: 100%;
-  max-width: 280px;
-  height: 157.5px;
-  border-radius: 0.375rem;
-  @media (min-width: 769px) {
-    max-width: 480px;
-    height: 270px;
-  }
-  @media (max-width: 480px) {
-    max-width: 240px;
-    height: 135px;
-  }
-  @media (max-width: 320px) {
-    max-width: 200px;
-    height: 112.5px;
-  }
-`;
-
-const Placeholder = styled.div`
-  width: 100%;
-  height: ${(props) => props.height || '180px'};
-  background: #e0e0e0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-`;
-
 const criticalCSS = `
   html { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; }
   .container { display: flex; min-height: 100vh; flex-direction: column; }
   main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 2000px; }
   h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; margin: 0.75rem 0 1rem; line-height: 1.3; }
-  section { font-size: 1rem; line-height: 1.6; margin-bottom: 1.5rem; content-visibility: auto; contain-intrinsic-size: 1px 200px; }
+  section { font-size: 1rem; line-height: 1.6; margin-bottom: 1.5rem; }
   figure { width: 100%; max-width: 100%; margin: 1rem 0; position: relative; aspect-ratio: 16 / 9; height: 157.5px; }
   img { width: 100%; max-width: 280px; height: 157.5px; border-radius: 0.375rem; }
   video { width: 100%; max-width: 280px; height: 157.5px; border-radius: 0.375rem; }
   p { font-size: 0.875rem; }
   .skeleton { width: 60%; height: 2rem; background: #e0e0e0; border-radius: 0.375rem; margin: 0.75rem 0 1rem; }
+  .loading-overlay { display: flex; justify-content: center; align-items: center; background: rgba(0, 0, 0, 0.5); min-height: 100vh; width: 100%; }
+  .placeholder { width: 100%; height: 180px; background: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #666; border-radius: 0.375rem; font-size: 0.875rem; }
   @media (min-width: 769px) {
     .container { flex-direction: row; }
     main { margin-right: 250px; padding: 2rem; }
@@ -234,72 +52,20 @@ const criticalCSS = `
   }
 `;
 
-const PostContentCritical = memo(({ post, parsedTitle, parsedContent, calculateReadTimeAndWordCount }) => {
+const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
   return (
-    <>
-      <header>
-        <PostHeader>{parsedTitle || post.title}</PostHeader>
-        <div style={{ marginBottom: '0.75rem', color: '#666', fontSize: '0.75rem' }}>
+    <div>
+      <header style={{ marginBottom: '0.75rem' }}>
+        <h1 style={{ fontSize: 'clamp(1.5rem, 4vw, 2rem)', color: '#111827', fontWeight: 800, lineHeight: 1.3, margin: '0.75rem 0 1rem' }}>
+          {parsedTitle || post.title}
+        </h1>
+        <div style={{ color: '#666', fontSize: '0.75rem' }}>
           Read time: {calculateReadTimeAndWordCount.readTime} min
         </div>
       </header>
 
-      <ContentSection>{parsedContent}</ContentSection>
-
-      {post.titleImage && (
-        <ImageContainer>
-          <LQIPImage
-            src={`${post.titleImage}?w=10&format=webp&q=1`}
-            alt="Low quality placeholder"
-            width="280"
-            height="157.5"
-            loading="eager"
-            decoding="async"
-            fetchpriority="low"
-          />
-          <PostImage
-            src={`${post.titleImage}?w=200&format=avif&q=40`}
-            srcSet={`
-              ${post.titleImage}?w=100&format=avif&q=40 100w,
-              ${post.titleImage}?w=150&format=avif&q=40 150w,
-              ${post.titleImage}?w=200&format=avif&q=40 200w,
-              ${post.titleImage}?w=280&format=avif&q=40 280w,
-              ${post.titleImage}?w=480&format=avif&q=40 480w
-            `}
-            sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
-            alt={`Illustration for ${post.title}`}
-            width="280"
-            height="157.5"
-            fetchpriority="low"
-            loading="lazy"
-            decoding="async"
-            onError={() => console.error('Title Image Failed:', post.titleImage)}
-          />
-        </ImageContainer>
-      )}
-
-      {post.titleVideo && (
-        <VideoContainer>
-          <PostVideo
-            controls
-            preload="metadata"
-            poster={`${post.titleVideoPoster || post.titleImage}?w=80&format=webp&q=5`}
-            width="280"
-            height="157.5"
-            loading="lazy"
-            decoding="async"
-            aria-label={`Video for ${post.title}`}
-            fetchpriority="low"
-          >
-            <source src={`${post.titleVideo}#t=0.1`} type="video/mp4" />
-          </PostVideo>
-        </VideoContainer>
-      )}
-
-      <p style={{ fontSize: '0.875rem', marginBottom: '1rem' }}>
-        <time dateTime={post.date}>{post.date}</time> | Author: {post.author || 'Zedemy Team'}
-      </p>
-    </>
+      <section style={{ fontSize: '1rem', lineHeight: 1.6, marginBottom: '1.5rem' }} dangerouslySetInnerHTML={{ __html: post.content || '' }} />
+    </div>
   );
 });
 
@@ -319,8 +85,6 @@ const PostPage = memo(() => {
   const post = useSelector(state => state.postReducer.post);
   const relatedPosts = useSelector(state => state.postReducer.posts?.filter(p => p.postId !== post?.postId && p.category?.toLowerCase() === post?.category?.toLowerCase()).slice(0, 3) || []);
   const completedPosts = useSelector(state => state.postReducer.completedPosts || []);
-
-  const parsedContent = useMemo(() => parseLinks(post?.content || '', post?.category || '', false), [post?.content, post?.category]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
@@ -364,9 +128,10 @@ const PostPage = memo(() => {
     }
   }, [dispatch, slug, hasFetched]);
 
-  const calculateReadTimeAndWordCount = useMemo(() => {
-    return { readTime, wordCount: 0 };
-  }, [readTime]);
+  useEffect(() => {
+    if (!post) return;
+    setParsedTitle(post.title);
+  }, [post]);
 
   useEffect(() => {
     if (!post) return;
@@ -393,11 +158,6 @@ const PostPage = memo(() => {
         setReadTime(Math.ceil(words / 200));
       }, 4000);
     }
-  }, [post]);
-
-  useEffect(() => {
-    if (!post) return;
-    setParsedTitle(post.title);
   }, [post]);
 
   useEffect(() => {
@@ -484,50 +244,28 @@ const PostPage = memo(() => {
     }
   }, [post, slug, readTime]);
 
-  useEffect(() => {
-    if (post?.titleImage) {
-      if (typeof scheduler !== 'undefined' && scheduler.postTask) {
-        scheduler.postTask(
-          () => {
-            const img = new Image();
-            img.src = `${post.titleImage}?w=200&format=avif&q=40`;
-            img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
-          },
-          { priority: 'background' }
-        );
-      } else if (typeof window !== 'undefined' && window.requestIdleCallback) {
-        window.requestIdleCallback(
-          () => {
-            const img = new Image();
-            img.src = `${post.titleImage}?w=200&format=avif&q=40`;
-            img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
-          },
-          { timeout: 2000 }
-        );
-      }
-    }
-  }, [post?.titleImage]);
-
   if (!post && !hasFetched) {
     return (
-      <Container className="container">
-        <MainContent>
-          <SkeletonHeader className="skeleton" />
-        </MainContent>
-        <SidebarWrapper>
-          <Placeholder height="1200px">Loading sidebar...</Placeholder>
-        </SidebarWrapper>
-      </Container>
+      <div className="container" style={{ display: 'flex', minHeight: '100vh', flexDirection: 'column' }}>
+        <main style={{ flex: 1, padding: '1rem', background: '#f4f4f9', minHeight: '2000px' }}>
+          <div className="skeleton" style={{ width: '60%', height: '2rem', background: '#e0e0e0', borderRadius: '0.375rem', margin: '0.75rem 0 1rem' }} />
+        </main>
+        <aside style={{ width: '250px', minHeight: '1200px', flexShrink: 0 }}>
+          <div className="placeholder" style={{ width: '100%', height: '1200px', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', borderRadius: '0.375rem', fontSize: '0.875rem' }}>
+            Loading sidebar...
+          </div>
+        </aside>
+      </div>
     );
   }
 
   if (!post) {
     return (
-      <Container className="container">
-        <LoadingOverlay aria-live="polite">
+      <div className="container" style={{ display: 'flex', minHeight: '100vh', flexDirection: 'column' }}>
+        <div className="loading-overlay" aria-live="polite">
           {deps?.ClipLoader ? <deps.ClipLoader color="#2c3e50" size={50} /> : <div>Loading...</div>}
-        </LoadingOverlay>
-      </Container>
+        </div>
+      </div>
     );
   }
 
@@ -547,23 +285,6 @@ const PostPage = memo(() => {
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
         <link rel="preconnect" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
-        {post.titleImage && (
-          <link
-            rel="preload"
-            as="image"
-            href={`${post.titleImage}?w=200&format=avif&q=40`}
-            crossOrigin="anonymous"
-            fetchpriority="low"
-            imagesrcset={`
-              ${post.titleImage}?w=100&format=avif&q=40 100w,
-              ${post.titleImage}?w=150&format=avif&q=40 150w,
-              ${post.titleImage}?w=200&format=avif&q=40 200w,
-              ${post.titleImage}?w=280&format=avif&q=40 280w,
-              ${post.titleImage}?w=480&format=avif&q=40 480w
-            `}
-            imagesizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
-          />
-        )}
         <meta property="og:title" content={`${post.title} | Zedemy`} />
         <meta property="og:description" content={truncateText(post.summary || post.content, 160)} />
         <meta
@@ -586,16 +307,15 @@ const PostPage = memo(() => {
         <style>{criticalCSS}</style>
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
-      <Container className="container">
-        <MainContent role="main" aria-label="Main content">
+      <div className="container" style={{ display: 'flex', minHeight: '100vh', flexDirection: 'column' }}>
+        <main role="main" aria-label="Main content" style={{ flex: 1, padding: '1rem', background: '#f4f4f9', minHeight: '2000px' }}>
           <article>
             <PostContentCritical
               post={post}
               parsedTitle={parsedTitle}
-              parsedContent={parsedContent}
-              calculateReadTimeAndWordCount={calculateReadTimeAndWordCount}
+              calculateReadTimeAndWordCount={{ readTime }}
             />
-            <Suspense fallback={<Placeholder height="500px">Loading additional content...</Placeholder>}>
+            <Suspense fallback={<div className="placeholder" style={{ width: '100%', height: '500px', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', borderRadius: '0.375rem', fontSize: '0.875rem' }}>Loading additional content...</div>}>
               <PostContentNonCritical
                 post={post}
                 relatedPosts={relatedPosts}
@@ -609,9 +329,9 @@ const PostPage = memo(() => {
               />
             </Suspense>
           </article>
-        </MainContent>
-        <SidebarWrapper>
-          <Suspense fallback={<Placeholder height="1200px">Loading sidebar...</Placeholder>}>
+        </main>
+        <aside style={{ width: '250px', minHeight: '1200px', flexShrink: 0 }}>
+          <Suspense fallback={<div className="placeholder" style={{ width: '100%', height: '1200px', background: '#e0e0e0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', borderRadius: '0.375rem', fontSize: '0.875rem' }}>Loading sidebar...</div>}>
             <Sidebar
               post={post}
               isSidebarOpen={isSidebarOpen}
@@ -635,8 +355,8 @@ const PostPage = memo(() => {
               subtitlesListRef={subtitlesListRef}
             />
           </Suspense>
-        </SidebarWrapper>
-      </Container>
+        </aside>
+      </div>
     </HelmetProvider>
   );
 });
