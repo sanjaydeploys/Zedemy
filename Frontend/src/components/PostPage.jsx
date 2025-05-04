@@ -1,20 +1,14 @@
-import React, { useState, useEffect, useRef, memo, useMemo, useCallback, Suspense, useDeferredValue, startTransition } from 'react';
+import React, { useState, useEffect, useRef, memo, useMemo, Suspense, useDeferredValue, startTransition } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchPostBySlug, fetchCompletedPosts, fetchPosts, markPostAsCompleted } from '../actions/postActions';
-import { useParams, Link } from 'react-router-dom';
+import { fetchPostBySlug, fetchCompletedPosts, fetchPosts } from '../actions/postActions';
+import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { slugify, truncateText } from './utils';
+import { parseLinks, slugify, truncateText } from './utils';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 
 const loadDependencies = async () => {
-  const [
-    { ClipLoader },
-    { createSelector },
-  ] = await Promise.all([
-    import('react-spinners'),
-    import('reselect'),
-  ]);
-  return { ClipLoader, createSelector };
+  const [{ ClipLoader }] = await Promise.all([import('react-spinners')]);
+  return { ClipLoader };
 };
 
 const PostContentNonCritical = React.lazy(() => import('./PostContentNonCritical'));
@@ -72,7 +66,6 @@ const PostHeader = styled.h1`
   margin: 0.75rem 0 1rem;
   font-weight: 800;
   line-height: 1.3;
-  will-change: transform;
 `;
 
 const ContentSection = styled.section`
@@ -81,9 +74,6 @@ const ContentSection = styled.section`
   margin-bottom: 1.5rem;
   content-visibility: auto;
   contain-intrinsic-size: 1px 200px;
-  contain: content;
-  will-change: transform;
-  white-space: pre-wrap;
   @media (min-width: 769px) {
     font-size: 1.1rem;
     line-height: 1.7;
@@ -211,8 +201,8 @@ const criticalCSS = `
   html { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; }
   .container { display: flex; min-height: 100vh; flex-direction: column; }
   main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 2000px; }
-  h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; margin: 0.75rem 0 1rem; line-height: 1.3; will-change: transform; }
-  section { font-size: 1rem; line-height: 1.6; margin-bottom: 1.5rem; content-visibility: auto; contain-intrinsic-size: 1px 200px; contain: content; will-change: transform; white-space: pre-wrap; }
+  h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; margin: 0.75rem 0 1rem; line-height: 1.3; }
+  section { font-size: 1rem; line-height: 1.6; margin-bottom: 1.5rem; content-visibility: auto; contain-intrinsic-size: 1px 200px; }
   figure { width: 100%; max-width: 100%; margin: 1rem 0; position: relative; aspect-ratio: 16 / 9; height: 157.5px; }
   img { width: 100%; max-width: 280px; height: 157.5px; border-radius: 0.375rem; }
   video { width: 100%; max-width: 280px; height: 157.5px; border-radius: 0.375rem; }
@@ -244,17 +234,19 @@ const criticalCSS = `
   }
 `;
 
-const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
+const PostContentCritical = memo(({ post, parsedTitle, parsedContent, readTime }) => {
   return (
     <>
       <header>
         <PostHeader>{parsedTitle || post.title}</PostHeader>
-        <div style={{ marginBottom: '0.75rem', color: '#666', fontSize: '0.75rem' }}>
-          Read time: {calculateReadTimeAndWordCount.readTime} min
-        </div>
+        {readTime > 0 && (
+          <div style={{ marginBottom: '0.75rem', color: '#666', fontSize: '0.75rem' }}>
+            Read time: {readTime} min
+          </div>
+        )}
       </header>
 
-      <ContentSection>{post.content || ''}</ContentSection>
+      {parsedContent && <ContentSection dangerouslySetInnerHTML={{ __html: parsedContent }} />}
 
       {post.titleImage && (
         <ImageContainer>
@@ -330,6 +322,8 @@ const PostPage = memo(() => {
   const relatedPosts = useSelector(state => state.postReducer.posts?.filter(p => p.postId !== post?.postId && p.category?.toLowerCase() === post?.category?.toLowerCase()).slice(0, 3) || []);
   const completedPosts = useSelector(state => state.postReducer.completedPosts || []);
 
+  const parsedContent = useMemo(() => parseLinks(post?.content || '', post?.category || '', true), [post?.content, post?.category]);
+
   useEffect(() => {
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
       window.requestIdleCallback(() => loadDependencies().then(setDeps), { timeout: 3000 });
@@ -371,10 +365,6 @@ const PostPage = memo(() => {
       fetchData();
     }
   }, [dispatch, slug, hasFetched]);
-
-  const calculateReadTimeAndWordCount = useMemo(() => {
-    return { readTime, wordCount: 0 };
-  }, [readTime]);
 
   useEffect(() => {
     if (!post) return;
@@ -556,23 +546,21 @@ const PostPage = memo(() => {
         <link rel="preconnect" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
         {post.titleImage && (
-          <>
-            <link
-              rel="preload"
-              as="image"
-              href={`${post.titleImage}?w=200&format=avif&q=40`}
-              crossOrigin="anonymous"
-              fetchpriority="low"
-              imagesrcset={`
-                ${post.titleImage}?w=100&format=avif&q=40 100w,
-                ${post.titleImage}?w=150&format=avif&q=40 150w,
-                ${post.titleImage}?w=200&format=avif&q=40 200w,
-                ${post.titleImage}?w=280&format=avif&q=40 280w,
-                ${post.titleImage}?w=480&format=avif&q=40 480w
-              `}
-              imagesizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
-            />
-          </>
+          <link
+            rel="preload"
+            as="image"
+            href={`${post.titleImage}?w=200&format=avif&q=40`}
+            crossOrigin="anonymous"
+            fetchpriority="low"
+            imagesrcset={`
+              ${post.titleImage}?w=100&format=avif&q=40 100w,
+              ${post.titleImage}?w=150&format=avif&q=40 150w,
+              ${post.titleImage}?w=200&format=avif&q=40 200w,
+              ${post.titleImage}?w=280&format=avif&q=40 280w,
+              ${post.titleImage}?w=480&format=avif&q=40 480w
+            `}
+            imagesizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
+          />
         )}
         <meta property="og:title" content={`${post.title} | Zedemy`} />
         <meta property="og:description" content={truncateText(post.summary || post.content, 160)} />
@@ -602,7 +590,8 @@ const PostPage = memo(() => {
             <PostContentCritical
               post={post}
               parsedTitle={parsedTitle}
-              calculateReadTimeAndWordCount={calculateReadTimeAndWordCount}
+              parsedContent={parsedContent}
+              readTime={readTime}
             />
             <Suspense fallback={<Placeholder height="500px">Loading additional content...</Placeholder>}>
               <PostContentNonCritical
