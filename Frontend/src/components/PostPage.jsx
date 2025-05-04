@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef, Suspense, startTransition } from 'react';
+import React, { useState, useEffect, useRef, memo, useMemo, Suspense, useDeferredValue, startTransition } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPostBySlug, fetchCompletedPosts, fetchPosts } from '../actions/postActions';
 import { useParams } from 'react-router-dom';
-import styled from 'styled-components';
 import { parseLinks, slugify, truncateText } from './utils';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 
@@ -14,182 +13,38 @@ const loadDependencies = async () => {
 const PostContentNonCritical = React.lazy(() => import('./PostContentNonCritical'));
 const Sidebar = React.lazy(() => import('./Sidebar'));
 
-const Container = styled.div`
-  display: flex;
-  min-height: 100vh;
-  flex-direction: column;
-  @media (min-width: 769px) {
-    flex-direction: row;
-  }
-`;
-
-const MainContent = styled.main`
-  flex: 1;
-  padding: 1rem;
-  background: #f4f4f9;
-  @media (min-width: 769px) {
-    margin-right: 250px;
-    padding: 2rem;
-  }
-`;
-
-const SidebarWrapper = styled.aside`
-  @media (min-width: 769px) {
-    width: 250px;
-    min-height: 1200px;
-    flex-shrink: 0;
-  }
-`;
-
-const LoadingOverlay = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: rgba(0, 0, 0, 0.5);
-  min-height: 100vh;
-  width: 100%;
-`;
-
-const SkeletonHeader = styled.div`
-  width: 60%;
-  height: 2rem;
-  background: #e0e0e0;
-  border-radius: 0.375rem;
-  margin: 0.75rem 0 1rem;
-`;
-
-const PostHeader = styled.h1`
-  font-size: clamp(1.5rem, 4vw, 2rem);
-  color: #111827;
-  margin: 0.75rem 0 1rem;
-  font-weight: 800;
-  line-height: 1.3;
-`;
-
-const ImageContainer = styled.figure`
-  width: 100%;
-  max-width: 100%;
-  margin: 1rem 0;
-  position: relative;
-  aspect-ratio: 16 / 9;
-  height: 157.5px;
-  @media (min-width: 769px) {
-    height: 270px;
-  }
-  @media (max-width: 480px) {
-    height: 135px;
-  }
-  @media (max-width: 320px) {
-    height: 112.5px;
-  }
-`;
-
-const PostImage = styled.img`
-  width: 100%;
-  max-width: 280px;
-  height: 157.5px;
-  object-fit: contain;
-  border-radius: 0.375rem;
-  position: relative;
-  z-index: 2;
-  @media (min-width: 769px) {
-    max-width: 480px;
-    height: 270px;
-  }
-  @media (max-width: 480px) {
-    max-width: 240px;
-    height: 135px;
-  }
-  @media (max-width: 320px) {
-    max-width: 200px;
-    height: 112.5px;
-  }
-`;
-
-const LQIPImage = styled.img`
-  width: 100%;
-  max-width: 280px;
-  height: 157.5px;
-  object-fit: contain;
-  border-radius: 0.375rem;
-  filter: blur(10px);
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 1;
-  @media (min-width: 769px) {
-    max-width: 480px;
-    height: 270px;
-  }
-  @media (max-width: 480px) {
-    max-width: 240px;
-    height: 135px;
-  }
-  @media (max-width: 320px) {
-    max-width: 200px;
-    height: 112.5px;
-  }
-`;
-
-const VideoContainer = styled.figure`
-  width: 100%;
-  max-width: 100%;
-  margin: 1rem 0;
-  aspect-ratio: 16 / 9;
-  height: 157.5px;
-  @media (min-width: 769px) {
-    height: 270px;
-  }
-  @media (max-width: 480px) {
-    height: 135px;
-  }
-  @media (max-width: 320px) {
-    height: 112.5px;
-  }
-`;
-
-const PostVideo = styled.video`
-  width: 100%;
-  max-width: 280px;
-  height: 157.5px;
-  border-radius: 0.375rem;
-  @media (min-width: 769px) {
-    max-width: 480px;
-    height: 270px;
-  }
-  @media (max-width: 480px) {
-    max-width: 240px;
-    height: 135px;
-  }
-  @media (max-width: 320px) {
-    max-width: 200px;
-    height: 112.5px;
-  }
-`;
-
-const Placeholder = styled.div`
-  width: 100%;
-  height: ${(props) => props.height || '180px'};
-  background: #e0e0e0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-`;
-
 const criticalCSS = `
   html { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; }
-  main { flex: 1; padding: 1rem; background: #f4f4f9; }
-  h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; margin: 0.75rem 0 1rem; font-weight: 800; line-height: 1.3; }
-  section { font-size: 1rem; line-height: 1.6; margin-bottom: 1.5rem; }
+  .container { display: flex; min-height: 100vh; flex-direction: column; }
+  main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 2000px; }
+  .post-header { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; margin: 0.75rem 0 1rem; line-height: 1.3; }
+  .content-section { font-size: 1rem; line-height: 1.6; margin-bottom: 1.5rem; content-visibility: auto; contain-intrinsic-size: 1px 200px; }
+  .image-container { width: 100%; max-width: 100%; margin: 1rem 0; position: relative; aspect-ratio: 16 / 9; height: 157.5px; }
+  .post-image { width: 100%; max-width: 280px; height: 157.5px; object-fit: contain; border-radius: 0.375rem; position: relative; z-index: 2; }
+  .lqip-image { width: 100%; max-width: 280px; height: 157.5px; object-fit: contain; border-radius: 0.375rem; filter: blur(10px); position: absolute; top: 0; left: 0; z-index: 1; }
+  .video-container { width: 100%; max-width: 100%; margin: 1rem 0; aspect-ratio: 16 / 9; height: 157.5px; }
+  .post-video { width: 100%; max-width: 280px; height: 157.5px; border-radius: 0.375rem; }
+  .placeholder { width: 100%; height: 180px; background: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #666; border-radius: 0.375rem; font-size: 0.875rem; }
+  .skeleton { width: 60%; height: 2rem; background: #e0e0e0; border-radius: 0.375rem; margin: 0.75rem 0 1rem; }
+  .loading-overlay { display: flex; justify-content: center; align-items: center; background: rgba(0, 0, 0, 0.5); min-height: 100vh; width: 100%; }
+  .sidebar-wrapper { }
+  p { font-size: 0.875rem; }
   @media (min-width: 769px) {
+    .container { flex-direction: row; }
     main { margin-right: 250px; padding: 2rem; }
-    section { font-size: 1.1rem; line-height: 1.7; }
+    .content-section { font-size: 1.1rem; line-height: 1.7; }
+    .image-container, .video-container { height: 270px; }
+    .post-image, .lqip-image, .post-video { max-width: 480px; height: 270px; }
+    .sidebar-wrapper { width: 250px; min-height: 1200px; flex-shrink: 0; }
   }
   @media (max-width: 480px) {
-    section { font-size: 0.9rem; line-height: 1.5; }
+    .content-section { font-size: 0.9rem; line-height: 1.5; }
+    .image-container, .video-container { height: 135px; }
+    .post-image, .lqip-image, .post-video { max-width: 240px; height: 135px; }
+  }
+  @media (max-width: 320px) {
+    .image-container, .video-container { height: 112.5px; }
+    .post-image, .lqip-image, .post-video { max-width: 200px; height: 112.5px; }
   }
   @font-face {
     font-family: 'Segoe UI';
@@ -198,94 +53,36 @@ const criticalCSS = `
   }
 `;
 
-const PostContentCritical = ({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
-  const content = parseLinks(post?.content || '', post?.category || '', false);
+const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
+  const [parsedContent, setParsedContent] = useState(post?.content || '');
+
+  useEffect(() => {
+    if (post?.content) {
+      startTransition(() => {
+        setParsedContent(parseLinks(post.content, post.category || '', false));
+      });
+    }
+  }, [post?.content, post?.category]);
 
   return (
     <>
       <header>
-        <PostHeader>{parsedTitle || post.title}</PostHeader>
+        <h1 className="post-header">{parsedTitle || post.title}</h1>
         <div style={{ marginBottom: '0.75rem', color: '#666', fontSize: '0.75rem' }}>
           Read time: {calculateReadTimeAndWordCount.readTime} min
         </div>
       </header>
-
-      <section style={{
-        fontSize: '1rem',
-        lineHeight: '1.6',
-        marginBottom: '1.5rem',
-        '@media (min-width: 769px)': {
-          fontSize: '1.1rem',
-          lineHeight: '1.7'
-        },
-        '@media (max-width: 480px)': {
-          fontSize: '0.9rem',
-          lineHeight: '1.5'
-        }
-      }}>{content}</section>
-
-      {post.titleImage && (
-        <ImageContainer>
-          <LQIPImage
-            src={`${post.titleImage}?w=10&format=webp&q=1`}
-            alt="Low quality placeholder"
-            width="280"
-            height="157.5"
-            loading="lazy"
-            decoding="async"
-            fetchpriority="low"
-          />
-          <PostImage
-            src={`${post.titleImage}?w=200&format=avif&q=40`}
-            srcSet={`
-              ${post.titleImage}?w=100&format=avif&q=40 100w,
-              ${post.titleImage}?w=150&format=avif&q=40 150w,
-              ${post.titleImage}?w=200&format=avif&q=40 200w,
-              ${post.titleImage}?w=280&format=avif&q=40 280w,
-              ${post.titleImage}?w=480&format=avif&q=40 480w
-            `}
-            sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
-            alt={`Illustration for ${post.title}`}
-            width="280"
-            height="157.5"
-            fetchpriority="low"
-            loading="lazy"
-            decoding="async"
-            onError={() => console.error('Title Image Failed:', post.titleImage)}
-          />
-        </ImageContainer>
-      )}
-
-      {post.titleVideo && (
-        <VideoContainer>
-          <PostVideo
-            controls
-            preload="metadata"
-            poster={`${post.titleVideoPoster || post.titleImage}?w=80&format=webp&q=5`}
-            width="280"
-            height="157.5"
-            loading="lazy"
-            decoding="async"
-            aria-label={`Video for ${post.title}`}
-            fetchpriority="low"
-          >
-            <source src={`${post.titleVideo}#t=0.1`} type="video/mp4" />
-          </PostVideo>
-        </VideoContainer>
-      )}
-
-      <p style={{ fontSize: '0.875rem', marginBottom: '1rem' }}>
-        <time dateTime={post.date}>{post.date}</time> | Author: {post.author || 'Zedemy Team'}
-      </p>
+      <section className="content-section">{parsedContent}</section>
     </>
   );
-};
+});
 
-const PostPage = () => {
+const PostPage = memo(() => {
   const { slug } = useParams();
   const dispatch = useDispatch();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState(null);
+  const deferredActiveSection = useDeferredValue(activeSection);
   const subtitlesListRef = useRef(null);
   const [hasFetched, setHasFetched] = useState(false);
   const [deps, setDeps] = useState(null);
@@ -318,6 +115,15 @@ const PostPage = () => {
       try {
         await dispatch(fetchPostBySlug(slug));
         startTransition(() => setHasFetched(true));
+        if (typeof window !== 'undefined' && window.requestIdleCallback) {
+          window.requestIdleCallback(() => {
+            Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
+          }, { timeout: 5000 });
+        } else {
+          setTimeout(() => {
+            Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
+          }, 5000);
+        }
       } catch (error) {
         console.error('Fetch failed:', error);
         if (retries > 0) {
@@ -330,20 +136,9 @@ const PostPage = () => {
     }
   }, [dispatch, slug, hasFetched]);
 
-  useEffect(() => {
-    if (!hasFetched || !post) return;
-    if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(() => {
-        Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-      }, { timeout: 5000 });
-    } else {
-      setTimeout(() => {
-        Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-      }, 5000);
-    }
-  }, [dispatch, hasFetched, post]);
-
-  const calculateReadTimeAndWordCount = { readTime, wordCount: 0 };
+  const calculateReadTimeAndWordCount = useMemo(() => {
+    return { readTime, wordCount: 0 };
+  }, [readTime]);
 
   useEffect(() => {
     if (!post) return;
@@ -362,6 +157,7 @@ const PostPage = () => {
       setTimeout(() => {
         const text = [
           post.title || '',
+          post.content || '',
           post.summary || '',
           ...(post.subtitles?.map(s => (s.title || '') + (s.bulletPoints?.map(b => b.text || '').join('') || '')) || []),
         ].join(' ');
@@ -486,24 +282,24 @@ const PostPage = () => {
 
   if (!post && !hasFetched) {
     return (
-      <Container className="container">
-        <MainContent>
-          <SkeletonHeader className="skeleton" />
-        </MainContent>
-        <SidebarWrapper>
-          <Placeholder height="1200px">Loading sidebar...</Placeholder>
-        </SidebarWrapper>
-      </Container>
+      <div className="container">
+        <main>
+          <div className="skeleton" />
+        </main>
+        <aside className="sidebar-wrapper">
+          <div className="placeholder" style={{ height: '1200px' }}>Loading sidebar...</div>
+        </aside>
+      </div>
     );
   }
 
   if (!post) {
     return (
-      <Container className="container">
-        <LoadingOverlay aria-live="polite">
+      <div className="container">
+        <div className="loading-overlay" aria-live="polite">
           {deps?.ClipLoader ? <deps.ClipLoader color="#2c3e50" size={50} /> : <div>Loading...</div>}
-        </LoadingOverlay>
-      </Container>
+        </div>
+      </div>
     );
   }
 
@@ -545,15 +341,15 @@ const PostPage = () => {
         <style>{criticalCSS}</style>
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
-      <Container className="container">
-        <MainContent role="main" aria-label="Main content">
+      <div className="container">
+        <main role="main" aria-label="Main content">
           <article>
             <PostContentCritical
               post={post}
               parsedTitle={parsedTitle}
               calculateReadTimeAndWordCount={calculateReadTimeAndWordCount}
             />
-            <Suspense fallback={<Placeholder height="500px">Loading additional content...</Placeholder>}>
+            <Suspense fallback={<div className="placeholder" style={{ height: '500px' }}>Loading additional content...</div>}>
               <PostContentNonCritical
                 post={post}
                 relatedPosts={relatedPosts}
@@ -561,20 +357,20 @@ const PostPage = () => {
                 dispatch={dispatch}
                 isSidebarOpen={isSidebarOpen}
                 setSidebarOpen={setSidebarOpen}
-                activeSection={activeSection}
+                activeSection={deferredActiveSection}
                 setActiveSection={setActiveSection}
                 subtitlesListRef={subtitlesListRef}
               />
             </Suspense>
           </article>
-        </MainContent>
-        <SidebarWrapper>
-          <Suspense fallback={<Placeholder height="1200px">Loading sidebar...</Placeholder>}>
+        </main>
+        <aside className="sidebar-wrapper">
+          <Suspense fallback={<div className="placeholder" style={{ height: '1200px' }}>Loading sidebar...</div>}>
             <Sidebar
               post={post}
               isSidebarOpen={isSidebarOpen}
               setSidebarOpen={setSidebarOpen}
-              activeSection={activeSection}
+              activeSection={deferredActiveSection}
               scrollToSection={(id) => {
                 const section = document.getElementById(id);
                 if (section) {
@@ -593,10 +389,10 @@ const PostPage = () => {
               subtitlesListRef={subtitlesListRef}
             />
           </Suspense>
-        </SidebarWrapper>
-      </Container>
+        </aside>
+      </div>
     </HelmetProvider>
   );
-};
+});
 
 export default PostPage;
