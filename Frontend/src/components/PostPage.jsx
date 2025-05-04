@@ -234,19 +234,17 @@ const criticalCSS = `
   }
 `;
 
-const PostContentCritical = memo(({ post, parsedTitle, parsedContent, readTime }) => {
+const PostContentCritical = memo(({ post, parsedTitle, parsedContent, calculateReadTimeAndWordCount }) => {
   return (
     <>
       <header>
         <PostHeader>{parsedTitle || post.title}</PostHeader>
-        {readTime > 0 && (
-          <div style={{ marginBottom: '0.75rem', color: '#666', fontSize: '0.75rem' }}>
-            Read time: {readTime} min
-          </div>
-        )}
+        <div style={{ marginBottom: '0.75rem', color: '#666', fontSize: '0.75rem' }}>
+          Read time: {calculateReadTimeAndWordCount.readTime} min
+        </div>
       </header>
 
-      {parsedContent && <ContentSection dangerouslySetInnerHTML={{ __html: parsedContent }} />}
+      <ContentSection>{parsedContent}</ContentSection>
 
       {post.titleImage && (
         <ImageContainer>
@@ -272,8 +270,8 @@ const PostContentCritical = memo(({ post, parsedTitle, parsedContent, readTime }
             alt={`Illustration for ${post.title}`}
             width="280"
             height="157.5"
-            fetchpriority="high"
-            loading="eager"
+            fetchpriority="low"
+            loading="lazy"
             decoding="async"
             onError={() => console.error('Title Image Failed:', post.titleImage)}
           />
@@ -322,7 +320,7 @@ const PostPage = memo(() => {
   const relatedPosts = useSelector(state => state.postReducer.posts?.filter(p => p.postId !== post?.postId && p.category?.toLowerCase() === post?.category?.toLowerCase()).slice(0, 3) || []);
   const completedPosts = useSelector(state => state.postReducer.completedPosts || []);
 
-  const parsedContent = useMemo(() => parseLinks(post?.content || '', post?.category || '', true), [post?.content, post?.category]);
+  const parsedContent = useMemo(() => parseLinks(post?.content || '', post?.category || '', false), [post?.content, post?.category]);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
@@ -365,6 +363,10 @@ const PostPage = memo(() => {
       fetchData();
     }
   }, [dispatch, slug, hasFetched]);
+
+  const calculateReadTimeAndWordCount = useMemo(() => {
+    return { readTime, wordCount: 0 };
+  }, [readTime]);
 
   useEffect(() => {
     if (!post) return;
@@ -591,7 +593,7 @@ const PostPage = memo(() => {
               post={post}
               parsedTitle={parsedTitle}
               parsedContent={parsedContent}
-              readTime={readTime}
+              calculateReadTimeAndWordCount={calculateReadTimeAndWordCount}
             />
             <Suspense fallback={<Placeholder height="500px">Loading additional content...</Placeholder>}>
               <PostContentNonCritical
