@@ -72,6 +72,7 @@ const PostHeader = styled.h1`
   margin: 0.75rem 0 1rem;
   font-weight: 800;
   line-height: 1.3;
+  will-change: transform;
 `;
 
 const ContentSection = styled.section`
@@ -80,6 +81,8 @@ const ContentSection = styled.section`
   margin-bottom: 1.5rem;
   content-visibility: auto;
   contain-intrinsic-size: 1px 200px;
+  contain: content;
+  will-change: transform;
   @media (min-width: 769px) {
     font-size: 1.1rem;
     line-height: 1.7;
@@ -207,10 +210,10 @@ const criticalCSS = `
   html { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; }
   .container { display: flex; min-height: 100vh; flex-direction: column; }
   main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 2000px; }
-  h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; margin: 0.75rem 0 1rem; line-height: 1.3; }
-  section { font-size: 1rem; line-height: 1.6; margin-bottom: 1.5rem; content-visibility: auto; contain-intrinsic-size: 1px 200px; }
+  h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; margin: 0.75rem 0 1rem; line-height: 1.3; will-change: transform; }
+  section { font-size: 1rem; line-height: 1.6; margin-bottom: 1.5rem; content-visibility: auto; contain-intrinsic-size: 1px 200px; contain: content; will-change: transform; }
   figure { width: 100%; max-width: 100%; margin: 1rem 0; position: relative; aspect-ratio: 16 / 9; height: 157.5px; }
-  img { width: 100%; max-width: 280px; height: 157.5px; border-radius: 0.375rem; object-fit: contain; }
+  img { width: 100%; max-width: 280px; height: 157.5px; border-radius: 0.375rem; }
   video { width: 100%; max-width: 280px; height: 157.5px; border-radius: 0.375rem; }
   p { font-size: 0.875rem; }
   .skeleton { width: 60%; height: 2rem; background: #e0e0e0; border-radius: 0.375rem; margin: 0.75rem 0 1rem; }
@@ -240,14 +243,7 @@ const criticalCSS = `
   }
 `;
 
-const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
-  // Simplify content parsing to reduce render delay
-  const parsedContent = useMemo(() => {
-    if (!post.content) return '';
-    // Minimal parsing: only process essential links for critical content
-    return parseLinks(post.content, post.category || '', true); // Assume parseLinks accepts a `minimal` flag
-  }, [post.content, post.category]);
-
+const PostContentCritical = memo(({ post, parsedTitle, parsedContent, calculateReadTimeAndWordCount }) => {
   return (
     <>
       <header>
@@ -268,16 +264,18 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
             height="157.5"
             loading="eager"
             decoding="async"
-            fetchpriority="high"
+            fetchpriority="low"
           />
           <PostImage
-            src={`${post.titleImage}?w=280&format=avif&q=50`}
+            src={`${post.titleImage}?w=200&format=avif&q=40`}
             srcSet={`
-              ${post.titleImage}?w=200&format=avif&q=50 200w,
-              ${post.titleImage}?w=280&format=avif&q=50 280w,
-              ${post.titleImage}?w=480&format=avif&q=50 480w
+              ${post.titleImage}?w=100&format=avif&q=40 100w,
+              ${post.titleImage}?w=150&format=avif&q=40 150w,
+              ${post.titleImage}?w=200&format=avif&q=40 200w,
+              ${post.titleImage}?w=280&format=avif&q=40 280w,
+              ${post.titleImage}?w=480&format=avif&q=40 480w
             `}
-            sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, 280px"
+            sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
             alt={`Illustration for ${post.title}`}
             width="280"
             height="157.5"
@@ -327,6 +325,12 @@ const PostPage = memo(() => {
   const [parsedTitle, setParsedTitle] = useState('');
   const [readTime, setReadTime] = useState(0);
 
+  const post = useSelector(state => state.postReducer.post);
+  const relatedPosts = useSelector(state => state.postReducer.posts?.filter(p => p.postId !== post?.postId && p.category?.toLowerCase() === post?.category?.toLowerCase()).slice(0, 3) || []);
+  const completedPosts = useSelector(state => state.postReducer.completedPosts || []);
+
+  const parsedContent = useMemo(() => parseLinks(post?.content || '', post?.category || '', false), [post?.content, post?.category]);
+
   useEffect(() => {
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
       window.requestIdleCallback(() => loadDependencies().then(setDeps), { timeout: 3000 });
@@ -334,29 +338,6 @@ const PostPage = memo(() => {
       setTimeout(() => loadDependencies().then(setDeps), 3000);
     }
   }, []);
-
-  const selectors = useMemo(() => {
-    if (!deps?.createSelector) return null;
-
-    const selectPostReducer = state => state.postReducer;
-    const selectPost = deps.createSelector([selectPostReducer], postReducer => postReducer.post);
-    const selectPosts = deps.createSelector([selectPostReducer], postReducer => postReducer.posts || []);
-    const selectCompletedPosts = deps.createSelector([selectPostReducer], postReducer => postReducer.completedPosts || []);
-    const selectRelatedPosts = deps.createSelector(
-      [selectPosts, selectPost],
-      (posts, post) =>
-        posts
-          .filter(p => p.postId !== post?.postId && p.category?.toLowerCase() === post?.category?.toLowerCase())
-          .slice(0, 3),
-      { memoizeOptions: { resultEqualityCheck: (a, b) => JSON.stringify(a) === JSON.stringify(b) } }
-    );
-
-    return { selectPost, selectPosts, selectCompletedPosts, selectRelatedPosts };
-  }, [deps]);
-
-  const post = useSelector(selectors?.selectPost || (state => state.postReducer.post));
-  const relatedPosts = useSelector(selectors?.selectRelatedPosts || (state => []));
-  const completedPosts = useSelector(selectors?.selectCompletedPosts || (state => []));
 
   useEffect(() => {
     startTransition(() => {
@@ -518,7 +499,7 @@ const PostPage = memo(() => {
         scheduler.postTask(
           () => {
             const img = new Image();
-            img.src = `${post.titleImage}?w=280&format=avif&q=50`;
+            img.src = `${post.titleImage}?w=200&format=avif&q=40`;
             img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
           },
           { priority: 'background' }
@@ -527,7 +508,7 @@ const PostPage = memo(() => {
         window.requestIdleCallback(
           () => {
             const img = new Image();
-            img.src = `${post.titleImage}?w=280&format=avif&q=50`;
+            img.src = `${post.titleImage}?w=200&format=avif&q=40`;
             img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
           },
           { timeout: 2000 }
@@ -580,15 +561,17 @@ const PostPage = memo(() => {
             <link
               rel="preload"
               as="image"
-              href={`${post.titleImage}?w=280&format=avif&q=50`}
+              href={`${post.titleImage}?w=200&format=avif&q=40`}
               crossOrigin="anonymous"
-              fetchpriority="high"
+              fetchpriority="low"
               imagesrcset={`
-                ${post.titleImage}?w=200&format=avif&q=50 200w,
-                ${post.titleImage}?w=280&format=avif&q=50 280w,
-                ${post.titleImage}?w=480&format=avif&q=50 480w
+                ${post.titleImage}?w=100&format=avif&q=40 100w,
+                ${post.titleImage}?w=150&format=avif&q=40 150w,
+                ${post.titleImage}?w=200&format=avif&q=40 200w,
+                ${post.titleImage}?w=280&format=avif&q=40 280w,
+                ${post.titleImage}?w=480&format=avif&q=40 480w
               `}
-              imagesizes="(max-width: 320px) 200px, (max-width: 480px) 240px, 280px"
+              imagesizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
             />
           </>
         )}
@@ -620,6 +603,7 @@ const PostPage = memo(() => {
             <PostContentCritical
               post={post}
               parsedTitle={parsedTitle}
+              parsedContent={parsedContent}
               calculateReadTimeAndWordCount={calculateReadTimeAndWordCount}
             />
             <Suspense fallback={<Placeholder height="500px">Loading additional content...</Placeholder>}>
