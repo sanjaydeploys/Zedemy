@@ -205,7 +205,6 @@ const Placeholder = styled.div`
 
 const criticalCSS = `
   html { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; }
-  body { margin: 0; }
   .container { display: flex; min-height: 100vh; flex-direction: column; }
   main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 2000px; }
   h1 { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; margin: 0.75rem 0 1rem; line-height: 1.3; }
@@ -242,12 +241,11 @@ const criticalCSS = `
 `;
 
 const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
-  const [parsedContent, setParsedContent] = useState(post.content || '');
-
-  useEffect(() => {
-    startTransition(() => {
-      setParsedContent(parseLinks(post.content || '', post.category || '', false));
-    });
+  // Simplify content parsing to reduce render delay
+  const parsedContent = useMemo(() => {
+    if (!post.content) return '';
+    // Minimal parsing: only process essential links for critical content
+    return parseLinks(post.content, post.category || '', true); // Assume parseLinks accepts a `minimal` flag
   }, [post.content, post.category]);
 
   return (
@@ -259,7 +257,7 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
         </div>
       </header>
 
-      <ContentSection>{parsedContent}</ContentSection>
+      <ContentSection dangerouslySetInnerHTML={{ __html: parsedContent }} />
 
       {post.titleImage && (
         <ImageContainer>
@@ -269,25 +267,23 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
             width="280"
             height="157.5"
             loading="eager"
-            decoding="sync"
+            decoding="async"
             fetchpriority="high"
           />
           <PostImage
-            src={`${post.titleImage}?w=200&format=avif&q=30`}
+            src={`${post.titleImage}?w=280&format=avif&q=50`}
             srcSet={`
-              ${post.titleImage}?w=100&format=avif&q=30 100w,
-              ${post.titleImage}?w=150&format=avif&q=30 150w,
-              ${post.titleImage}?w=200&format=avif&q=30 200w,
-              ${post.titleImage}?w=280&format=avif&q=30 280w,
-              ${post.titleImage}?w=480&format=avif&q=30 480w
+              ${post.titleImage}?w=200&format=avif&q=50 200w,
+              ${post.titleImage}?w=280&format=avif&q=50 280w,
+              ${post.titleImage}?w=480&format=avif&q=50 480w
             `}
-            sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
+            sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, 280px"
             alt={`Illustration for ${post.title}`}
             width="280"
             height="157.5"
             fetchpriority="high"
             loading="eager"
-            decoding="sync"
+            decoding="async"
             onError={() => console.error('Title Image Failed:', post.titleImage)}
           />
         </ImageContainer>
@@ -333,9 +329,9 @@ const PostPage = memo(() => {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(() => loadDependencies().then(setDeps), { timeout: 5000 });
+      window.requestIdleCallback(() => loadDependencies().then(setDeps), { timeout: 3000 });
     } else {
-      setTimeout(() => loadDependencies().then(setDeps), 5000);
+      setTimeout(() => loadDependencies().then(setDeps), 3000);
     }
   }, []);
 
@@ -378,11 +374,11 @@ const PostPage = memo(() => {
         if (typeof window !== 'undefined' && window.requestIdleCallback) {
           window.requestIdleCallback(() => {
             Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-          }, { timeout: 10000 });
+          }, { timeout: 5000 });
         } else {
           setTimeout(() => {
             Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-          }, 10000);
+          }, 5000);
         }
       } catch (error) {
         console.error('Fetch failed:', error);
@@ -412,7 +408,7 @@ const PostPage = memo(() => {
         ].join(' ');
         const words = text.split(/\s+/).filter(w => w).length;
         setReadTime(Math.ceil(words / 200));
-      }, { timeout: 6000 });
+      }, { timeout: 4000 });
     } else {
       setTimeout(() => {
         const text = [
@@ -423,7 +419,7 @@ const PostPage = memo(() => {
         ].join(' ');
         const words = text.split(/\s+/).filter(w => w).length;
         setReadTime(Math.ceil(words / 200));
-      }, 6000);
+      }, 4000);
     }
   }, [post]);
 
@@ -512,7 +508,7 @@ const PostPage = memo(() => {
           });
         }
         startTransition(() => setStructuredData(schemas));
-      }, { timeout: 7000 });
+      }, { timeout: 5000 });
     }
   }, [post, slug, readTime]);
 
@@ -522,7 +518,7 @@ const PostPage = memo(() => {
         scheduler.postTask(
           () => {
             const img = new Image();
-            img.src = `${post.titleImage}?w=200&format=avif&q=30`;
+            img.src = `${post.titleImage}?w=280&format=avif&q=50`;
             img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
           },
           { priority: 'background' }
@@ -531,10 +527,10 @@ const PostPage = memo(() => {
         window.requestIdleCallback(
           () => {
             const img = new Image();
-            img.src = `${post.titleImage}?w=200&format=avif&q=30`;
+            img.src = `${post.titleImage}?w=280&format=avif&q=50`;
             img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
           },
-          { timeout: 3000 }
+          { timeout: 2000 }
         );
       }
     }
@@ -584,17 +580,15 @@ const PostPage = memo(() => {
             <link
               rel="preload"
               as="image"
-              href={`${post.titleImage}?w=200&format=avif&q=30`}
+              href={`${post.titleImage}?w=280&format=avif&q=50`}
               crossOrigin="anonymous"
               fetchpriority="high"
               imagesrcset={`
-                ${post.titleImage}?w=100&format=avif&q=30 100w,
-                ${post.titleImage}?w=150&format=avif&q=30 150w,
-                ${post.titleImage}?w=200&format=avif&q=30 200w,
-                ${post.titleImage}?w=280&format=avif&q=30 280w,
-                ${post.titleImage}?w=480&format=avif&q=30 480w
+                ${post.titleImage}?w=200&format=avif&q=50 200w,
+                ${post.titleImage}?w=280&format=avif&q=50 280w,
+                ${post.titleImage}?w=480&format=avif&q=50 480w
               `}
-              imagesizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
+              imagesizes="(max-width: 320px) 200px, (max-width: 480px) 240px, 280px"
             />
           </>
         )}
