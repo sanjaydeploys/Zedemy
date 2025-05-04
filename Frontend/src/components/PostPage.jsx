@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, memo, useMemo, Suspense, useDeferredValue, startTransition } from 'react';
+import React, { useState, useEffect, useRef, memo, Suspense } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPostBySlug, fetchCompletedPosts, fetchPosts } from '../actions/postActions';
 import { useParams } from 'react-router-dom';
@@ -16,35 +16,31 @@ const Sidebar = React.lazy(() => import('./Sidebar'));
 const criticalCSS = `
   html { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; }
   .container { display: flex; min-height: 100vh; flex-direction: column; }
-  main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 2000px; }
-  .post-header { font-size: clamp(1.5rem, 4vw, 2rem); color: #111827; font-weight: 800; margin: 0.75rem 0 1rem; line-height: 1.3; }
-  .content-section { font-size: 1rem; line-height: 1.6; margin-bottom: 1.5rem; content-visibility: auto; contain-intrinsic-size: 1px 200px; }
-  .image-container { width: 100%; max-width: 100%; margin: 1rem 0; position: relative; aspect-ratio: 16 / 9; height: 157.5px; }
-  .post-image { width: 100%; max-width: 280px; height: 157.5px; object-fit: contain; border-radius: 0.375rem; position: relative; z-index: 2; }
-  .lqip-image { width: 100%; max-width: 280px; height: 157.5px; object-fit: contain; border-radius: 0.375rem; filter: blur(10px); position: absolute; top: 0; left: 0; z-index: 1; }
-  .video-container { width: 100%; max-width: 100%; margin: 1rem 0; aspect-ratio: 16 / 9; height: 157.5px; }
-  .post-video { width: 100%; max-width: 280px; height: 157.5px; border-radius: 0.375rem; }
+  main { flex: 1; padding: 1rem; background: #f4f4f9; }
+  .post-header { font-size: 1.5rem; color: #111827; font-weight: 800; margin: 0.5rem 0; line-height: 1.3; }
+  .content-section { font-size: 1rem; line-height: 1.5; margin-bottom: 1rem; }
+  .image-container { width: 100%; margin: 1rem 0; aspect-ratio: 16 / 9; height: 135px; }
+  .post-image { width: 100%; max-width: 240px; height: 135px; object-fit: contain; border-radius: 0.375rem; }
+  .lqip-image { width: 100%; max-width: 240px; height: 135px; object-fit: contain; border-radius: 0.375rem; filter: blur(10px); position: absolute; top: 0; left: 0; }
+  .video-container { width: 100%; margin: 1rem 0; aspect-ratio: 16 / 9; height: 135px; }
+  .post-video { width: 100%; max-width: 240px; height: 135px; border-radius: 0.375rem; }
   .placeholder { width: 100%; height: 180px; background: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #666; border-radius: 0.375rem; font-size: 0.875rem; }
-  .skeleton { width: 60%; height: 2rem; background: #e0e0e0; border-radius: 0.375rem; margin: 0.75rem 0 1rem; }
+  .skeleton { width: 60%; height: 2rem; background: #e0e0e0; border-radius: 0.375rem; margin: 0.5rem 0; }
   .loading-overlay { display: flex; justify-content: center; align-items: center; background: rgba(0, 0, 0, 0.5); min-height: 100vh; width: 100%; }
   .sidebar-wrapper { }
   p { font-size: 0.875rem; }
   @media (min-width: 769px) {
     .container { flex-direction: row; }
     main { margin-right: 250px; padding: 2rem; }
+    .post-header { font-size: 2rem; }
     .content-section { font-size: 1.1rem; line-height: 1.7; }
     .image-container, .video-container { height: 270px; }
     .post-image, .lqip-image, .post-video { max-width: 480px; height: 270px; }
-    .sidebar-wrapper { width: 250px; min-height: 1200px; flex-shrink: 0; }
+    .sidebar-wrapper { width: 250px; flex-shrink: 0; }
   }
   @media (max-width: 480px) {
-    .content-section { font-size: 0.9rem; line-height: 1.5; }
-    .image-container, .video-container { height: 135px; }
-    .post-image, .lqip-image, .post-video { max-width: 240px; height: 135px; }
-  }
-  @media (max-width: 320px) {
-    .image-container, .video-container { height: 112.5px; }
-    .post-image, .lqip-image, .post-video { max-width: 200px; height: 112.5px; }
+    .post-header { font-size: 1.25rem; }
+    .content-section { font-size: 0.9rem; line-height: 1.4; }
   }
   @font-face {
     font-family: 'Segoe UI';
@@ -53,26 +49,13 @@ const criticalCSS = `
   }
 `;
 
-const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
-  const [parsedContent, setParsedContent] = useState(post?.content || '');
-
-  useEffect(() => {
-    if (post?.content) {
-      startTransition(() => {
-        setParsedContent(parseLinks(post.content, post.category || '', false));
-      });
-    }
-  }, [post?.content, post?.category]);
-
+const PostContentCritical = memo(({ post, parsedTitle }) => {
   return (
     <>
       <header>
         <h1 className="post-header">{parsedTitle || post.title}</h1>
-        <div style={{ marginBottom: '0.75rem', color: '#666', fontSize: '0.75rem' }}>
-          Read time: {calculateReadTimeAndWordCount.readTime} min
-        </div>
       </header>
-      <section className="content-section">{parsedContent}</section>
+      <section className="content-section">{post?.content || ''}</section>
     </>
   );
 });
@@ -82,7 +65,6 @@ const PostPage = memo(() => {
   const dispatch = useDispatch();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState(null);
-  const deferredActiveSection = useDeferredValue(activeSection);
   const subtitlesListRef = useRef(null);
   const [hasFetched, setHasFetched] = useState(false);
   const [deps, setDeps] = useState(null);
@@ -103,10 +85,8 @@ const PostPage = memo(() => {
   }, []);
 
   useEffect(() => {
-    startTransition(() => {
-      setHasFetched(false);
-      setActiveSection(null);
-    });
+    setHasFetched(false);
+    setActiveSection(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [slug]);
 
@@ -114,7 +94,7 @@ const PostPage = memo(() => {
     const fetchData = async (retries = 3) => {
       try {
         await dispatch(fetchPostBySlug(slug));
-        startTransition(() => setHasFetched(true));
+        setHasFetched(true);
         if (typeof window !== 'undefined' && window.requestIdleCallback) {
           window.requestIdleCallback(() => {
             Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
@@ -135,10 +115,6 @@ const PostPage = memo(() => {
       fetchData();
     }
   }, [dispatch, slug, hasFetched]);
-
-  const calculateReadTimeAndWordCount = useMemo(() => {
-    return { readTime, wordCount: 0 };
-  }, [readTime]);
 
   useEffect(() => {
     if (!post) return;
@@ -251,34 +227,10 @@ const PostPage = memo(() => {
             },
           });
         }
-        startTransition(() => setStructuredData(schemas));
+        setStructuredData(schemas);
       }, { timeout: 5000 });
     }
   }, [post, slug, readTime]);
-
-  useEffect(() => {
-    if (post?.titleImage) {
-      if (typeof scheduler !== 'undefined' && scheduler.postTask) {
-        scheduler.postTask(
-          () => {
-            const img = new Image();
-            img.src = `${post.titleImage}?w=200&format=avif&q=40`;
-            img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
-          },
-          { priority: 'background' }
-        );
-      } else if (typeof window !== 'undefined' && window.requestIdleCallback) {
-        window.requestIdleCallback(
-          () => {
-            const img = new Image();
-            img.src = `${post.titleImage}?w=200&format=avif&q=40`;
-            img.onerror = () => console.error('Title Image Preload Failed:', post.titleImage);
-          },
-          { timeout: 2000 }
-        );
-      }
-    }
-  }, [post?.titleImage]);
 
   if (!post && !hasFetched) {
     return (
@@ -347,7 +299,6 @@ const PostPage = memo(() => {
             <PostContentCritical
               post={post}
               parsedTitle={parsedTitle}
-              calculateReadTimeAndWordCount={calculateReadTimeAndWordCount}
             />
             <Suspense fallback={<div className="placeholder" style={{ height: '500px' }}>Loading additional content...</div>}>
               <PostContentNonCritical
@@ -357,9 +308,10 @@ const PostPage = memo(() => {
                 dispatch={dispatch}
                 isSidebarOpen={isSidebarOpen}
                 setSidebarOpen={setSidebarOpen}
-                activeSection={deferredActiveSection}
+                activeSection={activeSection}
                 setActiveSection={setActiveSection}
                 subtitlesListRef={subtitlesListRef}
+                readTime={readTime}
               />
             </Suspense>
           </article>
@@ -370,13 +322,13 @@ const PostPage = memo(() => {
               post={post}
               isSidebarOpen={isSidebarOpen}
               setSidebarOpen={setSidebarOpen}
-              activeSection={deferredActiveSection}
+              activeSection={activeSection}
               scrollToSection={(id) => {
                 const section = document.getElementById(id);
                 if (section) {
                   section.scrollIntoView({ behavior: 'smooth' });
-                  startTransition(() => setActiveSection(id));
-                  if (isSidebarOpen) startTransition(() => setSidebarOpen(false));
+                  setActiveSection(id);
+                  if (isSidebarOpen) setSidebarOpen(false);
                   const slugs = post?.subtitles?.reduce((acc, s, i) => {
                     acc[`subtitle-${i}`] = slugify(s.title);
                     return acc;
