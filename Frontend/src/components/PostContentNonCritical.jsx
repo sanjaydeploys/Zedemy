@@ -15,6 +15,8 @@ const SubtitleHeader = styled.h2`
   font-weight: 700;
   border-left: 4px solid #34db58;
   padding-left: 0.5rem;
+  width: 100%;
+  max-width: 100%;
 `;
 
 const CompleteButton = styled.button`
@@ -41,20 +43,28 @@ const CompleteButton = styled.button`
 
 const ImageContainer = styled.figure`
   width: 100%;
-  max-width: 100%;
+  max-width: 280px;
   margin: 3rem 0;
   position: relative;
   aspect-ratio: 16 / 9;
   height: 157.5px;
+  background: #e0e0e0;
   @media (min-width: 769px) {
+    max-width: 480px;
     height: 270px;
   }
   @media (max-width: 480px) {
+    max-width: 240px;
     height: 135px;
   }
   @media (max-width: 320px) {
+    max-width: 200px;
     height: 112.5px;
   }
+`;
+
+const ImageLoaded = styled.div`
+  background: transparent;
 `;
 
 const PostImage = styled.img`
@@ -79,17 +89,12 @@ const PostImage = styled.img`
   }
 `;
 
-const LQIPImage = styled.img`
+const VideoContainer = styled.figure`
   width: 100%;
   max-width: 280px;
+  margin: 1rem 0;
+  aspect-ratio: 16 / 9;
   height: 157.5px;
-  object-fit: contain;
-  border-radius: 0.375rem;
-  filter: blur(10px);
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 1;
   @media (min-width: 769px) {
     max-width: 480px;
     height: 270px;
@@ -100,23 +105,6 @@ const LQIPImage = styled.img`
   }
   @media (max-width: 320px) {
     max-width: 200px;
-    height: 112.5px;
-  }
-`;
-
-const VideoContainer = styled.figure`
-  width: 100%;
-  max-width: 100%;
-  margin: 1rem 0;
-  aspect-ratio: 16 / 9;
-  height: 157.5px;
-  @media (min-width: 769px) {
-    height: 270px;
-  }
-  @media (max-width: 480px) {
-    height: 135px;
-  }
-  @media (max-width: 320px) {
     height: 112.5px;
   }
 `;
@@ -142,7 +130,8 @@ const PostVideo = styled.video`
 
 const Placeholder = styled.div`
   width: 100%;
-  height: ${(props) => props.height || '180px'};
+  max-width: 280px;
+  height: 157.5px;
   background: #e0e0e0;
   display: flex;
   align-items: center;
@@ -150,6 +139,18 @@ const Placeholder = styled.div`
   color: #666;
   border-radius: 0.375rem;
   font-size: 0.875rem;
+  @media (min-width: 769px) {
+    max-width: 480px;
+    height: 270px;
+  }
+  @media (max-width: 480px) {
+    max-width: 240px;
+    height: 135px;
+  }
+  @media (max-width: 320px) {
+    max-width: 200px;
+    height: 112.5px;
+  }
 `;
 
 const ReferencesSection = styled.section`
@@ -157,6 +158,8 @@ const ReferencesSection = styled.section`
   padding: 1rem;
   background: #f9f9f9;
   border-radius: 0.375rem;
+  width: 100%;
+  max-width: 100%;
 `;
 
 const ReferenceLink = styled.a`
@@ -182,6 +185,8 @@ const NavigationLinks = styled.nav`
   gap: 1rem;
   flex-wrap: wrap;
   font-size: 0.75rem;
+  width: 100%;
+  max-width: 100%;
   & a {
     min-height: 44px;
     display: inline-flex;
@@ -198,27 +203,81 @@ const debounce = (func, wait) => {
   };
 };
 
+// Web Worker for parsing subtitles and bullet points
+const parseInWorker = (text, category) => {
+  return new Promise((resolve) => {
+    const workerCode = `
+      self.onmessage = function(e) {
+        const { text, category } = e.data;
+        const parseLinks = (text, category, isHtml = false) => {
+          if (!text) return isHtml ? '' : [text];
+          const linkRegex = /\\[([^\\]]+)\\]\\((https?:\\/\\/[^\\s)]+|vscode:\\/\\/[^\\s)]+|\\/[^\\s)]+)\\)/g;
+          const elements = [];
+          let lastIndex = 0;
+          let match;
+          while ((match = linkRegex.exec(text)) !== null) {
+            const [fullMatch, linkText, url] = match;
+            if (match.index > lastIndex) {
+              elements.push(text.slice(lastIndex, match.index));
+            }
+            elements.push({ linkText, url, isInternal: url.startsWith('/') });
+            lastIndex = match.index + fullMatch.length;
+          }
+          if (lastIndex < text.length) {
+            elements.push(text.slice(lastIndex));
+          }
+          return elements.length ? elements : [text || ''];
+        };
+        const result = parseLinks(text, category, false);
+        self.postMessage(result);
+      };
+    `;
+    const blob = new Blob([workerCode], { type: 'application/javascript' });
+    const worker = new Worker(URL.createObjectURL(blob));
+    worker.onmessage = (e) => {
+      resolve(e.data);
+      worker.terminate();
+    };
+    worker.onerror = (err) => {
+      console.error('Worker error:', err);
+      resolve([text]);
+      worker.terminate();
+    };
+    worker.postMessage({ text, category });
+  });
+};
+
 const SubtitleSection = memo(({ subtitle, index, category }) => {
   const [parsedTitle, setParsedTitle] = useState(subtitle.title || '');
   const [parsedBulletPoints, setParsedBulletPoints] = useState(subtitle.bulletPoints || []);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [isPointImageLoaded, setIsPointImageLoaded] = useState({});
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
       window.requestIdleCallback(() => {
-        setParsedTitle(parseLinks(subtitle.title || '', category, false));
-        setParsedBulletPoints((subtitle.bulletPoints || []).map(point => ({
-          ...point,
-          text: parseLinks(point.text || '', category, false),
-        })));
-      }, { timeout: 5000 });
+        parseInWorker(subtitle.title || '', category).then(setParsedTitle);
+        Promise.all(
+          (subtitle.bulletPoints || []).map(point =>
+            parseInWorker(point.text || '', category).then(parsedText => ({
+              ...point,
+              text: parsedText,
+            }))
+          )
+        ).then(setParsedBulletPoints);
+      }, { timeout: 6000 });
     } else {
       setTimeout(() => {
-        setParsedTitle(parseLinks(subtitle.title || '', category, false));
-        setParsedBulletPoints((subtitle.bulletPoints || []).map(point => ({
-          ...point,
-          text: parseLinks(point.text || '', category, false),
-        })));
-      }, 5000);
+        parseInWorker(subtitle.title || '', category).then(setParsedTitle);
+        Promise.all(
+          (subtitle.bulletPoints || []).map(point =>
+            parseInWorker(point.text || '', category).then(parsedText => ({
+              ...point,
+              text: parsedText,
+            }))
+          )
+        ).then(setParsedBulletPoints);
+      }, 6000);
     }
   }, [subtitle, category]);
 
@@ -226,27 +285,42 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
 
   return (
     <section id={`subtitle-${index}`} aria-labelledby={`subtitle-${index}-heading`}>
-      <SubtitleHeader id={`subtitle-${index}-heading`}>{parsedTitle}</SubtitleHeader>
+      <SubtitleHeader id={`subtitle-${index}-heading`}>
+        {Array.isArray(parsedTitle) ? parsedTitle.map((elem, i) => (
+          <React.Fragment key={i}>
+            {typeof elem === 'string' ? elem : (
+              elem.isInternal ? (
+                <a href={elem.url} className="text-blue-600 hover:text-blue-800" aria-label={`Navigate to ${elem.linkText}`}>
+                  {elem.linkText}
+                </a>
+              ) : (
+                <a
+                  href={elem.url}
+                  target={elem.url.startsWith('vscode://') ? '_self' : '_blank'}
+                  rel="noopener"
+                  className="text-blue-600 hover:text-blue-800"
+                  aria-label={`Visit ${elem.linkText}`}
+                >
+                  {elem.linkText}
+                </a>
+              )
+            )}
+          </React.Fragment>
+        )) : parsedTitle}
+      </SubtitleHeader>
       {subtitle.image && (
-        <ImageContainer>
-          <Suspense fallback={<Placeholder height="157.5px">Loading image...</Placeholder>}>
+        <ImageContainer className={isImageLoaded ? 'image-loaded' : ''}>
+          <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
             <AccessibleZoom caption={subtitle.title || ''}>
-              <LQIPImage
-                src={`${subtitle.image}?w=20&format=webp&q=1`}
-                alt="Low quality placeholder"
-                width="280"
-                height="157.5"
-                fetchpriority="low"
-                decoding="async"
-              />
               <PostImage
-                src={`${subtitle.image}?w=200&format=avif&q=40`}
+                src={`${subtitle.image}?w=100&format=avif&q=1`}
                 srcSet={`
-                  ${subtitle.image}?w=100&format=avif&q=40 100w,
-                  ${subtitle.image}?w=150&format=avif&q=40 150w,
-                  ${subtitle.image}?w=200&format=avif&q=40 200w,
-                  ${subtitle.image}?w=280&format=avif&q=40 280w,
-                  ${subtitle.image}?w=480&format=avif&q=40 480w
+                  ${subtitle.image}?w=100&format=avif&q=1 100w,
+                  ${subtitle.image}?w=150&format=avif&q=1 150w,
+                  ${subtitle.image}?w=200&format=avif&q=1 200w,
+                  ${subtitle.image}?w=240&format=avif&q=1 240w,
+                  ${subtitle.image}?w=280&format=avif&q=1 280w,
+                  ${subtitle.image}?w=480&format=avif&q=1 480w
                 `}
                 sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
                 alt={subtitle.title || 'Subtitle image'}
@@ -255,7 +329,11 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                 loading="lazy"
                 decoding="async"
                 fetchpriority="low"
-                onError={() => console.error('Subtitle Image Failed:', subtitle.image)}
+                onLoad={() => setIsImageLoaded(true)}
+                onError={() => {
+                  console.error('Subtitle Image Failed:', subtitle.image);
+                  setIsImageLoaded(true);
+                }}
               />
             </AccessibleZoom>
           </Suspense>
@@ -281,27 +359,42 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
       <ul style={{ paddingLeft: '1.25rem', fontSize: '1.1rem', lineHeight: '1.7' }}>
         {parsedBulletPoints.map((point, j) => (
           <li key={j} style={{ marginBottom: '0.5rem' }}>
-            <span>{point.text}</span>
+            <span>
+              {Array.isArray(point.text) ? point.text.map((elem, k) => (
+                <React.Fragment key={k}>
+                  {typeof elem === 'string' ? elem : (
+                    elem.isInternal ? (
+                      <a href={elem.url} className="text-blue-600 hover:text-blue-800" aria-label={`Navigate to ${elem.linkText}`}>
+                        {elem.linkText}
+                      </a>
+                    ) : (
+                      <a
+                        href={elem.url}
+                        target={elem.url.startsWith('vscode://') ? '_self' : '_blank'}
+                        rel="noopener"
+                        className="text-blue-600 hover:text-blue-800"
+                        aria-label={`Visit ${elem.linkText}`}
+                      >
+                        {elem.linkText}
+                      </a>
+                    )
+                  )}
+                </React.Fragment>
+              )) : point.text}
+            </span>
             {point.image && (
-              <ImageContainer>
-                <Suspense fallback={<Placeholder height="157.5px">Loading image...</Placeholder>}>
+              <ImageContainer className={isPointImageLoaded[j] ? 'image-loaded' : ''}>
+                <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
                   <AccessibleZoom caption={`Example for ${point.text || ''}`}>
-                    <LQIPImage
-                      src={`${point.image}?w=20&format=webp&q=1`}
-                      alt="Low quality placeholder"
-                      width="280"
-                      height="157.5"
-                      fetchpriority="low"
-                      decoding="async"
-                    />
                     <PostImage
-                      src={`${point.image}?w=200&format=avif&q=40`}
+                      src={`${point.image}?w=100&format=avif&q=1`}
                       srcSet={`
-                        ${point.image}?w=100&format=avif&q=40 100w,
-                        ${point.image}?w=150&format=avif&q=40 150w,
-                        ${point.image}?w=200&format=avif&q=40 200w,
-                        ${point.image}?w=280&format=avif&q=40 280w,
-                        ${point.image}?w=480&format=avif&q=40 480w
+                        ${point.image}?w=100&format=avif&q=1 100w,
+                        ${point.image}?w=150&format=avif&q=1 150w,
+                        ${point.image}?w=200&format=avif&q=1 200w,
+                        ${point.image}?w=240&format=avif&q=1 240w,
+                        ${point.image}?w=280&format=avif&q=1 280w,
+                        ${point.image}?w=480&format=avif&q=1 480w
                       `}
                       sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
                       alt={`Example for ${point.text || 'bullet point'}`}
@@ -310,7 +403,11 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                       loading="lazy"
                       decoding="async"
                       fetchpriority="low"
-                      onError={() => console.error('Point Image Failed:', point.image)}
+                      onLoad={() => setIsPointImageLoaded(prev => ({ ...prev, [j]: true }))}
+                      onError={() => {
+                        console.error('Point Image Failed:', point.image);
+                        setIsPointImageLoaded(prev => ({ ...prev, [j]: true }));
+                      }}
                     />
                   </AccessibleZoom>
                 </Suspense>
@@ -376,11 +473,11 @@ const LazySubtitleSection = memo(({ subtitle, index, category }) => {
   }, []);
 
   return (
-    <div ref={ref} style={{ minHeight: '450px', transition: 'min-height 0.3s ease' }}>
+    <div ref={ref} style={{ width: '100%', maxWidth: '100%' }}>
       {isVisible ? (
         <SubtitleSection subtitle={subtitle} index={index} category={category} />
       ) : (
-        <Placeholder height="450px">Loading section...</Placeholder>
+        <Placeholder>Loading section...</Placeholder>
       )}
     </div>
   );
@@ -405,7 +502,7 @@ const LazyReferencesSection = memo(({ post }) => {
   }, []);
 
   return (
-    <div ref={ref} style={{ minHeight: '250px', transition: 'min-height 0.3s ease' }}>
+    <div ref={ref} style={{ width: '100%', maxWidth: '100%' }}>
       {isVisible ? (
         <ReferencesSection aria-labelledby="references-heading">
           <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
@@ -437,7 +534,7 @@ const LazyReferencesSection = memo(({ post }) => {
           )}
         </ReferencesSection>
       ) : (
-        <Placeholder height="250px">Loading references...</Placeholder>
+        <Placeholder>Loading references...</Placeholder>
       )}
     </div>
   );
@@ -495,12 +592,12 @@ const PostContentNonCritical = memo(
       if (!post?.summary) return;
       if (typeof window !== 'undefined' && window.requestIdleCallback) {
         window.requestIdleCallback(() => {
-          setParsedSummary(parseLinks(post.summary || '', post.category || '', false));
-        }, { timeout: 5000 });
+          parseInWorker(post.summary || '', post.category || '').then(setParsedSummary);
+        }, { timeout: 6000 });
       } else {
         setTimeout(() => {
-          setParsedSummary(parseLinks(post.summary || '', post.category || '', false));
-        }, 5000);
+          parseInWorker(post.summary || '', post.category || '').then(setParsedSummary);
+        }, 6000);
       }
     }, [post]);
 
@@ -515,7 +612,7 @@ const PostContentNonCritical = memo(
           });
           document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
           return () => observer.disconnect();
-        }, { timeout: 5000 });
+        }, { timeout: 6000 });
       }
     }, [post, debouncedObserve]);
 
@@ -554,7 +651,29 @@ const PostContentNonCritical = memo(
         {post.summary && (
           <section id="summary" aria-labelledby="summary-heading">
             <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
-            <p style={{ fontSize: '1.1rem', lineHeight: '1.7' }}>{parsedSummary}</p>
+            <p style={{ fontSize: '1.1rem', lineHeight: '1.7' }}>
+              {Array.isArray(parsedSummary) ? parsedSummary.map((elem, i) => (
+                <React.Fragment key={i}>
+                  {typeof elem === 'string' ? elem : (
+                    elem.isInternal ? (
+                      <a href={elem.url} className="text-blue-600 hover:text-blue-800" aria-label={`Navigate to ${elem.linkText}`}>
+                        {elem.linkText}
+                      </a>
+                    ) : (
+                      <a
+                        href={elem.url}
+                        target={elem.url.startsWith('vscode://') ? '_self' : '_blank'}
+                        rel="noopener"
+                        className="text-blue-600 hover:text-blue-800"
+                        aria-label={`Visit ${elem.linkText}`}
+                      >
+                        {elem.linkText}
+                      </a>
+                    )
+                  )}
+                </React.Fragment>
+              )) : parsedSummary}
+            </p>
           </section>
         )}
 
@@ -577,7 +696,7 @@ const PostContentNonCritical = memo(
           {completedPosts.some(p => p.postId === post.postId) ? 'Completed' : 'Mark as Completed'}
         </CompleteButton>
 
-        <section aria-labelledby="related-posts-heading" style={{ minHeight: '450px' }}>
+        <section aria-labelledby="related-posts-heading">
           <Suspense fallback={<Placeholder height="450px">Loading related posts...</Placeholder>}>
             <RelatedPosts relatedPosts={relatedPosts} />
           </Suspense>
