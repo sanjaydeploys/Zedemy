@@ -13,22 +13,11 @@ const loadDependencies = async () => {
 const PostContentNonCritical = React.lazy(() => import('./PostContentNonCritical'));
 const Sidebar = React.lazy(() => import('./Sidebar'));
 
-// Critical CSS for content-section to avoid render delay
 const criticalCSS = `
-  .content-section {
-    font-size: 0.875rem;
-    line-height: 1.7;
-    color: #333;
-  }
-  .post-header {
-    font-size: clamp(1.5rem, 5vw, 2.25rem);
-    color: #011020;
-    margin: 0.75rem 0;
-    font-weight: 700;
-  }
+  .content-section { font-size: 0.875rem; line-height: 1.7; color: #333; }
+  .post-header { font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 700; color: #011020; margin-bottom: 0.75rem; }
 `;
 
-// Non-critical CSS remains unchanged
 const nonCriticalCSS = `
   .container { display: flex; min-height: 100vh; flex-direction: column; }
   main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 2000px; }
@@ -60,19 +49,24 @@ const nonCriticalCSS = `
 `;
 
 const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
-  // Avoid parseLinks on initial render to reduce JavaScript execution
-  const initialContent = post?.content || '';
+  const initialContent = useMemo(() => {
+    if (!post?.content) return [];
+    return parseLinks(post.content, post.category || '', false);
+  }, [post]);
 
   return (
     <>
-      <style>{criticalCSS}</style>
       <header>
         <h1 className="post-header">{parsedTitle || post.title}</h1>
         <div style={{ marginBottom: '0.75rem', color: '#666', fontSize: '0.75rem' }}>
           Read time: {calculateReadTimeAndWordCount.readTime} min
         </div>
       </header>
-      <section className="content-section" dangerouslySetInnerHTML={{ __html: initialContent }} />
+      <section className="content-section">
+        {initialContent.map((element, index) => (
+          <React.Fragment key={index}>{element}</React.Fragment>
+        ))}
+      </section>
     </>
   );
 });
@@ -95,8 +89,7 @@ const PostPage = memo(() => {
   const completedPosts = useSelector(state => state.postReducer.completedPosts || []);
 
   useEffect(() => {
-    // Load dependencies earlier to reduce delay
-    setTimeout(() => loadDependencies().then(setDeps), 1000);
+    loadDependencies().then(setDeps);
   }, []);
 
   useEffect(() => {
@@ -112,10 +105,7 @@ const PostPage = memo(() => {
       try {
         await dispatch(fetchPostBySlug(slug));
         startTransition(() => setHasFetched(true));
-        // Fetch non-critical data earlier
-        setTimeout(() => {
-          Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-        }, 2000);
+        Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
       } catch (error) {
         console.error('Fetch failed:', error);
         if (retries > 0) {
@@ -134,16 +124,14 @@ const PostPage = memo(() => {
 
   useEffect(() => {
     if (!post) return;
-    setTimeout(() => {
-      const text = [
-        post.title || '',
-        post.content || '',
-        post.summary || '',
-        ...(post.subtitles?.map(s => (s.title || '') + (s.bulletPoints?.map(b => b.text || '').join('') || '')) || []),
-      ].join(' ');
-      const words = text.split(/\s+/).filter(w => w).length;
-      setReadTime(Math.ceil(words / 200));
-    }, 1000);
+    const text = [
+      post.title || '',
+      post.content || '',
+      post.summary || '',
+      ...(post.subtitles?.map(s => (s.title || '') + (s.bulletPoints?.map(b => b.text || '').join('') || '')) || []),
+    ].join(' ');
+    const words = text.split(/\s+/).filter(w => w).length;
+    setReadTime(Math.ceil(words / 200));
   }, [post]);
 
   useEffect(() => {
@@ -153,84 +141,82 @@ const PostPage = memo(() => {
 
   useEffect(() => {
     if (!post) return;
-    setTimeout(() => {
-      const pageTitle = `${post.title} | Zedemy, India`;
-      const pageDescription = truncateText(post.summary || post.content, 160) || `Learn ${post.title?.toLowerCase() || ''} with Zedemy's tutorials.`;
-      const pageKeywords = post.keywords
-        ? `${post.keywords}, Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`
-        : `Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`;
-      const canonicalUrl = `https://zedemy.vercel.app/post/${slug}`;
-      const ogImage = post.titleImage
-        ? `${post.titleImage}?w=1200&format=webp&q=75`
-        : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
-      const schemas = [
-        {
-          '@context': 'https://schema.org',
-          '@type': 'BlogPosting',
-          headline: post.title || '',
-          description: pageDescription,
-          keywords: pageKeywords.split(', ').filter(Boolean),
-          articleSection: post.category || 'Tech Tutorials',
-          author: { '@type': 'Person', name: post.author || 'Zedemy Team' },
-          publisher: {
-            '@type': 'Organization',
-            name: 'Zedemy',
-            logo: { '@type': 'ImageObject', url: ogImage },
-          },
-          datePublished: post.date || new Date().toISOString(),
-          dateModified: post.date || new Date().toISOString(),
-          image: ogImage,
-          url: canonicalUrl,
-          mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
-          timeRequired: `PT${readTime}M`,
-          wordCount: 0,
-          inLanguage: 'en',
-          sameAs: ['https://x.com/zedemy', 'https://linkedin.com/company/zedemy'],
+    const pageTitle = `${post.title} | Zedemy, India`;
+    const pageDescription = truncateText(post.summary || post.content, 160) || `Learn ${post.title?.toLowerCase() || ''} with Zedemy's tutorials.`;
+    const pageKeywords = post.keywords
+      ? `${post.keywords}, Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`
+      : `Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`;
+    const canonicalUrl = `https://zedemy.vercel.app/post/${slug}`;
+    const ogImage = post.titleImage
+      ? `${post.titleImage}?w=1200&format=webp&q=75`
+      : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
+    const schemas = [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BlogPosting',
+        headline: post.title || '',
+        description: pageDescription,
+        keywords: pageKeywords.split(', ').filter(Boolean),
+        articleSection: post.category || 'Tech Tutorials',
+        author: { '@type': 'Person', name: post.author || 'Zedemy Team' },
+        publisher: {
+          '@type': 'Organization',
+          name: 'Zedemy',
+          logo: { '@type': 'ImageObject', url: ogImage },
         },
-        {
-          '@context': 'https://schema.org',
-          '@type': 'BreadcrumbList',
-          itemListElement: [
-            {
-              '@type': 'ListItem',
-              position: 1,
-              name: 'Home',
-              item: 'https://zedemy.vercel.app/',
-            },
-            {
-              '@type': 'ListItem',
-              position: 2,
-              name: post.category || 'Blog',
-              item: `https://zedemy.vercel.app/category/${post.category?.toLowerCase() || 'blog'}`,
-            },
-            {
-              '@type': 'ListItem',
-              position: 3,
-              name: post.title || '',
-              item: canonicalUrl,
-            },
-          ],
-        },
-      ];
-      if (post.titleVideo) {
-        schemas.push({
-          '@context': 'https://schema.org',
-          '@type': 'VideoObject',
-          name: post.title || '',
-          description: pageDescription,
-          thumbnailUrl: post.titleVideoPoster || ogImage,
-          contentUrl: post.titleVideo,
-          uploadDate: post.date || new Date().toISOString(),
-          duration: `PT${readTime}M`,
-          publisher: {
-            '@type': 'Organization',
-            name: 'Zedemy',
-            logo: { '@type': 'ImageObject', url: ogImage },
+        datePublished: post.date || new Date().toISOString(),
+        dateModified: post.date || new Date().toISOString(),
+        image: ogImage,
+        url: canonicalUrl,
+        mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
+        timeRequired: `PT${readTime}M`,
+        wordCount: 0,
+        inLanguage: 'en',
+        sameAs: ['https://x.com/zedemy', 'https://linkedin.com/company/zedemy'],
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: 'https://zedemy.vercel.app/',
           },
-        });
-      }
-      startTransition(() => setStructuredData(schemas));
-    }, 2000);
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: post.category || 'Blog',
+            item: `https://zedemy.vercel.app/category/${post.category?.toLowerCase() || 'blog'}`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: post.title || '',
+            item: canonicalUrl,
+          },
+        ],
+      },
+    ];
+    if (post.titleVideo) {
+      schemas.push({
+        '@context': 'https://schema.org',
+        '@type': 'VideoObject',
+        name: post.title || '',
+        description: pageDescription,
+        thumbnailUrl: post.titleVideoPoster || ogImage,
+        contentUrl: post.titleVideo,
+        uploadDate: post.date || new Date().toISOString(),
+        duration: `PT${readTime}M`,
+        publisher: {
+          '@type': 'Organization',
+          name: 'Zedemy',
+          logo: { '@type': 'ImageObject', url: ogImage },
+        },
+      });
+    }
+    startTransition(() => setStructuredData(schemas));
   }, [post, slug, readTime]);
 
   if (!post && !hasFetched) {
@@ -272,15 +258,6 @@ const PostPage = memo(() => {
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
         <link rel="preconnect" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
-        {post.titleImage && (
-          <link
-            rel="preload"
-            href={`${post.titleImage}?w=1200&format=webp&q=75`}
-            as="image"
-            type="image/webp"
-            crossOrigin="anonymous"
-          />
-        )}
         <meta property="og:title" content={`${post.title} | Zedemy`} />
         <meta property="og:description" content={truncateText(post.summary || post.content, 160)} />
         <meta
@@ -300,6 +277,7 @@ const PostPage = memo(() => {
           name="twitter:image"
           content={post.titleImage ? `${post.titleImage}?w=1200&format=webp&q=75` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
         />
+        <style>{criticalCSS}</style>
         <style>{nonCriticalCSS}</style>
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
