@@ -97,13 +97,24 @@ const PostContentCritical = memo(({ criticalPost, calculateReadTimeAndWordCount 
   const [isImageLoaded, setIsImageLoaded] = useState(false);
 
   useEffect(() => {
-    if (!criticalPost?.content) {
-      setParsedContentHtml('');
-      return;
-    }
-    parseContentInWorker(criticalPost.content, '').then(html => {
-      setParsedContentHtml(html);
-    });
+    if (!criticalPost?.content) return;
+
+    // Defer parsing until after the initial render is painted
+    const parseContent = async () => {
+      const html = await parseContentInWorker(criticalPost.content, '');
+      // Use requestIdleCallback to ensure the state update happens after the browser has painted
+      if (typeof window !== 'undefined' && window.requestIdleCallback) {
+        window.requestIdleCallback(() => {
+          setParsedContentHtml(html);
+        }, { timeout: 2000 });
+      } else {
+        setTimeout(() => {
+          setParsedContentHtml(html);
+        }, 2000);
+      }
+    };
+
+    parseContent();
   }, [criticalPost]);
 
   const formattedDate = new Date().toLocaleDateString('en-US', {
@@ -151,10 +162,16 @@ const PostContentCritical = memo(({ criticalPost, calculateReadTimeAndWordCount 
         </div>
       </header>
       <section className="content-section">
-        {parsedContentHtml === null ? (
+        {/* Always render raw content first to ensure LCP happens immediately */}
+        <div style={{ display: parsedContentHtml ? 'none' : 'block' }}>
           <p>{criticalPost?.content || 'Loading content...'}</p>
-        ) : (
-          <div dangerouslySetInnerHTML={{ __html: parsedContentHtml }} />
+        </div>
+        {/* Show parsed content only after it's ready, ensuring no layout shift */}
+        {parsedContentHtml && (
+          <div
+            style={{ display: parsedContentHtml ? 'block' : 'none' }}
+            dangerouslySetInnerHTML={{ __html: parsedContentHtml }}
+          />
         )}
       </section>
     </>
