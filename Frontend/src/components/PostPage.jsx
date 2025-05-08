@@ -15,31 +15,24 @@ const Sidebar = React.lazy(() => import('./Sidebar'));
 
 const css = `
   .container { display: flex; min-height: 100vh; flex-direction: column; }
-  main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 2000px; }
-  .post-header { font-size: clamp(1.5rem, 3vw, 2rem); color: #011020; margin: 0.75rem 0; }
-  .content-section { font-size: 0.875rem; line-height: 1.7; min-height: 200px; }
+  main { flex: 1; padding: 1rem; background: #f4f4f9; }
+  .post-header { font-size: clamp(1.5rem, 3vw, 2rem); color: #011020; margin: 0.75rem 0; width: 100%; max-width: 100%; }
+  .content-section { font-size: 0.875rem; line-height: 1.7; width: 100%; max-width: 100%; }
   .content-section p { margin: 0.5rem 0; }
   .image-container { 
     width: 100%; 
-    max-width: 100%; 
+    max-width: 280px; 
     margin: 1rem 0; 
     position: relative; 
     aspect-ratio: 16 / 9; 
     height: 157.5px; 
     background: #e0e0e0; 
-    background-image: linear-gradient(90deg, #e0e0e0 0%, #f0f0f0 50%, #e0e0e0 100%); 
-    background-size: 200% 100%; 
-    animation: shimmer 1.5s infinite; 
   }
-  @keyframes shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
-  }
-  .image-loaded { background: transparent; animation: none; }
+  .image-loaded { background: transparent; }
   .post-image { width: 100%; max-width: 280px; height: 157.5px; object-fit: contain; border-radius: 0.375rem; position: relative; z-index: 2; }
-  .video-container { width: 100%; max-width: 100%; margin: 1rem 0; aspect-ratio: 16 / 9; height: 157.5px; }
+  .video-container { width: 100%; max-width: 280px; margin: 1rem 0; aspect-ratio: 16 / 9; height: 157.5px; }
   .post-video { width: 100%; max-width: 280px; height: 157.5px; border-radius: 0.375rem; }
-  .placeholder { width: 100%; height: 180px; background: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #666; border-radius: 0.375rem; font-size: 0.875rem; }
+  .placeholder { width: 100%; max-width: 280px; height: 157.5px; background: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #666; border-radius: 0.375rem; font-size: 0.875rem; }
   .skeleton { width: 60%; height: 2rem; background: #e0e0e0; border-radius: 0.375rem; margin: 0.75rem 0 1rem; }
   .loading-overlay { display: flex; justify-content: center; align-items: center; background: rgba(0, 0, 0, 0.5); min-height: 100vh; width: 100%; }
   .sidebar-wrapper { }
@@ -47,23 +40,82 @@ const css = `
   @media (min-width: 769px) {
     .container { flex-direction: row; }
     main { margin-right: 250px; padding: 2rem; }
-    .image-container, .video-container { height: 270px; }
+    .image-container, .video-container, .placeholder { max-width: 480px; height: 270px; }
     .post-image, .post-video { max-width: 480px; height: 270px; }
     .sidebar-wrapper { width: 250px; min-height: 1200px; flex-shrink: 0; }
   }
   @media (max-width: 480px) {
-    .image-container, .video-container { height: 135px; }
+    .image-container, .video-container, .placeholder { max-width: 240px; height: 135px; }
     .post-image, .post-video { max-width: 240px; height: 135px; }
+    main { padding: 0.5rem; }
   }
   @media (max-width: 320px) {
-    .image-container, .video-container { height: 112.5px; }
+    .image-container, .video-container, .placeholder { max-width: 200px; height: 112.5px; }
     .post-image, .post-video { max-width: 200px; height: 112.5px; }
+    main { padding: 0.25rem; }
   }
 `;
 
+// Web Worker for parsing content
+const parseContentInWorker = (content, category) => {
+  return new Promise((resolve) => {
+    const workerCode = `
+      self.onmessage = function(e) {
+        const { content, category } = e.data;
+        const parseLinks = (text, category, isHtml = false) => {
+          if (!text) return isHtml ? '' : [text];
+          const linkRegex = /\\[([^\\]]+)\\]\\((https?:\\/\\/[^\\s)]+|vscode:\\/\\/[^\\s)]+|\\/[^\\s)]+)\\)/g;
+          const elements = [];
+          let lastIndex = 0;
+          let match;
+          while ((match = linkRegex.exec(text)) !== null) {
+            const [fullMatch, linkText, url] = match;
+            if (match.index > lastIndex) {
+              elements.push(text.slice(lastIndex, match.index));
+            }
+            elements.push({ linkText, url, isInternal: url.startsWith('/') });
+            lastIndex = match.index + fullMatch.length;
+          }
+          if (lastIndex < text.length) {
+            elements.push(text.slice(lastIndex));
+          }
+          return elements.length ? elements : [text || ''];
+        };
+        const result = parseLinks(content, category, false);
+        self.postMessage(result);
+      };
+    `;
+    const blob = new Blob([workerCode], { type: 'application/javascript' });
+    const worker = new Worker(URL.createObjectURL(blob));
+    worker.onmessage = (e) => {
+      resolve(e.data);
+      worker.terminate();
+    };
+    worker.onerror = (err) => {
+      console.error('Worker error:', err);
+      resolve([content]); // Fallback to raw content
+      worker.terminate();
+    };
+    worker.postMessage({ content, category });
+  });
+};
+
 const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
-  const contentElements = useMemo(() => {
-    return post?.content ? parseLinks(post.content, post.category || '', false) : [];
+  const [contentElements, setContentElements] = useState([]);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!post?.content) {
+      setContentElements([]);
+      return;
+    }
+    // Initial render with first 500 characters to reduce LCP
+    const initialContent = post.content.slice(0, 500);
+    setContentElements([initialContent]);
+    // Offload full parsing to Web Worker
+    parseContentInWorker(post.content, post.category || '').then(elements => {
+      setContentElements(elements);
+    });
   }, [post]);
 
   const formattedDate = post?.date ? new Date(post.date).toLocaleDateString('en-US', {
@@ -71,8 +123,6 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
     month: 'long',
     day: 'numeric',
   }) : '';
-
-  const [isImageLoaded, setIsImageLoaded] = useState(false);
 
   return (
     <>
@@ -85,6 +135,7 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
                 ${post.titleImage}?w=100&format=avif&q=1 100w,
                 ${post.titleImage}?w=150&format=avif&q=1 150w,
                 ${post.titleImage}?w=200&format=avif&q=1 200w,
+                ${post.titleImage}?w=240&format=avif&q=1 240w,
                 ${post.titleImage}?w=280&format=avif&q=1 280w,
                 ${post.titleImage}?w=480&format=avif&q=1 480w
               `}
@@ -99,7 +150,7 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
               onLoad={() => setIsImageLoaded(true)}
               onError={() => {
                 console.error('Title Image Failed:', post.titleImage);
-                setIsImageLoaded(true); // Hide placeholder on error to avoid infinite loading state
+                setIsImageLoaded(true);
               }}
             />
           </div>
@@ -113,7 +164,27 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
       </header>
       <section className="content-section">
         {contentElements.map((element, index) => (
-          <React.Fragment key={index}>{element}</React.Fragment>
+          <React.Fragment key={index}>
+            {typeof element === 'string' ? (
+              element
+            ) : (
+              element.isInternal ? (
+                <a href={element.url} className="text-blue-600 hover:text-blue-800" aria-label={`Navigate to ${element.linkText}`}>
+                  {element.linkText}
+                </a>
+              ) : (
+                <a
+                  href={element.url}
+                  target={element.url.startsWith('vscode://') ? '_self' : '_blank'}
+                  rel="noopener"
+                  className="text-blue-600 hover:text-blue-800"
+                  aria-label={`Visit ${element.linkText}`}
+                >
+                  {element.linkText}
+                </a>
+              )
+            )}
+          </React.Fragment>
         ))}
       </section>
     </>
@@ -139,9 +210,9 @@ const PostPage = memo(() => {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(() => loadDependencies().then(setDeps), { timeout: 6000 });
+      window.requestIdleCallback(() => loadDependencies().then(setDeps), { timeout: 8000 });
     } else {
-      setTimeout(() => loadDependencies().then(setDeps), 6000);
+      setTimeout(() => loadDependencies().then(setDeps), 8000);
     }
   }, []);
 
@@ -161,11 +232,11 @@ const PostPage = memo(() => {
         if (typeof window !== 'undefined' && window.requestIdleCallback) {
           window.requestIdleCallback(() => {
             Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-          }, { timeout: 7000 });
+          }, { timeout: 9000 });
         } else {
           setTimeout(() => {
             Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-          }, 7007);
+          }, 9000);
         }
       } catch (error) {
         console.error('Fetch failed:', error);
@@ -195,7 +266,7 @@ const PostPage = memo(() => {
         ].join(' ');
         const words = text.split(/\s+/).filter(w => w).length;
         setReadTime(Math.ceil(words / 200));
-      }, { timeout: 6000 });
+      }, { timeout: 8000 });
     } else {
       setTimeout(() => {
         const text = [
@@ -206,7 +277,7 @@ const PostPage = memo(() => {
         ].join(' ');
         const words = text.split(/\s+/).filter(w => w).length;
         setReadTime(Math.ceil(words / 200));
-      }, 6000);
+      }, 8000);
     }
   }, [post]);
 
@@ -295,7 +366,7 @@ const PostPage = memo(() => {
           });
         }
         startTransition(() => setStructuredData(schemas));
-      }, { timeout: 7000 });
+      }, { timeout: 9000 });
     }
   }, [post, slug, readTime]);
 
