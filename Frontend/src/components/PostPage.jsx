@@ -14,13 +14,18 @@ const PostContentNonCritical = React.lazy(() => import('./PostContentNonCritical
 const Sidebar = React.lazy(() => import('./Sidebar'));
 
 const criticalCSS = `
-  .content-section { font-size: 0.875rem; line-height: 1.7; color: #333; }
-  .post-header { font-size: clamp(1.5rem, 4vw, 2rem); font-weight: 700; color: #011020; margin-bottom: 0.75rem; }
+  .container { display: flex; min-height: 100vh; flex-direction: column; }
+  main { flex: 1; padding: 1rem; background: #f4f4f9; }
+  .post-header { font-size: clamp(1.5rem, 3vw, 2rem); color: #011020; margin: 0.75rem 0; }
+  .content-section { font-size: 0.875rem; line-height: 1.7; }
+  .content-section p { margin: 0.5rem 0; }
+  @media (min-width: 769px) {
+    .container { flex-direction: row; }
+    main { margin-right: 250px; padding: 2rem; }
+  }
 `;
 
 const nonCriticalCSS = `
-  .container { display: flex; min-height: 100vh; flex-direction: column; }
-  main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 2000px; }
   .image-container { width: 100%; max-width: 100%; margin: 1rem 0; position: relative; aspect-ratio: 16 / 9; height: 157.5px; }
   .post-image { width: 100%; max-width: 280px; height: 157.5px; object-fit: contain; border-radius: 0.375rem; position: relative; z-index: 2; }
   .lqip-image { width: 100%; max-width: 280px; height: 157.5px; object-fit: contain; border-radius: 0.375rem; filter: blur(10px); position: absolute; top: 0; left: 0; z-index: 1; }
@@ -30,10 +35,7 @@ const nonCriticalCSS = `
   .skeleton { width: 60%; height: 2rem; background: #e0e0e0; border-radius: 0.375rem; margin: 0.75rem 0 1rem; }
   .loading-overlay { display: flex; justify-content: center; align-items: center; background: rgba(0, 0, 0, 0.5); min-height: 100vh; width: 100%; }
   .sidebar-wrapper { }
-  p { font-size: 0.875rem; }
   @media (min-width: 769px) {
-    .container { flex-direction: row; }
-    main { margin-right: 250px; padding: 2rem; }
     .image-container, .video-container { height: 270px; }
     .post-image, .lqip-image, .post-video { max-width: 480px; height: 270px; }
     .sidebar-wrapper { width: 250px; min-height: 1200px; flex-shrink: 0; }
@@ -49,9 +51,8 @@ const nonCriticalCSS = `
 `;
 
 const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
-  const initialContent = useMemo(() => {
-    if (!post?.content) return [];
-    return parseLinks(post.content, post.category || '', false);
+  const contentElements = useMemo(() => {
+    return post?.content ? parseLinks(post.content, post.category || '', false) : [];
   }, [post]);
 
   return (
@@ -63,7 +64,7 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
         </div>
       </header>
       <section className="content-section">
-        {initialContent.map((element, index) => (
+        {contentElements.map((element, index) => (
           <React.Fragment key={index}>{element}</React.Fragment>
         ))}
       </section>
@@ -89,7 +90,11 @@ const PostPage = memo(() => {
   const completedPosts = useSelector(state => state.postReducer.completedPosts || []);
 
   useEffect(() => {
-    loadDependencies().then(setDeps);
+    if (typeof window !== 'undefined' && window.requestIdleCallback) {
+      window.requestIdleCallback(() => loadDependencies().then(setDeps), { timeout: 5000 });
+    } else {
+      setTimeout(() => loadDependencies().then(setDeps), 5000);
+    }
   }, []);
 
   useEffect(() => {
@@ -105,7 +110,15 @@ const PostPage = memo(() => {
       try {
         await dispatch(fetchPostBySlug(slug));
         startTransition(() => setHasFetched(true));
-        Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
+        if (typeof window !== 'undefined' && window.requestIdleCallback) {
+          window.requestIdleCallback(() => {
+            Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
+          }, { timeout: 6000 });
+        } else {
+          setTimeout(() => {
+            Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
+          }, 6000);
+        }
       } catch (error) {
         console.error('Fetch failed:', error);
         if (retries > 0) {
@@ -124,14 +137,29 @@ const PostPage = memo(() => {
 
   useEffect(() => {
     if (!post) return;
-    const text = [
-      post.title || '',
-      post.content || '',
-      post.summary || '',
-      ...(post.subtitles?.map(s => (s.title || '') + (s.bulletPoints?.map(b => b.text || '').join('') || '')) || []),
-    ].join(' ');
-    const words = text.split(/\s+/).filter(w => w).length;
-    setReadTime(Math.ceil(words / 200));
+    if (typeof window !== 'undefined' && window.requestIdleCallback) {
+      window.requestIdleCallback(() => {
+        const text = [
+          post.title || '',
+          post.content || '',
+          post.summary || '',
+          ...(post.subtitles?.map(s => (s.title || '') + (s.bulletPoints?.map(b => b.text || '').join('') || '')) || []),
+        ].join(' ');
+        const words = text.split(/\s+/).filter(w => w).length;
+        setReadTime(Math.ceil(words / 200));
+      }, { timeout: 5000 });
+    } else {
+      setTimeout(() => {
+        const text = [
+          post.title || '',
+          post.content || '',
+          post.summary || '',
+          ...(post.subtitles?.map(s => (s.title || '') + (s.bulletPoints?.map(b => b.text || '').join('') || '')) || []),
+        ].join(' ');
+        const words = text.split(/\s+/).filter(w => w).length;
+        setReadTime(Math.ceil(words / 200));
+      }, 5000);
+    }
   }, [post]);
 
   useEffect(() => {
@@ -141,82 +169,86 @@ const PostPage = memo(() => {
 
   useEffect(() => {
     if (!post) return;
-    const pageTitle = `${post.title} | Zedemy, India`;
-    const pageDescription = truncateText(post.summary || post.content, 160) || `Learn ${post.title?.toLowerCase() || ''} with Zedemy's tutorials.`;
-    const pageKeywords = post.keywords
-      ? `${post.keywords}, Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`
-      : `Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`;
-    const canonicalUrl = `https://zedemy.vercel.app/post/${slug}`;
-    const ogImage = post.titleImage
-      ? `${post.titleImage}?w=1200&format=webp&q=75`
-      : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
-    const schemas = [
-      {
-        '@context': 'https://schema.org',
-        '@type': 'BlogPosting',
-        headline: post.title || '',
-        description: pageDescription,
-        keywords: pageKeywords.split(', ').filter(Boolean),
-        articleSection: post.category || 'Tech Tutorials',
-        author: { '@type': 'Person', name: post.author || 'Zedemy Team' },
-        publisher: {
-          '@type': 'Organization',
-          name: 'Zedemy',
-          logo: { '@type': 'ImageObject', url: ogImage },
-        },
-        datePublished: post.date || new Date().toISOString(),
-        dateModified: post.date || new Date().toISOString(),
-        image: ogImage,
-        url: canonicalUrl,
-        mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
-        timeRequired: `PT${readTime}M`,
-        wordCount: 0,
-        inLanguage: 'en',
-        sameAs: ['https://x.com/zedemy', 'https://linkedin.com/company/zedemy'],
-      },
-      {
-        '@context': 'https://schema.org',
-        '@type': 'BreadcrumbList',
-        itemListElement: [
+    if (typeof window !== 'undefined' && window.requestIdleCallback) {
+      window.requestIdleCallback(() => {
+        const pageTitle = `${post.title} | Zedemy, India`;
+        const pageDescription = truncateText(post.summary || post.content, 160) || `Learn ${post.title?.toLowerCase() || ''} with Zedemy's tutorials.`;
+        const pageKeywords = post.keywords
+          ? `${post.keywords}, Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`
+          : `Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`;
+        const canonicalUrl = `https://zedemy.vercel.app/post/${slug}`;
+        const ogImage = post.titleImage
+          ? `${post.titleImage}?w=1200&format=webp&q=75`
+          : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
+        const schemas = [
           {
-            '@type': 'ListItem',
-            position: 1,
-            name: 'Home',
-            item: 'https://zedemy.vercel.app/',
+            '@context': 'https://schema.org',
+            '@type': 'BlogPosting',
+            headline: post.title || '',
+            description: pageDescription,
+            keywords: pageKeywords.split(', ').filter(Boolean),
+            articleSection: post.category || 'Tech Tutorials',
+            author: { '@type': 'Person', name: post.author || 'Zedemy Team' },
+            publisher: {
+              '@type': 'Organization',
+              name: 'Zedemy',
+              logo: { '@type': 'ImageObject', url: ogImage },
+            },
+            datePublished: post.date || new Date().toISOString(),
+            dateModified: post.date || new Date().toISOString(),
+            image: ogImage,
+            url: canonicalUrl,
+            mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
+            timeRequired: `PT${readTime}M`,
+            wordCount: 0,
+            inLanguage: 'en',
+            sameAs: ['https://x.com/zedemy', 'https://linkedin.com/company/zedemy'],
           },
           {
-            '@type': 'ListItem',
-            position: 2,
-            name: post.category || 'Blog',
-            item: `https://zedemy.vercel.app/category/${post.category?.toLowerCase() || 'blog'}`,
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              {
+                '@type': 'ListItem',
+                position: 1,
+                name: 'Home',
+                item: 'https://zedemy.vercel.app/',
+              },
+              {
+                '@type': 'ListItem',
+                position: 2,
+                name: post.category || 'Blog',
+                item: `https://zedemy.vercel.app/category/${post.category?.toLowerCase() || 'blog'}`,
+              },
+              {
+                '@type': 'ListItem',
+                position: 3,
+                name: post.title || '',
+                item: canonicalUrl,
+              },
+            ],
           },
-          {
-            '@type': 'ListItem',
-            position: 3,
+        ];
+        if (post.titleVideo) {
+          schemas.push({
+            '@context': 'https://schema.org',
+            '@type': 'VideoObject',
             name: post.title || '',
-            item: canonicalUrl,
-          },
-        ],
-      },
-    ];
-    if (post.titleVideo) {
-      schemas.push({
-        '@context': 'https://schema.org',
-        '@type': 'VideoObject',
-        name: post.title || '',
-        description: pageDescription,
-        thumbnailUrl: post.titleVideoPoster || ogImage,
-        contentUrl: post.titleVideo,
-        uploadDate: post.date || new Date().toISOString(),
-        duration: `PT${readTime}M`,
-        publisher: {
-          '@type': 'Organization',
-          name: 'Zedemy',
-          logo: { '@type': 'ImageObject', url: ogImage },
-        },
-      });
+            description: pageDescription,
+            thumbnailUrl: post.titleVideoPoster || ogImage,
+            contentUrl: post.titleVideo,
+            uploadDate: post.date || new Date().toISOString(),
+            duration: `PT${readTime}M`,
+            publisher: {
+              '@type': 'Organization',
+              name: 'Zedemy',
+              logo: { '@type': 'ImageObject', url: ogImage },
+            },
+          });
+        }
+        startTransition(() => setStructuredData(schemas));
+      }, { timeout: 6000 });
     }
-    startTransition(() => setStructuredData(schemas));
   }, [post, slug, readTime]);
 
   if (!post && !hasFetched) {
@@ -278,7 +310,7 @@ const PostPage = memo(() => {
           content={post.titleImage ? `${post.titleImage}?w=1200&format=webp&q=75` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
         />
         <style>{criticalCSS}</style>
-        <style>{nonCriticalCSS}</style>
+        <link rel="stylesheet" href="data:text/css;base64,${btoa(nonCriticalCSS)}" media="print" onload="this.media='all'" />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
       <div className="container">
