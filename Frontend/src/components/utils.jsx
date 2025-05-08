@@ -17,7 +17,9 @@ export const parseLinks = (text, category, isHtml = false) => {
   let match;
   while ((match = linkRegex.exec(text)) !== null) {
     const [fullMatch, linkText, url] = match;
-    elements.push(text.slice(lastIndex, match.index));
+    if (match.index > lastIndex) {
+      elements.push(text.slice(lastIndex, match.index));
+    }
     const isInternal = url.startsWith('/');
     elements.push(
       isInternal ? (
@@ -42,7 +44,7 @@ export const parseLinks = (text, category, isHtml = false) => {
   if (lastIndex < text.length) {
     elements.push(text.slice(lastIndex));
   }
-  return elements.length ? elements : [text];
+  return elements.length ? elements : [text || ''];
 };
 
 export const slugify = (text) => {
