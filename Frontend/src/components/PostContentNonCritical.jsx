@@ -210,7 +210,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
           ...point,
           text: parseLinks(point.text || '', category, false),
         })));
-      }, { timeout: 4000 });
+      }, { timeout: 5000 });
     } else {
       setTimeout(() => {
         setParsedTitle(parseLinks(subtitle.title || '', category, false));
@@ -218,7 +218,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
           ...point,
           text: parseLinks(point.text || '', category, false),
         })));
-      }, 4000);
+      }, 5000);
     }
   }, [subtitle, category]);
 
@@ -496,11 +496,11 @@ const PostContentNonCritical = memo(
       if (typeof window !== 'undefined' && window.requestIdleCallback) {
         window.requestIdleCallback(() => {
           setParsedSummary(parseLinks(post.summary || '', post.category || '', false));
-        }, { timeout: 4000 });
+        }, { timeout: 5000 });
       } else {
         setTimeout(() => {
           setParsedSummary(parseLinks(post.summary || '', post.category || '', false));
-        }, 4000);
+        }, 5000);
       }
     }, [post]);
 
@@ -515,7 +515,7 @@ const PostContentNonCritical = memo(
           });
           document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
           return () => observer.disconnect();
-        }, { timeout: 4000 });
+        }, { timeout: 5000 });
       }
     }, [post, debouncedObserve]);
 
@@ -526,7 +526,7 @@ const PostContentNonCritical = memo(
 
     const scrollToSection = useCallback(
       (id, updateUrl = true) => {
-        const section =document.getElementById(id);
+        const section = document.getElementById(id);
         if (section) {
           section.scrollIntoView({ behavior: 'smooth' });
           startTransition(() => setActiveSection(id));
