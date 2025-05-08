@@ -5,11 +5,6 @@ import { useParams } from 'react-router-dom';
 import { parseLinks, slugify, truncateText } from './utils';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 
-const loadDependencies = async () => {
-  const [{ ClipLoader }] = await Promise.all([import('react-spinners')]);
-  return { ClipLoader };
-};
-
 const PostContentNonCritical = React.lazy(() => import('./PostContentNonCritical'));
 const Sidebar = React.lazy(() => import('./Sidebar'));
 
@@ -17,7 +12,7 @@ const css = `
   .container { display: flex; min-height: 100vh; flex-direction: column; }
   main { flex: 1; padding: 1rem; background: #f4f4f9; }
   .post-header { font-size: clamp(1.5rem, 3vw, 2rem); color: #011020; margin: 0.75rem 0; width: 100%; max-width: 100%; }
-  .content-section { font-size: 0.875rem; line-height: 1.7; width: 100%; max-width: 100%; }
+  .content-section { font-size: 0.875rem; line-height: 1.7; width: 100%; max-width: 100%; height: 200px; }
   .content-section p { margin: 0.5rem 0; }
   .image-container { 
     width: 100%; 
@@ -35,8 +30,11 @@ const css = `
   .placeholder { width: 100%; max-width: 280px; height: 157.5px; background: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #666; border-radius: 0.375rem; font-size: 0.875rem; }
   .skeleton { width: 60%; height: 2rem; background: #e0e0e0; border-radius: 0.375rem; margin: 0.75rem 0 1rem; }
   .loading-overlay { display: flex; justify-content: center; align-items: center; background: rgba(0, 0, 0, 0.5); min-height: 100vh; width: 100%; }
+  .spinner { width: 50px; height: 50px; border: 5px solid #2c3e50; border-top: 5px solid transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   .sidebar-wrapper { }
   .meta-info { color: #666; font-size: 0.75rem; margin-bottom: 0.75rem; }
+  .content-skeleton { width: 100%; height: 20px; background: #e0e0e0; margin: 0.5rem 0; border-radius: 4px; }
   @media (min-width: 769px) {
     .container { flex-direction: row; }
     main { margin-right: 250px; padding: 2rem; }
@@ -48,11 +46,13 @@ const css = `
     .image-container, .video-container, .placeholder { max-width: 240px; height: 135px; }
     .post-image, .post-video { max-width: 240px; height: 135px; }
     main { padding: 0.5rem; }
+    .content-section { height: 150px; }
   }
   @media (max-width: 320px) {
     .image-container, .video-container, .placeholder { max-width: 200px; height: 112.5px; }
     .post-image, .post-video { max-width: 200px; height: 112.5px; }
     main { padding: 0.25rem; }
+    .content-section { height: 120px; }
   }
 `;
 
@@ -101,7 +101,7 @@ const parseContentInWorker = (content, category) => {
 };
 
 const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
-  const [contentElements, setContentElements] = useState([]);
+  const [contentElements, setContentElements] = useState(null); // null indicates loading
   const [isImageLoaded, setIsImageLoaded] = useState(false);
 
   useEffect(() => {
@@ -109,10 +109,6 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
       setContentElements([]);
       return;
     }
-    // Initial render with first 500 characters to reduce LCP
-    const initialContent = post.content.slice(0, 500);
-    setContentElements([initialContent]);
-    // Offload full parsing to Web Worker
     parseContentInWorker(post.content, post.category || '').then(elements => {
       setContentElements(elements);
     });
@@ -163,29 +159,37 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
         </div>
       </header>
       <section className="content-section">
-        {contentElements.map((element, index) => (
-          <React.Fragment key={index}>
-            {typeof element === 'string' ? (
-              element
-            ) : (
-              element.isInternal ? (
-                <a href={element.url} className="text-blue-600 hover:text-blue-800" aria-label={`Navigate to ${element.linkText}`}>
-                  {element.linkText}
-                </a>
+        {contentElements === null ? (
+          <>
+            <div className="content-skeleton" />
+            <div className="content-skeleton" style={{ width: '80%' }} />
+            <div className="content-skeleton" style={{ width: '60%' }} />
+          </>
+        ) : (
+          contentElements.map((element, index) => (
+            <React.Fragment key={index}>
+              {typeof element === 'string' ? (
+                element
               ) : (
-                <a
-                  href={element.url}
-                  target={element.url.startsWith('vscode://') ? '_self' : '_blank'}
-                  rel="noopener"
-                  className="text-blue-600 hover:text-blue-800"
-                  aria-label={`Visit ${element.linkText}`}
-                >
-                  {element.linkText}
-                </a>
-              )
-            )}
-          </React.Fragment>
-        ))}
+                element.isInternal ? (
+                  <a href={element.url} className="text-blue-600 hover:text-blue-800" aria-label={`Navigate to ${element.linkText}`}>
+                    {element.linkText}
+                  </a>
+                ) : (
+                  <a
+                    href={element.url}
+                    target={element.url.startsWith('vscode://') ? '_self' : '_blank'}
+                    rel="noopener"
+                    className="text-blue-600 hover:text-blue-800"
+                    aria-label={`Visit ${element.linkText}`}
+                  >
+                    {element.linkText}
+                  </a>
+                )
+              )}
+            </React.Fragment>
+          ))
+        )}
       </section>
     </>
   );
@@ -199,7 +203,6 @@ const PostPage = memo(() => {
   const deferredActiveSection = useDeferredValue(activeSection);
   const subtitlesListRef = useRef(null);
   const [hasFetched, setHasFetched] = useState(false);
-  const [deps, setDeps] = useState(null);
   const [structuredData, setStructuredData] = useState([]);
   const [parsedTitle, setParsedTitle] = useState('');
   const [readTime, setReadTime] = useState(0);
@@ -207,14 +210,6 @@ const PostPage = memo(() => {
   const post = useSelector(state => state.postReducer.post);
   const relatedPosts = useSelector(state => state.postReducer.posts?.filter(p => p.postId !== post?.postId && p.category?.toLowerCase() === post?.category?.toLowerCase()).slice(0, 3) || []);
   const completedPosts = useSelector(state => state.postReducer.completedPosts || []);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(() => loadDependencies().then(setDeps), { timeout: 8000 });
-    } else {
-      setTimeout(() => loadDependencies().then(setDeps), 8000);
-    }
-  }, []);
 
   useEffect(() => {
     startTransition(() => {
@@ -232,11 +227,11 @@ const PostPage = memo(() => {
         if (typeof window !== 'undefined' && window.requestIdleCallback) {
           window.requestIdleCallback(() => {
             Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-          }, { timeout: 9000 });
+          }, { timeout: 10000 });
         } else {
           setTimeout(() => {
             Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-          }, 9000);
+          }, 10000);
         }
       } catch (error) {
         console.error('Fetch failed:', error);
@@ -266,7 +261,7 @@ const PostPage = memo(() => {
         ].join(' ');
         const words = text.split(/\s+/).filter(w => w).length;
         setReadTime(Math.ceil(words / 200));
-      }, { timeout: 8000 });
+      }, { timeout: 10000 });
     } else {
       setTimeout(() => {
         const text = [
@@ -277,7 +272,7 @@ const PostPage = memo(() => {
         ].join(' ');
         const words = text.split(/\s+/).filter(w => w).length;
         setReadTime(Math.ceil(words / 200));
-      }, 8000);
+      }, 10000);
     }
   }, [post]);
 
@@ -366,7 +361,7 @@ const PostPage = memo(() => {
           });
         }
         startTransition(() => setStructuredData(schemas));
-      }, { timeout: 9000 });
+      }, { timeout: 10000 });
     }
   }, [post, slug, readTime]);
 
@@ -387,7 +382,7 @@ const PostPage = memo(() => {
     return (
       <div className="container">
         <div className="loading-overlay" aria-live="polite">
-          {deps?.ClipLoader ? <deps.ClipLoader color="#2c3e50" size={50} /> : <div>Loading...</div>}
+          <div className="spinner" />
         </div>
       </div>
     );
@@ -409,6 +404,23 @@ const PostPage = memo(() => {
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
         <link rel="preconnect" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
+        {post?.titleImage && (
+          <link
+            rel="preload"
+            href={`${post.titleImage}?w=100&format=avif&q=1`}
+            as="image"
+            fetchpriority="high"
+            imagesrcset={`
+              ${post.titleImage}?w=100&format=avif&q=1 100w,
+              ${post.titleImage}?w=150&format=avif&q=1 150w,
+              ${post.titleImage}?w=200&format=avif&q=1 200w,
+              ${post.titleImage}?w=240&format=avif&q=1 240w,
+              ${post.titleImage}?w=280&format=avif&q=1 280w,
+              ${post.titleImage}?w=480&format=avif&q=1 480w
+            `}
+            imagesizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
+          />
+        )}
         <meta property="og:title" content={`${post.title} | Zedemy`} />
         <meta property="og:description" content={truncateText(post.summary || post.content, 160)} />
         <meta
