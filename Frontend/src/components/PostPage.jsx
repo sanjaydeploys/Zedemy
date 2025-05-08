@@ -92,36 +92,37 @@ const parseContentInWorker = (content, category) => {
   });
 };
 
-const PostContentCritical = memo(({ criticalPost, calculateReadTimeAndWordCount }) => {
-  const [parsedContentHtml, setParsedContentHtml] = useState(null);
+const PostContentCritical = memo(({ criticalPost, setReadTime }) => {
+  const contentRef = useRef(null);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
 
   useEffect(() => {
-    if (!criticalPost?.content) return;
+    console.log('[PostContentCritical] criticalPost:', criticalPost); // Debug log
+    if (!criticalPost?.content || !contentRef.current) return;
 
-    // Defer parsing until after the initial render is painted
-    const parseContent = async () => {
-      const html = await parseContentInWorker(criticalPost.content, '');
-      // Use requestIdleCallback to ensure the state update happens after the browser has painted
-      if (typeof window !== 'undefined' && window.requestIdleCallback) {
-        window.requestIdleCallback(() => {
-          setParsedContentHtml(html);
-        }, { timeout: 2000 });
-      } else {
-        setTimeout(() => {
-          setParsedContentHtml(html);
-        }, 2000);
+    const observer = new PerformanceObserver((list) => {
+      const entries = list.getEntriesByType('largest-contentful-paint');
+      const lastEntry = entries[entries.length - 1];
+      if (lastEntry.element === contentRef.current || lastEntry.element?.parentElement === contentRef.current) {
+        parseContentInWorker(criticalPost.content, '').then(html => {
+          if (contentRef.current) {
+            contentRef.current.innerHTML = html;
+          }
+        });
       }
-    };
+    });
+    observer.observe({ type: 'largest-contentful-paint', buffered: true });
 
-    parseContent();
+    return () => observer.disconnect();
   }, [criticalPost]);
 
-  const formattedDate = new Date().toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  const formattedDate = criticalPost?.date && !isNaN(new Date(criticalPost.date).getTime())
+    ? new Date(criticalPost.date).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+    : 'Unknown Date';
 
   return (
     <>
@@ -156,23 +157,15 @@ const PostContentCritical = memo(({ criticalPost, calculateReadTimeAndWordCount 
         )}
         <h1 className="post-header">{criticalPost?.title || 'Loading...'}</h1>
         <div className="meta-info">
-          <span>By Unknown</span>
+          <span>By {criticalPost?.author || 'Unknown'}</span>
           <span> | {formattedDate}</span>
-          <span> | Read time: {calculateReadTimeAndWordCount.readTime} min</span>
+          <span> | Read time: <span id="read-time">Calculating...</span> min</span>
         </div>
       </header>
       <section className="content-section">
-        {/* Always render raw content first to ensure LCP happens immediately */}
-        <div style={{ display: parsedContentHtml ? 'none' : 'block' }}>
-          <p>{criticalPost?.content || 'Loading content...'}</p>
+        <div ref={contentRef}>
+          {criticalPost?.content || 'Loading content...'}
         </div>
-        {/* Show parsed content only after it's ready, ensuring no layout shift */}
-        {parsedContentHtml && (
-          <div
-            style={{ display: parsedContentHtml ? 'block' : 'none' }}
-            dangerouslySetInnerHTML={{ __html: parsedContentHtml }}
-          />
-        )}
       </section>
     </>
   );
@@ -242,26 +235,55 @@ const PostPage = memo(() => {
     }
   }, [dispatch, slug, hasFetchedCritical]);
 
-  const calculateReadTimeAndWordCount = useMemo(() => {
-    return { readTime, wordCount: 0 };
-  }, [readTime]);
-
   useEffect(() => {
     if (!criticalPost?.content) return;
+    const calculate = () => {
+      const text = criticalPost.content || '';
+      const words = text.split(/\s+/).filter(w => w).length;
+      const time = Math.ceil(words / 200);
+      setReadTime(time);
+      const readTimeElement = document.getElementById('read-time');
+      if (readTimeElement) {
+        readTimeElement.textContent = `${time}`;
+      }
+    };
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(() => {
-        const text = criticalPost.content || '';
-        const words = text.split(/\s+/).filter(w => w).length;
-        setReadTime(Math.ceil(words / 200));
-      }, { timeout: 10000 });
+      window.requestIdleCallback(calculate, { timeout: 10000 });
     } else {
-      setTimeout(() => {
-        const text = criticalPost.content || '';
-        const words = text.split(/\s+/).filter(w => w).length;
-        setReadTime(Math.ceil(words / 200));
-      }, 10000);
+      setTimeout(calculate, 10000);
     }
   }, [criticalPost]);
+
+  useEffect(() => {
+    if (!post || !hasFetchedFull) return;
+    const calculate = () => {
+      let totalText = criticalPost?.content || '';
+      if (post.summary) totalText += ' ' + post.summary;
+      if (post.subtitles) {
+        post.subtitles.forEach(sub => {
+          if (sub.title) totalText += ' ' + sub.title;
+          if (sub.content) totalText += ' ' + sub.content;
+          if (sub.bulletPoints) {
+            sub.bulletPoints.forEach(bp => {
+              if (bp.text) totalText += ' ' + bp.text;
+            });
+          }
+        });
+      }
+      const words = totalText.split(/\s+/).filter(w => w).length;
+      const time = Math.ceil(words / 200);
+      setReadTime(time);
+      const readTimeElement = document.getElementById('read-time');
+      if (readTimeElement) {
+        readTimeElement.textContent = `${time}`;
+      }
+    };
+    if (typeof window !== 'undefined' && window.requestIdleCallback) {
+      window.requestIdleCallback(calculate, { timeout: 10000 });
+    } else {
+      setTimeout(calculate, 10000);
+    }
+  }, [post, hasFetchedFull, criticalPost]);
 
   useEffect(() => {
     if (!post || !criticalPost) return;
@@ -413,7 +435,7 @@ const PostPage = memo(() => {
           <article>
             <PostContentCritical
               criticalPost={criticalPost}
-              calculateReadTimeAndWordCount={calculateReadTimeAndWordCount}
+              setReadTime={setReadTime}
             />
             {hasFetchedFull && post && (
               <Suspense fallback={<div className="placeholder" style={{ height: '500px' }}>Loading additional content...</div>}>
