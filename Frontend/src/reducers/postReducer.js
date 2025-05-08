@@ -12,7 +12,8 @@ import {
     SEARCH_POSTS_CLEAR,
     MARK_POST_COMPLETED_SUCCESS,
     FETCH_COMPLETED_POSTS_SUCCESS,
-    FETCH_COMPLETED_POSTS_FAILURE
+    FETCH_COMPLETED_POSTS_FAILURE,
+    FETCH_CRITICAL_POST_SUCCESS // New action type
 } from '../actions/types';
 
 const initialState = {
@@ -21,7 +22,8 @@ const initialState = {
     completedPosts: [],
     searchResults: [],
     post: null,
-    loading: false // Added for FETCH_USER_POSTS_REQUEST
+    criticalPost: null, // Store critical post data
+    loading: false
 };
 
 const postReducer = (state = initialState, action) => {
@@ -56,14 +58,16 @@ const postReducer = (state = initialState, action) => {
                 posts: state.posts.filter(post => post.postId !== action.payload),
                 userPosts: state.userPosts.filter(post => post.postId !== action.payload)
             };
-       case 'SEARCH_POSTS_SUCCESS':
+        case 'SEARCH_POSTS_SUCCESS':
             return { ...state, searchResults: action.payload, error: null };
-            case 'SEARCH_POSTS_FAILURE':
-             return { ...state, searchResults: [], error: action.payload };
-         case 'SEARCH_POSTS_CLEAR':
-             return { ...state, searchResults: [], error: null };
+        case 'SEARCH_POSTS_FAILURE':
+            return { ...state, searchResults: [], error: action.payload };
+        case 'SEARCH_POSTS_CLEAR':
+            return { ...state, searchResults: [], error: null };
         case FETCH_POST_SUCCESS:
             return { ...state, post: action.payload };
+        case FETCH_CRITICAL_POST_SUCCESS:
+            return { ...state, criticalPost: action.payload };
         case MARK_POST_COMPLETED_SUCCESS:
             const newCompletedPost = state.posts.find(post => post.postId === action.payload.postId) || { postId: action.payload.postId };
             return {
