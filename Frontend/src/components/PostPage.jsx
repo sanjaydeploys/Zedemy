@@ -5,18 +5,33 @@ import { useParams } from 'react-router-dom';
 import { parseLinks, slugify, truncateText } from './utils';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 
-// Critical CSS for LCP element
+const loadDependencies = async () => {
+  const [{ ClipLoader }] = await Promise.all([import('react-spinners')]);
+  return { ClipLoader };
+};
+
+const PostContentNonCritical = React.lazy(() => import('./PostContentNonCritical'));
+const Sidebar = React.lazy(() => import('./Sidebar'));
+
+// Critical CSS for content-section to avoid render delay
 const criticalCSS = `
-  .content-section { font-size: 0.875rem; line-height: 1.6; }
-  .post-header { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.75rem; }
-  main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 2000px; }
-  @media (min-width: 769px) {
-    main { margin-right: 250px; padding: 2rem; }
+  .content-section {
+    font-size: 0.875rem;
+    line-height: 1.7;
+    color: #333;
+  }
+  .post-header {
+    font-size: clamp(1.5rem, 5vw, 2.25rem);
+    color: #011020;
+    margin: 0.75rem 0;
+    font-weight: 700;
   }
 `;
 
+// Non-critical CSS remains unchanged
 const nonCriticalCSS = `
   .container { display: flex; min-height: 100vh; flex-direction: column; }
+  main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 2000px; }
   .image-container { width: 100%; max-width: 100%; margin: 1rem 0; position: relative; aspect-ratio: 16 / 9; height: 157.5px; }
   .post-image { width: 100%; max-width: 280px; height: 157.5px; object-fit: contain; border-radius: 0.375rem; position: relative; z-index: 2; }
   .lqip-image { width: 100%; max-width: 280px; height: 157.5px; object-fit: contain; border-radius: 0.375rem; filter: blur(10px); position: absolute; top: 0; left: 0; z-index: 1; }
@@ -29,6 +44,7 @@ const nonCriticalCSS = `
   p { font-size: 0.875rem; }
   @media (min-width: 769px) {
     .container { flex-direction: row; }
+    main { margin-right: 250px; padding: 2rem; }
     .image-container, .video-container { height: 270px; }
     .post-image, .lqip-image, .post-video { max-width: 480px; height: 270px; }
     .sidebar-wrapper { width: 250px; min-height: 1200px; flex-shrink: 0; }
@@ -43,22 +59,13 @@ const nonCriticalCSS = `
   }
 `;
 
-const loadDependencies = async () => {
-  const [{ ClipLoader }] = await Promise.all([import('react-spinners')]);
-  return { ClipLoader };
-};
-
-const PostContentNonCritical = React.lazy(() => import('./PostContentNonCritical'));
-const Sidebar = React.lazy(() => import('./Sidebar'));
-
 const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
-  // Defer parsing to avoid blocking render
-  const initialContent = useMemo(() => {
-    return post?.content ? parseLinks(post.content, post.category || '', true) : '';
-  }, [post]);
+  // Avoid parseLinks on initial render to reduce JavaScript execution
+  const initialContent = post?.content || '';
 
   return (
     <>
+      <style>{criticalCSS}</style>
       <header>
         <h1 className="post-header">{parsedTitle || post.title}</h1>
         <div style={{ marginBottom: '0.75rem', color: '#666', fontSize: '0.75rem' }}>
@@ -88,13 +95,8 @@ const PostPage = memo(() => {
   const completedPosts = useSelector(state => state.postReducer.completedPosts || []);
 
   useEffect(() => {
-    // Load dependencies during idle time
-    const loadDeps = () => loadDependencies().then(setDeps);
-    if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(loadDeps, { timeout: 3000 });
-    } else {
-      setTimeout(loadDeps, 3000);
-    }
+    // Load dependencies earlier to reduce delay
+    setTimeout(() => loadDependencies().then(setDeps), 1000);
   }, []);
 
   useEffect(() => {
@@ -110,7 +112,7 @@ const PostPage = memo(() => {
       try {
         await dispatch(fetchPostBySlug(slug));
         startTransition(() => setHasFetched(true));
-        // Defer non-critical fetches
+        // Fetch non-critical data earlier
         setTimeout(() => {
           Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
         }, 2000);
@@ -132,8 +134,7 @@ const PostPage = memo(() => {
 
   useEffect(() => {
     if (!post) return;
-    // Defer read time calculation
-    const calculate = () => {
+    setTimeout(() => {
       const text = [
         post.title || '',
         post.content || '',
@@ -142,25 +143,19 @@ const PostPage = memo(() => {
       ].join(' ');
       const words = text.split(/\s+/).filter(w => w).length;
       setReadTime(Math.ceil(words / 200));
-    };
-    if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(calculate, { timeout: 2000 });
-    } else {
-      setTimeout(calculate, 2000);
-    }
+    }, 1000);
   }, [post]);
 
   useEffect(() => {
     if (!post) return;
-    startTransition(() => setParsedTitle(post.title));
+    setParsedTitle(post.title);
   }, [post]);
 
   useEffect(() => {
     if (!post) return;
-    // Defer structured data generation
-    const generateStructuredData = () => {
+    setTimeout(() => {
       const pageTitle = `${post.title} | Zedemy, India`;
-      const pageDescription = truncateText(post.summary || post.content, 156) || `Learn ${post.title?.toLowerCase() || ''} with Zedemy's tutorials.`;
+      const pageDescription = truncateText(post.summary || post.content, 160) || `Learn ${post.title?.toLowerCase() || ''} with Zedemy's tutorials.`;
       const pageKeywords = post.keywords
         ? `${post.keywords}, Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`
         : `Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`;
@@ -175,7 +170,7 @@ const PostPage = memo(() => {
           headline: post.title || '',
           description: pageDescription,
           keywords: pageKeywords.split(', ').filter(Boolean),
-          articleSection: relatedPosts.length > 0 ? relatedPosts[0].category : post.category || 'Tech Tutorials',
+          articleSection: post.category || 'Tech Tutorials',
           author: { '@type': 'Person', name: post.author || 'Zedemy Team' },
           publisher: {
             '@type': 'Organization',
@@ -235,13 +230,8 @@ const PostPage = memo(() => {
         });
       }
       startTransition(() => setStructuredData(schemas));
-    };
-    if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(generateStructuredData, { timeout: 3000 });
-    } else {
-      setTimeout(generateStructuredData, 3000);
-    }
-  }, [post, slug, readTime, relatedPosts]);
+    }, 2000);
+  }, [post, slug, readTime]);
 
   if (!post && !hasFetched) {
     return (
@@ -271,7 +261,7 @@ const PostPage = memo(() => {
       <Helmet>
         <html lang="en" />
         <title>{`${post.title} | Zedemy`}</title>
-        <meta name="description" content={truncateText(post.summary || post.content, 156)} />
+        <meta name="description" content={truncateText(post.summary || post.content, 160)} />
         <meta
           name="keywords"
           content={post.keywords ? `${post.keywords}, Zedemy, ${post.category || ''}` : `Zedemy, ${post.category || ''}`}
@@ -282,28 +272,36 @@ const PostPage = memo(() => {
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
         <link rel="preconnect" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
+        {post.titleImage && (
+          <link
+            rel="preload"
+            href={`${post.titleImage}?w=1200&format=webp&q=75`}
+            as="image"
+            type="image/webp"
+            crossOrigin="anonymous"
+          />
+        )}
         <meta property="og:title" content={`${post.title} | Zedemy`} />
-        <meta property="og:description" content={truncateText(post.summary || post.content, 156)} />
+        <meta property="og:description" content={truncateText(post.summary || post.content, 160)} />
         <meta
           property="og:image"
           content={post.titleImage ? `${post.titleImage}?w=1200&format=webp&q=75` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
         />
         <meta property="og:image:alt" content={`${post.title} tutorial`} />
         <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
+        <meta property="og:image:height" content="675" />
         <meta property="og:url" content={`https://zedemy.vercel.app/post/${slug}`} />
         <meta property="og:type" content="article" />
         <meta property="og:site_name" content="Zedemy" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={`${post.title} | Zedemy`} />
-        <meta name="twitter:description" content={truncateText(post.summary || post.content, 156)} />
+        <meta name="twitter:description" content={truncateText(post.summary || post.content, 160)} />
         <meta
           name="twitter:image"
           content={post.titleImage ? `${post.titleImage}?w=1200&format=webp&q=75` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
         />
-        <style>{criticalCSS}</style>
-        <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
         <style>{nonCriticalCSS}</style>
+        <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
       <div className="container">
         <main role="main" aria-label="Main content">
