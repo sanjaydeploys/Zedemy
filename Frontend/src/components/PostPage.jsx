@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, memo, useMemo, Suspense, useDeferredValue, startTransition } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchPostBySlug, fetchCompletedPosts, fetchPosts } from '../actions/postActions';
+import { fetchPostBySlug, fetchCriticalPostBySlug, fetchCompletedPosts, fetchPosts } from '../actions/postActions';
 import { useParams } from 'react-router-dom';
 import { parseLinks, slugify, truncateText } from './utils';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
@@ -12,7 +12,7 @@ const css = `
   .container { display: flex; min-height: 100vh; flex-direction: column; }
   main { flex: 1; padding: 1rem; background: #f4f4f9; }
   .post-header { font-size: clamp(1.5rem, 3vw, 2rem); color: #011020; margin: 0.75rem 0; width: 100%; max-width: 100%; }
-  .content-section { font-size: 0.875rem; line-height: 1.7; width: 100%; max-width: 100%; height: 200px; }
+  .content-section { font-size: 0.875rem; line-height: 1.7; width: 100%; max-width: 100%; min-height: 200px; }
   .content-section p { margin: 0.5rem 0; }
   .image-container { 
     width: 100%; 
@@ -46,17 +46,16 @@ const css = `
     .image-container, .video-container, .placeholder { max-width: 240px; height: 135px; }
     .post-image, .post-video { max-width: 240px; height: 135px; }
     main { padding: 0.5rem; }
-    .content-section { height: 150px; }
+    .content-section { min-height: 150px; }
   }
   @media (max-width: 320px) {
     .image-container, .video-container, .placeholder { max-width: 200px; height: 112.5px; }
     .post-image, .post-video { max-width: 200px; height: 112.5px; }
     main { padding: 0.25rem; }
-    .content-section { height: 120px; }
+    .content-section { min-height: 120px; }
   }
 `;
 
-// Simplified parseLinks for Web Worker
 const parseContentInWorker = (content, category) => {
   return new Promise((resolve) => {
     const workerCode = `
@@ -86,52 +85,50 @@ const parseContentInWorker = (content, category) => {
     };
     worker.onerror = (err) => {
       console.error('Worker error:', err);
-      resolve(content); // Fallback to raw content
+      resolve(content);
       worker.terminate();
     };
     worker.postMessage({ content, category });
   });
 };
 
-const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
-  const [parsedContentHtml, setParsedContentHtml] = useState(null); // null indicates loading
+const PostContentCritical = memo(({ criticalPost, calculateReadTimeAndWordCount }) => {
+  const [parsedContentHtml, setParsedContentHtml] = useState(null);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
-  const contentRef = useRef(null);
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 480;
 
   useEffect(() => {
-    if (!post?.content) {
+    if (!criticalPost?.content) {
       setParsedContentHtml('');
       return;
     }
-    parseContentInWorker(post.content, post.category || '').then(html => {
+    parseContentInWorker(criticalPost.content, '').then(html => {
       setParsedContentHtml(html);
     });
-  }, [post]);
+  }, [criticalPost]);
 
-  const formattedDate = post?.date ? new Date(post.date).toLocaleDateString('en-US', {
+  const formattedDate = new Date().toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
-  }) : '';
+  });
 
   return (
     <>
       <header>
-        {post?.titleImage && (
+        {criticalPost?.titleImage && (
           <div className={`image-container ${isImageLoaded ? 'image-loaded' : ''}`}>
             <img
-              src={`${post.titleImage}?w=100&format=avif&q=1`}
+              src={`${criticalPost.titleImage}?w=100&format=avif&q=1`}
               srcSet={`
-                ${post.titleImage}?w=100&format=avif&q=1 100w,
-                ${post.titleImage}?w=150&format=avif&q=1 150w,
-                ${post.titleImage}?w=200&format=avif&q=1 200w,
-                ${post.titleImage}?w=240&format=avif&q=1 240w,
-                ${post.titleImage}?w=280&format=avif&q=1 280w,
-                ${post.titleImage}?w=480&format=avif&q=1 480w
+                ${criticalPost.titleImage}?w=100&format=avif&q=1 100w,
+                ${criticalPost.titleImage}?w=150&format=avif&q=1 150w,
+                ${criticalPost.titleImage}?w=200&format=avif&q=1 200w,
+                ${criticalPost.titleImage}?w=240&format=avif&q=1 240w,
+                ${criticalPost.titleImage}?w=280&format=avif&q=1 280w,
+                ${criticalPost.titleImage}?w=480&format=avif&q=1 480w
               `}
               sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
-              alt={post.title || 'Post image'}
+              alt={criticalPost.title || 'Post image'}
               className="post-image"
               width="280"
               height="157.5"
@@ -140,30 +137,22 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
               loading="eager"
               onLoad={() => setIsImageLoaded(true)}
               onError={() => {
-                console.error('Title Image Failed:', post.titleImage);
+                console.error('Title Image Failed:', criticalPost.titleImage);
                 setIsImageLoaded(true);
               }}
             />
           </div>
         )}
-        <h1 className="post-header">{parsedTitle || post.title}</h1>
+        <h1 className="post-header">{criticalPost?.title || 'Loading...'}</h1>
         <div className="meta-info">
-          {post?.author && <span>By {post.author}</span>}
-          {formattedDate && <span> | {formattedDate}</span>}
+          <span>By Unknown</span>
+          <span> | {formattedDate}</span>
           <span> | Read time: {calculateReadTimeAndWordCount.readTime} min</span>
         </div>
       </header>
-      <section className="content-section" ref={contentRef}>
+      <section className="content-section">
         {parsedContentHtml === null ? (
-          isMobile ? (
-            <p>{post.content.slice(0, 200) + '...'}</p>
-          ) : (
-            <>
-              <div className="content-skeleton" />
-              <div className="content-skeleton" style={{ width: '80%' }} />
-              <div className="content-skeleton" style={{ width: '60%' }} />
-            </>
-          )
+          <p>{criticalPost?.content || 'Loading content...'}</p>
         ) : (
           <div dangerouslySetInnerHTML={{ __html: parsedContentHtml }} />
         )}
@@ -179,28 +168,42 @@ const PostPage = memo(() => {
   const [activeSection, setActiveSection] = useState(null);
   const deferredActiveSection = useDeferredValue(activeSection);
   const subtitlesListRef = useRef(null);
-  const [hasFetched, setHasFetched] = useState(false);
+  const [hasFetchedCritical, setHasFetchedCritical] = useState(false);
+  const [hasFetchedFull, setHasFetchedFull] = useState(false);
   const [structuredData, setStructuredData] = useState([]);
-  const [parsedTitle, setParsedTitle] = useState('');
   const [readTime, setReadTime] = useState(0);
 
+  const criticalPost = useSelector(state => state.postReducer.criticalPost);
   const post = useSelector(state => state.postReducer.post);
   const relatedPosts = useSelector(state => state.postReducer.posts?.filter(p => p.postId !== post?.postId && p.category?.toLowerCase() === post?.category?.toLowerCase()).slice(0, 3) || []);
   const completedPosts = useSelector(state => state.postReducer.completedPosts || []);
 
   useEffect(() => {
     startTransition(() => {
-      setHasFetched(false);
+      setHasFetchedCritical(false);
+      setHasFetchedFull(false);
       setActiveSection(null);
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [slug]);
 
   useEffect(() => {
-    const fetchData = async (retries = 3) => {
+    const fetchCriticalData = async () => {
+      try {
+        await dispatch(fetchCriticalPostBySlug(slug));
+        setHasFetchedCritical(true);
+      } catch (error) {
+        console.error('Fetch critical failed:', error);
+      }
+    };
+    fetchCriticalData();
+  }, [dispatch, slug]);
+
+  useEffect(() => {
+    const fetchFullData = async (retries = 3) => {
       try {
         await dispatch(fetchPostBySlug(slug));
-        startTransition(() => setHasFetched(true));
+        startTransition(() => setHasFetchedFull(true));
         if (typeof window !== 'undefined' && window.requestIdleCallback) {
           window.requestIdleCallback(() => {
             Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
@@ -211,71 +214,56 @@ const PostPage = memo(() => {
           }, 10000);
         }
       } catch (error) {
-        console.error('Fetch failed:', error);
+        console.error('Fetch full post failed:', error);
         if (retries > 0) {
-          setTimeout(() => fetchData(retries - 1), 1000);
+          setTimeout(() => fetchFullData(retries - 1), 1000);
         }
       }
     };
-    if (!hasFetched) {
-      fetchData();
+    if (hasFetchedCritical) {
+      fetchFullData();
     }
-  }, [dispatch, slug, hasFetched]);
+  }, [dispatch, slug, hasFetchedCritical]);
 
   const calculateReadTimeAndWordCount = useMemo(() => {
     return { readTime, wordCount: 0 };
   }, [readTime]);
 
   useEffect(() => {
-    if (!post) return;
+    if (!criticalPost?.content) return;
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
       window.requestIdleCallback(() => {
-        const text = [
-          post.title || '',
-          post.content || '',
-          post.summary || '',
-          ...(post.subtitles?.map(s => (s.title || '') + (s.bulletPoints?.map(b => b.text || '').join('') || '')) || []),
-        ].join(' ');
+        const text = criticalPost.content || '';
         const words = text.split(/\s+/).filter(w => w).length;
         setReadTime(Math.ceil(words / 200));
       }, { timeout: 10000 });
     } else {
       setTimeout(() => {
-        const text = [
-          post.title || '',
-          post.content || '',
-          post.summary || '',
-          ...(post.subtitles?.map(s => (s.title || '') + (s.bulletPoints?.map(b => b.text || '').join('') || '')) || []),
-        ].join(' ');
+        const text = criticalPost.content || '';
         const words = text.split(/\s+/).filter(w => w).length;
         setReadTime(Math.ceil(words / 200));
       }, 10000);
     }
-  }, [post]);
+  }, [criticalPost]);
 
   useEffect(() => {
-    if (!post) return;
-    setParsedTitle(post.title);
-  }, [post]);
-
-  useEffect(() => {
-    if (!post) return;
+    if (!post || !criticalPost) return;
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
       window.requestIdleCallback(() => {
-        const pageTitle = `${post.title} | Zedemy, India`;
-        const pageDescription = truncateText(post.summary || post.content, 160) || `Learn ${post.title?.toLowerCase() || ''} with Zedemy's tutorials.`;
+        const pageTitle = `${criticalPost.title} | Zedemy, India`;
+        const pageDescription = truncateText(post.summary || criticalPost.content, 160) || `Learn ${criticalPost.title?.toLowerCase() || ''} with Zedemy's tutorials.`;
         const pageKeywords = post.keywords
-          ? `${post.keywords}, Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`
-          : `Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`;
+          ? `${post.keywords}, Zedemy, ${post.category || ''}, ${criticalPost.title?.toLowerCase() || ''}`
+          : `Zedemy, ${post.category || ''}, ${criticalPost.title?.toLowerCase() || ''}`;
         const canonicalUrl = `https://zedemy.vercel.app/post/${slug}`;
-        const ogImage = post.titleImage
-          ? `${post.titleImage}?w=1200&format=avif&q=1`
+        const ogImage = criticalPost.titleImage
+          ? `${criticalPost.titleImage}?w=1200&format=avif&q=1`
           : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
         const schemas = [
           {
             '@context': 'https://schema.org',
             '@type': 'BlogPosting',
-            headline: post.title || '',
+            headline: criticalPost.title || '',
             description: pageDescription,
             keywords: pageKeywords.split(', ').filter(Boolean),
             articleSection: post.category || 'Tech Tutorials',
@@ -314,35 +302,18 @@ const PostPage = memo(() => {
               {
                 '@type': 'ListItem',
                 position: 3,
-                name: post.title || '',
+                name: criticalPost.title || '',
                 item: canonicalUrl,
               },
             ],
           },
         ];
-        if (post.titleVideo) {
-          schemas.push({
-            '@context': 'https://schema.org',
-            '@type': 'VideoObject',
-            name: post.title || '',
-            description: pageDescription,
-            thumbnailUrl: post.titleVideoPoster || ogImage,
-            contentUrl: post.titleVideo,
-            uploadDate: post.date || new Date().toISOString(),
-            duration: `PT${readTime}M`,
-            publisher: {
-              '@type': 'Organization',
-              name: 'Zedemy',
-              logo: { '@type': 'ImageObject', url: ogImage },
-            },
-          });
-        }
         startTransition(() => setStructuredData(schemas));
       }, { timeout: 10000 });
     }
-  }, [post, slug, readTime]);
+  }, [post, criticalPost, slug, readTime]);
 
-  if (!post && !hasFetched) {
+  if (!criticalPost && !hasFetchedCritical) {
     return (
       <div className="container">
         <main>
@@ -355,7 +326,7 @@ const PostPage = memo(() => {
     );
   }
 
-  if (!post) {
+  if (!criticalPost) {
     return (
       <div className="container">
         <div className="loading-overlay" aria-live="polite">
@@ -369,53 +340,53 @@ const PostPage = memo(() => {
     <HelmetProvider>
       <Helmet>
         <html lang="en" />
-        <title>{`${post.title} | Zedemy`}</title>
-        <meta name="description" content={truncateText(post.summary || post.content, 160)} />
+        <title>{`${criticalPost.title} | Zedemy`}</title>
+        <meta name="description" content={truncateText(post?.summary || criticalPost.content, 160)} />
         <meta
           name="keywords"
-          content={post.keywords ? `${post.keywords}, Zedemy, ${post.category || ''}` : `Zedemy, ${post.category || ''}`}
+          content={post?.keywords ? `${post.keywords}, Zedemy, ${post.category || ''}` : `Zedemy, ${post?.category || ''}`}
         />
-        <meta name="author" content={post.author || 'Zedemy Team'} />
+        <meta name="author" content={post?.author || 'Zedemy Team'} />
         <meta name="robots" content="index, follow, max-image-preview:large" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
         <link rel="preconnect" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
-        {post?.titleImage && (
+        {criticalPost?.titleImage && (
           <link
             rel="preload"
-            href={`${post.titleImage}?w=100&format=avif&q=1`}
+            href={`${criticalPost.titleImage}?w=100&format=avif&q=1`}
             as="image"
             fetchpriority="high"
             imagesrcset={`
-              ${post.titleImage}?w=100&format=avif&q=1 100w,
-              ${post.titleImage}?w=150&format=avif&q=1 150w,
-              ${post.titleImage}?w=200&format=avif&q=1 200w,
-              ${post.titleImage}?w=240&format=avif&q=1 240w,
-              ${post.titleImage}?w=280&format=avif&q=1 280w,
-              ${post.titleImage}?w=480&format=avif&q=1 480w
+              ${criticalPost.titleImage}?w=100&format=avif&q=1 100w,
+              ${criticalPost.titleImage}?w=150&format=avif&q=1 150w,
+              ${criticalPost.titleImage}?w=200&format=avif&q=1 200w,
+              ${criticalPost.titleImage}?w=240&format=avif&q=1 240w,
+              ${criticalPost.titleImage}?w=280&format=avif&q=1 280w,
+              ${criticalPost.titleImage}?w=480&format=avif&q=1 480w
             `}
             imagesizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
           />
         )}
-        <meta property="og:title" content={`${post.title} | Zedemy`} />
-        <meta property="og:description" content={truncateText(post.summary || post.content, 160)} />
+        <meta property="og:title" content={`${criticalPost.title} | Zedemy`} />
+        <meta property="og:description" content={truncateText(post?.summary || criticalPost.content, 160)} />
         <meta
           property="og:image"
-          content={post.titleImage ? `${post.titleImage}?w=1200&format=avif&q=1` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
+          content={criticalPost.titleImage ? `${criticalPost.titleImage}?w=1200&format=avif&q=1` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
         />
-        <meta property="og:image:alt" content={`${post.title} tutorial`} />
+        <meta property="og:image:alt" content={`${criticalPost.title} tutorial`} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="675" />
         <meta property="og:url" content={`https://zedemy.vercel.app/post/${slug}`} />
         <meta property="og:type" content="article" />
         <meta property="og:site_name" content="Zedemy" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={`${post.title} | Zedemy`} />
-        <meta name="twitter:description" content={truncateText(post.summary || post.content, 160)} />
+        <meta name="twitter:title" content={`${criticalPost.title} | Zedemy`} />
+        <meta name="twitter:description" content={truncateText(post?.summary || criticalPost.content, 160)} />
         <meta
           name="twitter:image"
-          content={post.titleImage ? `${post.titleImage}?w=1200&format=avif&q=1` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
+          content={criticalPost.titleImage ? `${criticalPost.titleImage}?w=1200&format=avif&q=1` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
         />
         <style>{css}</style>
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
@@ -424,51 +395,54 @@ const PostPage = memo(() => {
         <main role="main" aria-label="Main content">
           <article>
             <PostContentCritical
-              post={post}
-              parsedTitle={parsedTitle}
+              criticalPost={criticalPost}
               calculateReadTimeAndWordCount={calculateReadTimeAndWordCount}
             />
-            <Suspense fallback={<div className="placeholder" style={{ height: '500px' }}>Loading additional content...</div>}>
-              <PostContentNonCritical
+            {hasFetchedFull && post && (
+              <Suspense fallback={<div className="placeholder" style={{ height: '500px' }}>Loading additional content...</div>}>
+                <PostContentNonCritical
+                  post={post}
+                  relatedPosts={relatedPosts}
+                  completedPosts={completedPosts}
+                  dispatch={dispatch}
+                  isSidebarOpen={isSidebarOpen}
+                  setSidebarOpen={setSidebarOpen}
+                  activeSection={deferredActiveSection}
+                  setActiveSection={setActiveSection}
+                  subtitlesListRef={subtitlesListRef}
+                />
+              </Suspense>
+            )}
+          </article>
+        </main>
+        {hasFetchedFull && post && (
+          <aside className="sidebar-wrapper">
+            <Suspense fallback={<div className="placeholder" style={{ height: '1200px' }}>Loading sidebar...</div>}>
+              <Sidebar
                 post={post}
-                relatedPosts={relatedPosts}
-                completedPosts={completedPosts}
-                dispatch={dispatch}
                 isSidebarOpen={isSidebarOpen}
                 setSidebarOpen={setSidebarOpen}
                 activeSection={deferredActiveSection}
-                setActiveSection={setActiveSection}
+                scrollToSection={(id) => {
+                  const section = document.getElementById(id);
+                  if (section) {
+                    section.scrollIntoView({ behavior: 'smooth' });
+                    startTransition(() => setActiveSection(id));
+                    if (isSidebarOpen) startTransition(() => setSidebarOpen(false));
+                    const slugs = post?.subtitles?.reduce((acc, s, i) => {
+                      acc[`subtitle-${i}`] = slugify(s.title);
+                      return acc;
+                    }, post.summary ? { summary: 'summary' } : {});
+                    if (slugs[id]) {
+                      window.history.pushState(null, '', `#${slugs[id]}`);
+                    }
+                  }
+                }}
                 subtitlesListRef={subtitlesListRef}
               />
             </Suspense>
-          </article>
-        </main>
-        <aside className="sidebar-wrapper">
-          <Suspense fallback={<div className="placeholder" style={{ height: '1200px' }}>Loading sidebar...</div>}>
-            <Sidebar
-              post={post}
-              isSidebarOpen={isSidebarOpen}
-              setSidebarOpen={setSidebarOpen}
-              activeSection={deferredActiveSection}
-              scrollToSection={(id) => {
-                const section = document.getElementById(id);
-                if (section) {
-                  section.scrollIntoView({ behavior: 'smooth' });
-                  startTransition(() => setActiveSection(id));
-                  if (isSidebarOpen) startTransition(() => setSidebarOpen(false));
-                  const slugs = post?.subtitles?.reduce((acc, s, i) => {
-                    acc[`subtitle-${i}`] = slugify(s.title);
-                    return acc;
-                  }, post.summary ? { summary: 'summary' } : {});
-                  if (slugs[id]) {
-                    window.history.pushState(null, '', `#${slugs[id]}`);
-                  }
-                }
-              }}
-              subtitlesListRef={subtitlesListRef}
-            />
-          </Suspense>
-        </aside>
+          </aside>
+        )}
       </div>
     </HelmetProvider>
   );
