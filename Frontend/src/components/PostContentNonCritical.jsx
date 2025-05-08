@@ -203,11 +203,23 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
   const [parsedBulletPoints, setParsedBulletPoints] = useState(subtitle.bulletPoints || []);
 
   useEffect(() => {
-    setParsedTitle(parseLinks(subtitle.title || '', category, false));
-    setParsedBulletPoints((subtitle.bulletPoints || []).map(point => ({
-      ...point,
-      text: parseLinks(point.text || '', category, false),
-    })));
+    if (typeof window !== 'undefined' && window.requestIdleCallback) {
+      window.requestIdleCallback(() => {
+        setParsedTitle(parseLinks(subtitle.title || '', category, false));
+        setParsedBulletPoints((subtitle.bulletPoints || []).map(point => ({
+          ...point,
+          text: parseLinks(point.text || '', category, false),
+        })));
+      }, { timeout: 4000 });
+    } else {
+      setTimeout(() => {
+        setParsedTitle(parseLinks(subtitle.title || '', category, false));
+        setParsedBulletPoints((subtitle.bulletPoints || []).map(point => ({
+          ...point,
+          text: parseLinks(point.text || '', category, false),
+        })));
+      }, 4000);
+    }
   }, [subtitle, category]);
 
   if (!subtitle) return null;
@@ -224,6 +236,8 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                 alt="Low quality placeholder"
                 width="280"
                 height="157.5"
+                fetchpriority="low"
+                decoding="async"
               />
               <PostImage
                 src={`${subtitle.image}?w=200&format=avif&q=40`}
@@ -277,6 +291,8 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                       alt="Low quality placeholder"
                       width="280"
                       height="157.5"
+                      fetchpriority="low"
+                      decoding="async"
                     />
                     <PostImage
                       src={`${point.image}?w=200&format=avif&q=40`}
@@ -353,18 +369,18 @@ const LazySubtitleSection = memo(({ subtitle, index, category }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '1000px', threshold: 0.1 }
+      { rootMargin: '1500px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ minHeight: '300px', transition: 'min-height 0.3s ease' }}>
+    <div ref={ref} style={{ minHeight: '450px', transition: 'min-height 0.3s ease' }}>
       {isVisible ? (
         <SubtitleSection subtitle={subtitle} index={index} category={category} />
       ) : (
-        <Placeholder height="300px">Loading section...</Placeholder>
+        <Placeholder height="450px">Loading section...</Placeholder>
       )}
     </div>
   );
@@ -382,14 +398,14 @@ const LazyReferencesSection = memo(({ post }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '1000px', threshold: 0.1 }
+      { rootMargin: '1500px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ minHeight: '200px', transition: 'min-height 0.3s ease' }}>
+    <div ref={ref} style={{ minHeight: '250px', transition: 'min-height 0.3s ease' }}>
       {isVisible ? (
         <ReferencesSection aria-labelledby="references-heading">
           <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
@@ -421,7 +437,7 @@ const LazyReferencesSection = memo(({ post }) => {
           )}
         </ReferencesSection>
       ) : (
-        <Placeholder height="200px">Loading references...</Placeholder>
+        <Placeholder height="250px">Loading references...</Placeholder>
       )}
     </div>
   );
@@ -477,28 +493,40 @@ const PostContentNonCritical = memo(
 
     useEffect(() => {
       if (!post?.summary) return;
-      setParsedSummary(parseLinks(post.summary || '', post.category || '', false));
+      if (typeof window !== 'undefined' && window.requestIdleCallback) {
+        window.requestIdleCallback(() => {
+          setParsedSummary(parseLinks(post.summary || '', post.category || '', false));
+        }, { timeout: 4000 });
+      } else {
+        setTimeout(() => {
+          setParsedSummary(parseLinks(post.summary || '', post.category || '', false));
+        }, 4000);
+      }
     }, [post]);
 
     useEffect(() => {
       if (!post) return;
-      const observer = new IntersectionObserver(debouncedObserve, {
-        root: null,
-        rootMargin: '0px',
-        threshold: [0.1, 0.3, 0.5],
-      });
-      document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
-      return () => observer.disconnect();
+      if (typeof window !== 'undefined' && window.requestIdleCallback) {
+        window.requestIdleCallback(() => {
+          const observer = new IntersectionObserver(debouncedObserve, {
+            root: null,
+            rootMargin: '0px',
+            threshold: [0.1, 0.3, 0.5],
+          });
+          document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
+          return () => observer.disconnect();
+        }, { timeout: 4000 });
+      }
     }, [post, debouncedObserve]);
 
     const handleMarkAsCompleted = useCallback(() => {
       if (!post) return;
-      dispatch({ type: 'MARK_POST_COMPLETED', payload: post.postId });
+      dispatch({ type: 'MARK_POST_AS_COMPLETED', payload: post.postId });
     }, [dispatch, post]);
 
     const scrollToSection = useCallback(
       (id, updateUrl = true) => {
-        const section = document.getElementById(id);
+        const section =document.getElementById(id);
         if (section) {
           section.scrollIntoView({ behavior: 'smooth' });
           startTransition(() => setActiveSection(id));
