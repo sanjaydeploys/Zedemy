@@ -31,7 +31,6 @@ export const fetchPostBySlug = (slug) => async dispatch => {
         });
     }
 };
-
 export const searchPosts = (query) => async dispatch => {
     console.log('[searchPosts] Searching posts with query:', query);
     try {
