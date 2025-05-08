@@ -12,7 +12,7 @@ const css = `
   .container { display: flex; min-height: 100vh; flex-direction: column; }
   main { flex: 1; padding: 1rem; background: #f4f4f9; }
   .post-header { font-size: clamp(1.5rem, 3vw, 2rem); color: #011020; margin: 0.75rem 0; width: 100%; max-width: 100%; }
-  .content-section { font-size: 0.875rem; line-height: 1.7; width: 100%; max-width: 100%; height: 200px; }
+  .content-section { font-size: 0.875rem; line-height: 1.7; width: 100%; max-width: 100%; height: 200px; overflow: hidden; }
   .content-section p { margin: 0.5rem 0; }
   .image-container { 
     width: 100%; 
@@ -34,7 +34,6 @@ const css = `
   @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   .sidebar-wrapper { }
   .meta-info { color: #666; font-size: 0.75rem; margin-bottom: 0.75rem; }
-  .content-skeleton { width: 100%; height: 20px; background: #e0e0e0; margin: 0.5rem 0; border-radius: 4px; }
   @media (min-width: 769px) {
     .container { flex-direction: row; }
     main { margin-right: 250px; padding: 2rem; }
@@ -101,16 +100,38 @@ const parseContentInWorker = (content, category) => {
 };
 
 const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
-  const [contentElements, setContentElements] = useState(null); // null indicates loading
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const contentRef = useRef(null);
 
   useEffect(() => {
-    if (!post?.content) {
-      setContentElements([]);
-      return;
-    }
+    if (!post?.content || !contentRef.current) return;
+
+    // Parse links in Web Worker and update DOM directly
     parseContentInWorker(post.content, post.category || '').then(elements => {
-      setContentElements(elements);
+      const container = contentRef.current;
+      if (!container) return;
+
+      // Clear existing content
+      container.innerHTML = '';
+
+      // Create new content with parsed links
+      elements.forEach((element, index) => {
+        if (typeof element === 'string') {
+          const textNode = document.createTextNode(element);
+          container.appendChild(textNode);
+        } else {
+          const link = document.createElement('a');
+          link.href = element.url;
+          link.textContent = element.linkText;
+          link.className = 'text-blue-600 hover:text-blue-800';
+          link.setAttribute('aria-label', element.isInternal ? `Navigate to ${element.linkText}` : `Visit ${element.linkText}`);
+          if (!element.isInternal && !element.url.startsWith('vscode://')) {
+            link.target = '_blank';
+            link.rel = 'noopener';
+          }
+          container.appendChild(link);
+        }
+      });
     });
   }, [post]);
 
@@ -159,37 +180,7 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
         </div>
       </header>
       <section className="content-section">
-        {contentElements === null ? (
-          <>
-            <div className="content-skeleton" />
-            <div className="content-skeleton" style={{ width: '80%' }} />
-            <div className="content-skeleton" style={{ width: '60%' }} />
-          </>
-        ) : (
-          contentElements.map((element, index) => (
-            <React.Fragment key={index}>
-              {typeof element === 'string' ? (
-                element
-              ) : (
-                element.isInternal ? (
-                  <a href={element.url} className="text-blue-600 hover:text-blue-800" aria-label={`Navigate to ${element.linkText}`}>
-                    {element.linkText}
-                  </a>
-                ) : (
-                  <a
-                    href={element.url}
-                    target={element.url.startsWith('vscode://') ? '_self' : '_blank'}
-                    rel="noopener"
-                    className="text-blue-600 hover:text-blue-800"
-                    aria-label={`Visit ${element.linkText}`}
-                  >
-                    {element.linkText}
-                  </a>
-                )
-              )}
-            </React.Fragment>
-          ))
-        )}
+        <div ref={contentRef}>{post?.content || ''}</div>
       </section>
     </>
   );
