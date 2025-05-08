@@ -13,26 +13,10 @@ import {
     FETCH_COMPLETED_POSTS_SUCCESS,
     MARK_POST_COMPLETED_SUCCESS,
     FETCH_COMPLETED_POSTS_FAILURE,
-    FETCH_POST_SUCCESS,
-    FETCH_CRITICAL_POST_SUCCESS
+    FETCH_POST_SUCCESS
 } from './types';
 import { fetchCertificates } from './certificateActions';
-
 const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
-
-export const fetchCriticalPostBySlug = (slug) => async dispatch => {
-    console.log('[fetchCriticalPostBySlug] Fetching critical post data by slug:', slug);
-    try {
-        const res = await axios.get(`${API_BASE_URL}/critical/${slug}`);
-        console.log('[fetchCriticalPostBySlug] Fetched critical post data:', res.data);
-        dispatch({ type: FETCH_CRITICAL_POST_SUCCESS, payload: res.data });
-    } catch (error) {
-        console.error('[fetchCriticalPostBySlug] Error fetching critical post:', {
-            message: error.message,
-            response: error.response ? error.response.data : 'No response'
-        });
-    }
-};
 
 export const fetchPostBySlug = (slug) => async dispatch => {
     console.log('[fetchPostBySlug] Fetching post by slug:', slug);
