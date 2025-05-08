@@ -12,7 +12,7 @@ const css = `
   .container { display: flex; min-height: 100vh; flex-direction: column; }
   main { flex: 1; padding: 1rem; background: #f4f4f9; }
   .post-header { font-size: clamp(1.5rem, 3vw, 2rem); color: #011020; margin: 0.75rem 0; width: 100%; max-width: 100%; }
-  .content-section { font-size: 0.875rem; line-height: 1.7; width: 100%; max-width: 100%; height: 200px; overflow: hidden; }
+  .content-section { font-size: 0.875rem; line-height: 1.7; width: 100%; max-width: 100%; height: 200px; }
   .content-section p { margin: 0.5rem 0; }
   .image-container { 
     width: 100%; 
@@ -34,6 +34,7 @@ const css = `
   @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   .sidebar-wrapper { }
   .meta-info { color: #666; font-size: 0.75rem; margin-bottom: 0.75rem; }
+  .content-skeleton { width: 100%; height: 20px; background: #e0e0e0; margin: 0.5rem 0; border-radius: 4px; }
   @media (min-width: 769px) {
     .container { flex-direction: row; }
     main { margin-right: 250px; padding: 2rem; }
@@ -55,32 +56,25 @@ const css = `
   }
 `;
 
-// Web Worker for parsing content
+// Simplified parseLinks for Web Worker
 const parseContentInWorker = (content, category) => {
   return new Promise((resolve) => {
     const workerCode = `
       self.onmessage = function(e) {
         const { content, category } = e.data;
-        const parseLinks = (text, category, isHtml = false) => {
-          if (!text) return isHtml ? '' : [text];
+        const parseLinks = (text, category) => {
+          if (!text) return '';
           const linkRegex = /\\[([^\\]]+)\\]\\((https?:\\/\\/[^\\s)]+|vscode:\\/\\/[^\\s)]+|\\/[^\\s)]+)\\)/g;
-          const elements = [];
-          let lastIndex = 0;
-          let match;
-          while ((match = linkRegex.exec(text)) !== null) {
-            const [fullMatch, linkText, url] = match;
-            if (match.index > lastIndex) {
-              elements.push(text.slice(lastIndex, match.index));
-            }
-            elements.push({ linkText, url, isInternal: url.startsWith('/') });
-            lastIndex = match.index + fullMatch.length;
-          }
-          if (lastIndex < text.length) {
-            elements.push(text.slice(lastIndex));
-          }
-          return elements.length ? elements : [text || ''];
+          let html = text;
+          html = html.replace(linkRegex, (match, linkText, url) => {
+            const isInternal = url.startsWith('/');
+            const target = url.startsWith('vscode://') ? '_self' : '_blank';
+            const rel = isInternal ? '' : 'rel="noopener"';
+            return \`<a href="\${url}" class="text-blue-600 hover:text-blue-800" \${rel} target="\${target}" aria-label="\${isInternal ? 'Navigate to' : 'Visit'} \${linkText}">\${linkText}</a>\`;
+          });
+          return html;
         };
-        const result = parseLinks(content, category, false);
+        const result = parseLinks(content, category);
         self.postMessage(result);
       };
     `;
@@ -92,7 +86,7 @@ const parseContentInWorker = (content, category) => {
     };
     worker.onerror = (err) => {
       console.error('Worker error:', err);
-      resolve([content]); // Fallback to raw content
+      resolve(content); // Fallback to raw content
       worker.terminate();
     };
     worker.postMessage({ content, category });
@@ -100,38 +94,18 @@ const parseContentInWorker = (content, category) => {
 };
 
 const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordCount }) => {
+  const [parsedContentHtml, setParsedContentHtml] = useState(null); // null indicates loading
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const contentRef = useRef(null);
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 480;
 
   useEffect(() => {
-    if (!post?.content || !contentRef.current) return;
-
-    // Parse links in Web Worker and update DOM directly
-    parseContentInWorker(post.content, post.category || '').then(elements => {
-      const container = contentRef.current;
-      if (!container) return;
-
-      // Clear existing content
-      container.innerHTML = '';
-
-      // Create new content with parsed links
-      elements.forEach((element, index) => {
-        if (typeof element === 'string') {
-          const textNode = document.createTextNode(element);
-          container.appendChild(textNode);
-        } else {
-          const link = document.createElement('a');
-          link.href = element.url;
-          link.textContent = element.linkText;
-          link.className = 'text-blue-600 hover:text-blue-800';
-          link.setAttribute('aria-label', element.isInternal ? `Navigate to ${element.linkText}` : `Visit ${element.linkText}`);
-          if (!element.isInternal && !element.url.startsWith('vscode://')) {
-            link.target = '_blank';
-            link.rel = 'noopener';
-          }
-          container.appendChild(link);
-        }
-      });
+    if (!post?.content) {
+      setParsedContentHtml('');
+      return;
+    }
+    parseContentInWorker(post.content, post.category || '').then(html => {
+      setParsedContentHtml(html);
     });
   }, [post]);
 
@@ -179,8 +153,20 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
           <span> | Read time: {calculateReadTimeAndWordCount.readTime} min</span>
         </div>
       </header>
-      <section className="content-section">
-        <div ref={contentRef}>{post?.content || ''}</div>
+      <section className="content-section" ref={contentRef}>
+        {parsedContentHtml === null ? (
+          isMobile ? (
+            <p>{post.content.slice(0, 200) + '...'}</p>
+          ) : (
+            <>
+              <div className="content-skeleton" />
+              <div className="content-skeleton" style={{ width: '80%' }} />
+              <div className="content-skeleton" style={{ width: '60%' }} />
+            </>
+          )
+        ) : (
+          <div dangerouslySetInnerHTML={{ __html: parsedContentHtml }} />
+        )}
       </section>
     </>
   );
