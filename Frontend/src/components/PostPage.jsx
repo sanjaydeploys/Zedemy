@@ -13,40 +13,51 @@ const loadDependencies = async () => {
 const PostContentNonCritical = React.lazy(() => import('./PostContentNonCritical'));
 const Sidebar = React.lazy(() => import('./Sidebar'));
 
-const criticalCSS = `
+const css = `
   .container { display: flex; min-height: 100vh; flex-direction: column; }
-  main { flex: 1; padding: 1rem; background: #f4f4f9; }
+  main { flex: 1; padding: 1rem; background: #f4f4f9; min-height: 2000px; }
   .post-header { font-size: clamp(1.5rem, 3vw, 2rem); color: #011020; margin: 0.75rem 0; }
-  .content-section { font-size: 0.875rem; line-height: 1.7; }
+  .content-section { font-size: 0.875rem; line-height: 1.7; min-height: 200px; }
   .content-section p { margin: 0.5rem 0; }
-  @media (min-width: 769px) {
-    .container { flex-direction: row; }
-    main { margin-right: 250px; padding: 2rem; }
+  .image-container { 
+    width: 100%; 
+    max-width: 100%; 
+    margin: 1rem 0; 
+    position: relative; 
+    aspect-ratio: 16 / 9; 
+    height: 157.5px; 
+    background: #e0e0e0; 
+    background-image: linear-gradient(90deg, #e0e0e0 0%, #f0f0f0 50%, #e0e0e0 100%); 
+    background-size: 200% 100%; 
+    animation: shimmer 1.5s infinite; 
   }
-`;
-
-const nonCriticalCSS = `
-  .image-container { width: 100%; max-width: 100%; margin: 1rem 0; position: relative; aspect-ratio: 16 / 9; height: 157.5px; }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .image-loaded { background: transparent; animation: none; }
   .post-image { width: 100%; max-width: 280px; height: 157.5px; object-fit: contain; border-radius: 0.375rem; position: relative; z-index: 2; }
-  .lqip-image { width: 100%; max-width: 280px; height: 157.5px; object-fit: contain; border-radius: 0.375rem; filter: blur(10px); position: absolute; top: 0; left: 0; z-index: 1; }
   .video-container { width: 100%; max-width: 100%; margin: 1rem 0; aspect-ratio: 16 / 9; height: 157.5px; }
   .post-video { width: 100%; max-width: 280px; height: 157.5px; border-radius: 0.375rem; }
   .placeholder { width: 100%; height: 180px; background: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #666; border-radius: 0.375rem; font-size: 0.875rem; }
   .skeleton { width: 60%; height: 2rem; background: #e0e0e0; border-radius: 0.375rem; margin: 0.75rem 0 1rem; }
   .loading-overlay { display: flex; justify-content: center; align-items: center; background: rgba(0, 0, 0, 0.5); min-height: 100vh; width: 100%; }
   .sidebar-wrapper { }
+  .meta-info { color: #666; font-size: 0.75rem; margin-bottom: 0.75rem; }
   @media (min-width: 769px) {
+    .container { flex-direction: row; }
+    main { margin-right: 250px; padding: 2rem; }
     .image-container, .video-container { height: 270px; }
-    .post-image, .lqip-image, .post-video { max-width: 480px; height: 270px; }
+    .post-image, .post-video { max-width: 480px; height: 270px; }
     .sidebar-wrapper { width: 250px; min-height: 1200px; flex-shrink: 0; }
   }
   @media (max-width: 480px) {
     .image-container, .video-container { height: 135px; }
-    .post-image, .lqip-image, .post-video { max-width: 240px; height: 135px; }
+    .post-image, .post-video { max-width: 240px; height: 135px; }
   }
   @media (max-width: 320px) {
     .image-container, .video-container { height: 112.5px; }
-    .post-image, .lqip-image, .post-video { max-width: 200px; height: 112.5px; }
+    .post-image, .post-video { max-width: 200px; height: 112.5px; }
   }
 `;
 
@@ -55,12 +66,49 @@ const PostContentCritical = memo(({ post, parsedTitle, calculateReadTimeAndWordC
     return post?.content ? parseLinks(post.content, post.category || '', false) : [];
   }, [post]);
 
+  const formattedDate = post?.date ? new Date(post.date).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }) : '';
+
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
+
   return (
     <>
       <header>
+        {post?.titleImage && (
+          <div className={`image-container ${isImageLoaded ? 'image-loaded' : ''}`}>
+            <img
+              src={`${post.titleImage}?w=100&format=avif&q=1`}
+              srcSet={`
+                ${post.titleImage}?w=100&format=avif&q=1 100w,
+                ${post.titleImage}?w=150&format=avif&q=1 150w,
+                ${post.titleImage}?w=200&format=avif&q=1 200w,
+                ${post.titleImage}?w=280&format=avif&q=1 280w,
+                ${post.titleImage}?w=480&format=avif&q=1 480w
+              `}
+              sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
+              alt={post.title || 'Post image'}
+              className="post-image"
+              width="280"
+              height="157.5"
+              fetchpriority="high"
+              decoding="async"
+              loading="eager"
+              onLoad={() => setIsImageLoaded(true)}
+              onError={() => {
+                console.error('Title Image Failed:', post.titleImage);
+                setIsImageLoaded(true); // Hide placeholder on error to avoid infinite loading state
+              }}
+            />
+          </div>
+        )}
         <h1 className="post-header">{parsedTitle || post.title}</h1>
-        <div style={{ marginBottom: '0.75rem', color: '#666', fontSize: '0.75rem' }}>
-          Read time: {calculateReadTimeAndWordCount.readTime} min
+        <div className="meta-info">
+          {post?.author && <span>By {post.author}</span>}
+          {formattedDate && <span> | {formattedDate}</span>}
+          <span> | Read time: {calculateReadTimeAndWordCount.readTime} min</span>
         </div>
       </header>
       <section className="content-section">
@@ -91,9 +139,9 @@ const PostPage = memo(() => {
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(() => loadDependencies().then(setDeps), { timeout: 5000 });
+      window.requestIdleCallback(() => loadDependencies().then(setDeps), { timeout: 6000 });
     } else {
-      setTimeout(() => loadDependencies().then(setDeps), 5000);
+      setTimeout(() => loadDependencies().then(setDeps), 6000);
     }
   }, []);
 
@@ -113,11 +161,11 @@ const PostPage = memo(() => {
         if (typeof window !== 'undefined' && window.requestIdleCallback) {
           window.requestIdleCallback(() => {
             Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-          }, { timeout: 6000 });
+          }, { timeout: 7000 });
         } else {
           setTimeout(() => {
             Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-          }, 6000);
+          }, 7007);
         }
       } catch (error) {
         console.error('Fetch failed:', error);
@@ -147,7 +195,7 @@ const PostPage = memo(() => {
         ].join(' ');
         const words = text.split(/\s+/).filter(w => w).length;
         setReadTime(Math.ceil(words / 200));
-      }, { timeout: 5000 });
+      }, { timeout: 6000 });
     } else {
       setTimeout(() => {
         const text = [
@@ -158,7 +206,7 @@ const PostPage = memo(() => {
         ].join(' ');
         const words = text.split(/\s+/).filter(w => w).length;
         setReadTime(Math.ceil(words / 200));
-      }, 5000);
+      }, 6000);
     }
   }, [post]);
 
@@ -178,7 +226,7 @@ const PostPage = memo(() => {
           : `Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`;
         const canonicalUrl = `https://zedemy.vercel.app/post/${slug}`;
         const ogImage = post.titleImage
-          ? `${post.titleImage}?w=1200&format=webp&q=75`
+          ? `${post.titleImage}?w=1200&format=avif&q=1`
           : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
         const schemas = [
           {
@@ -247,7 +295,7 @@ const PostPage = memo(() => {
           });
         }
         startTransition(() => setStructuredData(schemas));
-      }, { timeout: 6000 });
+      }, { timeout: 7000 });
     }
   }, [post, slug, readTime]);
 
@@ -294,7 +342,7 @@ const PostPage = memo(() => {
         <meta property="og:description" content={truncateText(post.summary || post.content, 160)} />
         <meta
           property="og:image"
-          content={post.titleImage ? `${post.titleImage}?w=1200&format=webp&q=75` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
+          content={post.titleImage ? `${post.titleImage}?w=1200&format=avif&q=1` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
         />
         <meta property="og:image:alt" content={`${post.title} tutorial`} />
         <meta property="og:image:width" content="1200" />
@@ -307,10 +355,9 @@ const PostPage = memo(() => {
         <meta name="twitter:description" content={truncateText(post.summary || post.content, 160)} />
         <meta
           name="twitter:image"
-          content={post.titleImage ? `${post.titleImage}?w=1200&format=webp&q=75` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
+          content={post.titleImage ? `${post.titleImage}?w=1200&format=avif&q=1` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
         />
-        <style>{criticalCSS}</style>
-        <link rel="stylesheet" href="data:text/css;base64,${btoa(nonCriticalCSS)}" media="print" onload="this.media='all'" />
+        <style>{css}</style>
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
       <div className="container">
