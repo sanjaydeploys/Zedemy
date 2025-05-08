@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, memo, useCallback, Suspense, useMemo, startTransition } from 'react';
+import React, { useState, useEffect, useRef, memo, useCallback, Suspense, startTransition } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { parseLinks, slugify } from './utils';
@@ -198,22 +198,27 @@ const debounce = (func, wait) => {
   };
 };
 
-const SubtitleSection = memo(({ subtitle, index, category, isAboveFold }) => {
+const SubtitleSection = memo(({ subtitle, index, category }) => {
   const [parsedTitle, setParsedTitle] = useState(subtitle.title || '');
   const [parsedBulletPoints, setParsedBulletPoints] = useState(subtitle.bulletPoints || []);
 
   useEffect(() => {
-    const parseContent = () => {
-      setParsedTitle(parseLinks(subtitle.title || '', category, false));
-      setParsedBulletPoints((subtitle.bulletPoints || []).map(point => ({
-        ...point,
-        text: parseLinks(point.text || '', category, false),
-      })));
-    };
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(parseContent, { timeout: 2000 });
+      window.requestIdleCallback(() => {
+        setParsedTitle(parseLinks(subtitle.title || '', category, false));
+        setParsedBulletPoints((subtitle.bulletPoints || []).map(point => ({
+          ...point,
+          text: parseLinks(point.text || '', category, false),
+        })));
+      }, { timeout: 3000 });
     } else {
-      setTimeout(parseContent, 2000);
+      setTimeout(() => {
+        setParsedTitle(parseLinks(subtitle.title || '', category, false));
+        setParsedBulletPoints((subtitle.bulletPoints || []).map(point => ({
+          ...point,
+          text: parseLinks(point.text || '', category, false),
+        })));
+      }, 3000);
     }
   }, [subtitle, category]);
 
@@ -231,8 +236,6 @@ const SubtitleSection = memo(({ subtitle, index, category, isAboveFold }) => {
                 alt="Low quality placeholder"
                 width="280"
                 height="157.5"
-                loading={isAboveFold ? "eager" : "lazy"}
-                fetchpriority={isAboveFold ? "high" : "low"}
               />
               <PostImage
                 src={`${subtitle.image}?w=200&format=avif&q=40`}
@@ -247,9 +250,9 @@ const SubtitleSection = memo(({ subtitle, index, category, isAboveFold }) => {
                 alt={subtitle.title || 'Subtitle image'}
                 width="280"
                 height="157.5"
-                loading={isAboveFold ? "eager" : "lazy"}
+                loading="lazy"
                 decoding="async"
-                fetchpriority={isAboveFold ? "high" : "low"}
+                fetchpriority="low"
                 onError={() => console.error('Subtitle Image Failed:', subtitle.image)}
               />
             </AccessibleZoom>
@@ -264,16 +267,16 @@ const SubtitleSection = memo(({ subtitle, index, category, isAboveFold }) => {
             poster={`${subtitle.videoPoster || subtitle.image}?w=80&format=webp&q=5`}
             width="280"
             height="157.5"
-            loading={isAboveFold ? "eager" : "lazy"}
+            loading="lazy"
             decoding="async"
             aria-label={`Video for ${subtitle.title || 'subtitle'}`}
-            fetchpriority={isAboveFold ? "high" : "low"}
+            fetchpriority="low"
           >
             <source src={`${subtitle.video}#t=0.1`} type="video/mp4" />
           </PostVideo>
         </VideoContainer>
       )}
-      <ul style={{ paddingLeft: '1.25rem', fontSize: '1.1rem', lineHeight: '1.7' }}>
+      <ul style={{ paddingLeft: '1.25rem', fontSize: '1.1rem', lineheight: '1.7' }}>
         {parsedBulletPoints.map((point, j) => (
           <li key={j} style={{ marginBottom: '0.5rem' }}>
             <span>{point.text}</span>
@@ -286,8 +289,6 @@ const SubtitleSection = memo(({ subtitle, index, category, isAboveFold }) => {
                       alt="Low quality placeholder"
                       width="280"
                       height="157.5"
-                      loading={isAboveFold ? "eager" : "lazy"}
-                      fetchpriority={isAboveFold ? "high" : "low"}
                     />
                     <PostImage
                       src={`${point.image}?w=200&format=avif&q=40`}
@@ -302,9 +303,9 @@ const SubtitleSection = memo(({ subtitle, index, category, isAboveFold }) => {
                       alt={`Example for ${point.text || 'bullet point'}`}
                       width="280"
                       height="157.5"
-                      loading={isAboveFold ? "eager" : "lazy"}
+                      loading="lazy"
                       decoding="async"
-                      fetchpriority={isAboveFold ? "high" : "low"}
+                      fetchpriority="low"
                       onError={() => console.error('Point Image Failed:', point.image)}
                     />
                   </AccessibleZoom>
@@ -319,10 +320,10 @@ const SubtitleSection = memo(({ subtitle, index, category, isAboveFold }) => {
                   poster={`${point.videoPoster || point.image}?w=80&format=webp&q=5`}
                   width="280"
                   height="157.5"
-                  loading={isAboveFold ? "eager" : "lazy"}
+                  loading="lazy"
                   decoding="async"
                   aria-label={`Video example for ${point.text || 'bullet point'}`}
-                  fetchpriority={isAboveFold ? "high" : "low"}
+                  fetchpriority="low"
                   onLoad={() => console.log('Point Video Loaded:', point.video)}
                 >
                   <source src={`${point.video}#t=0.1`} type="video/mp4" />
@@ -353,11 +354,10 @@ const SubtitleSection = memo(({ subtitle, index, category, isAboveFold }) => {
 });
 
 const LazySubtitleSection = memo(({ subtitle, index, category }) => {
-  const [isVisible, setIsVisible] = useState(index === 0); // Load first section immediately
+  const [isVisible, setIsVisible] = useState(false);
   const ref = useRef();
 
   useEffect(() => {
-    if (index === 0) return; // Skip observer for first section
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -365,16 +365,16 @@ const LazySubtitleSection = memo(({ subtitle, index, category }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '1000px', threshold: 0.1 }
+      { rootMargin: '1500px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
-  }, [index]);
+  }, []);
 
   return (
     <div ref={ref} style={{ minHeight: '450px', transition: 'min-height 0.3s ease' }}>
       {isVisible ? (
-        <SubtitleSection subtitle={subtitle} index={index} category={category} isAboveFold={index === 0} />
+        <SubtitleSection subtitle={subtitle} index={index} category={category} />
       ) : (
         <Placeholder height="450px">Loading section...</Placeholder>
       )}
@@ -394,7 +394,7 @@ const LazyReferencesSection = memo(({ post }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '1000px', threshold: 0.1 }
+      { rootMargin: '1500px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
@@ -443,7 +443,7 @@ const PostContentNonCritical = memo(
   ({ post, relatedPosts, completedPosts, dispatch, isSidebarOpen, setSidebarOpen, activeSection, setActiveSection, subtitlesListRef }) => {
     const [parsedSummary, setParsedSummary] = useState(post.summary || '');
 
-    const debouncedObserve = useMemo(
+    const debouncedObserve = React.useMemo(
       () =>
         debounce(entries => {
           let highestSection = null;
@@ -467,7 +467,7 @@ const PostContentNonCritical = memo(
       [setActiveSection, subtitlesListRef]
     );
 
-    const subtitleSlugs = useMemo(() => {
+    const subtitleSlugs = React.useMemo(() => {
       if (!post?.subtitles) return {};
       const slugs = {};
       post.subtitles.forEach((s, i) => {
@@ -489,37 +489,35 @@ const PostContentNonCritical = memo(
 
     useEffect(() => {
       if (!post?.summary) return;
-      const parseSummary = () => {
-        setParsedSummary(parseLinks(post.summary || '', post.category || '', false));
-      };
       if (typeof window !== 'undefined' && window.requestIdleCallback) {
-        window.requestIdleCallback(parseSummary, { timeout: 2000 });
+        window.requestIdleCallback(() => {
+          setParsedSummary(parseLinks(post.summary || '', post.category || '', false));
+        }, { timeout: 3000 });
       } else {
-        setTimeout(parseSummary, 2000);
+        setTimeout(() => {
+          setParsedSummary(parseLinks(post.summary || '', post.category || '', false));
+        }, 3000);
       }
     }, [post]);
 
     useEffect(() => {
       if (!post) return;
-      const observeSections = () => {
-        const observer = new IntersectionObserver(debouncedObserve, {
-          root: null,
-          rootMargin: '0px',
-          threshold: [0.1, 0.3, 0.5],
-        });
-        document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
-        return () => observer.disconnect();
-      };
       if (typeof window !== 'undefined' && window.requestIdleCallback) {
-        window.requestIdleCallback(observeSections, { timeout: 2000 });
-      } else {
-        setTimeout(observeSections, 2000);
+        window.requestIdleCallback(() => {
+          const observer = new IntersectionObserver(debouncedObserve, {
+            root: null,
+            rootMargin: '0px',
+            threshold: [0.1, 0.3, 0.5],
+          });
+          document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
+          return () => observer.disconnect();
+        }, { timeout: 3000 });
       }
     }, [post, debouncedObserve]);
 
     const handleMarkAsCompleted = useCallback(() => {
       if (!post) return;
-      dispatch({ type: 'MARK_POST_AS_COMPLETED', payload: post.postId });
+      dispatch(markPostAsCompleted(post.postId));
     }, [dispatch, post]);
 
     const scrollToSection = useCallback(
