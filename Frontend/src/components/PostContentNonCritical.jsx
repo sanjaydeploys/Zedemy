@@ -203,23 +203,11 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
   const [parsedBulletPoints, setParsedBulletPoints] = useState(subtitle.bulletPoints || []);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(() => {
-        setParsedTitle(parseLinks(subtitle.title || '', category, false));
-        setParsedBulletPoints((subtitle.bulletPoints || []).map(point => ({
-          ...point,
-          text: parseLinks(point.text || '', category, false),
-        })));
-      }, { timeout: 3000 });
-    } else {
-      setTimeout(() => {
-        setParsedTitle(parseLinks(subtitle.title || '', category, false));
-        setParsedBulletPoints((subtitle.bulletPoints || []).map(point => ({
-          ...point,
-          text: parseLinks(point.text || '', category, false),
-        })));
-      }, 3000);
-    }
+    setParsedTitle(parseLinks(subtitle.title || '', category, false));
+    setParsedBulletPoints((subtitle.bulletPoints || []).map(point => ({
+      ...point,
+      text: parseLinks(point.text || '', category, false),
+    })));
   }, [subtitle, category]);
 
   if (!subtitle) return null;
@@ -276,7 +264,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
           </PostVideo>
         </VideoContainer>
       )}
-      <ul style={{ paddingLeft: '1.25rem', fontSize: '1.1rem', lineheight: '1.7' }}>
+      <ul style={{ paddingLeft: '1.25rem', fontSize: '1.1rem', lineHeight: '1.7' }}>
         {parsedBulletPoints.map((point, j) => (
           <li key={j} style={{ marginBottom: '0.5rem' }}>
             <span>{point.text}</span>
@@ -365,18 +353,18 @@ const LazySubtitleSection = memo(({ subtitle, index, category }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '1500px', threshold: 0.1 }
+      { rootMargin: '1000px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ minHeight: '450px', transition: 'min-height 0.3s ease' }}>
+    <div ref={ref} style={{ minHeight: '300px', transition: 'min-height 0.3s ease' }}>
       {isVisible ? (
         <SubtitleSection subtitle={subtitle} index={index} category={category} />
       ) : (
-        <Placeholder height="450px">Loading section...</Placeholder>
+        <Placeholder height="300px">Loading section...</Placeholder>
       )}
     </div>
   );
@@ -394,14 +382,14 @@ const LazyReferencesSection = memo(({ post }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '1500px', threshold: 0.1 }
+      { rootMargin: '1000px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ minHeight: '250px', transition: 'min-height 0.3s ease' }}>
+    <div ref={ref} style={{ minHeight: '200px', transition: 'min-height 0.3s ease' }}>
       {isVisible ? (
         <ReferencesSection aria-labelledby="references-heading">
           <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
@@ -433,7 +421,7 @@ const LazyReferencesSection = memo(({ post }) => {
           )}
         </ReferencesSection>
       ) : (
-        <Placeholder height="250px">Loading references...</Placeholder>
+        <Placeholder height="200px">Loading references...</Placeholder>
       )}
     </div>
   );
@@ -489,35 +477,23 @@ const PostContentNonCritical = memo(
 
     useEffect(() => {
       if (!post?.summary) return;
-      if (typeof window !== 'undefined' && window.requestIdleCallback) {
-        window.requestIdleCallback(() => {
-          setParsedSummary(parseLinks(post.summary || '', post.category || '', false));
-        }, { timeout: 3000 });
-      } else {
-        setTimeout(() => {
-          setParsedSummary(parseLinks(post.summary || '', post.category || '', false));
-        }, 3000);
-      }
+      setParsedSummary(parseLinks(post.summary || '', post.category || '', false));
     }, [post]);
 
     useEffect(() => {
       if (!post) return;
-      if (typeof window !== 'undefined' && window.requestIdleCallback) {
-        window.requestIdleCallback(() => {
-          const observer = new IntersectionObserver(debouncedObserve, {
-            root: null,
-            rootMargin: '0px',
-            threshold: [0.1, 0.3, 0.5],
-          });
-          document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
-          return () => observer.disconnect();
-        }, { timeout: 3000 });
-      }
+      const observer = new IntersectionObserver(debouncedObserve, {
+        root: null,
+        rootMargin: '0px',
+        threshold: [0.1, 0.3, 0.5],
+      });
+      document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
+      return () => observer.disconnect();
     }, [post, debouncedObserve]);
 
     const handleMarkAsCompleted = useCallback(() => {
       if (!post) return;
-      dispatch(markPostAsCompleted(post.postId));
+      dispatch({ type: 'MARK_POST_COMPLETED', payload: post.postId });
     }, [dispatch, post]);
 
     const scrollToSection = useCallback(
