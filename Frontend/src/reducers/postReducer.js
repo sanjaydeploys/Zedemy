@@ -17,7 +17,6 @@ import {
     FETCH_COMPLETED_POSTS_FAILURE,
     CLEAR_POST
 } from '../actions/types';
-
 const initialState = {
     posts: [],
     userPosts: [],
