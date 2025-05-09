@@ -5,10 +5,12 @@ import { useParams } from 'react-router-dom';
 import { slugify, truncateText } from './utils';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 
+// Lazy-loaded components
 const PostContentNonCritical = React.lazy(() => import('./PostContentNonCritical'));
 const Sidebar = React.lazy(() => import('./Sidebar'));
 
-const css = `
+// Critical CSS for above-the-fold content
+const criticalCSS = `
   .container { display: flex; min-height: 100vh; flex-direction: column; }
   main { flex: 1; padding: 1rem; background: #f4f4f9; }
   .post-header { font-size: clamp(1.5rem, 3vw, 2rem); color: #011020; margin: 0.75rem 0; width: 100%; max-width: 100%; }
@@ -25,6 +27,30 @@ const css = `
   }
   .image-loaded { background: transparent; }
   .post-image { width: 100%; max-width: 280px; height: 157.5px; object-fit: contain; border-radius: 0.375rem; position: relative; z-index: 2; }
+  .meta-info { color: #666; font-size: 0.75rem; margin-bottom: 0.75rem; }
+  .content-skeleton { width: 100%; height: 20px; background: #e0e0e0; margin: 0.5rem 0; border-radius: 4px; }
+  @media (min-width: 769px) {
+    .container { flex-direction: row; }
+    main { margin-right: 250px; padding: 2rem; }
+    .image-container { max-width: 480px; height: 270px; }
+    .post-image { max-width: 480px; height: 270px; }
+  }
+  @media (max-width: 480px) {
+    .image-container { max-width: 240px; height: 135px; }
+    .post-image { max-width: 240px; height: 135px; }
+    main { padding: 0.5rem; }
+    .content-section { min-height: 150px; }
+  }
+  @media (max-width: 320px) {
+    .image-container { max-width: 200px; height: 112.5px; }
+    .post-image { max-width: 200px; height: 112.5px; }
+    main { padding: 0.25rem; }
+    .content-section { min-height: 120px; }
+  }
+`;
+
+// Non-critical CSS loaded asynchronously
+const nonCriticalCSS = `
   .video-container { width: 100%; max-width: 280px; margin: 1rem 0; aspect-ratio: 16 / 9; height: 157.5px; }
   .post-video { width: 100%; max-width: 280px; height: 157.5px; border-radius: 0.375rem; }
   .placeholder { width: 100%; max-width: 280px; height: 157.5px; background: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #666; border-radius: 0.375rem; font-size: 0.875rem; }
@@ -33,40 +59,30 @@ const css = `
   .spinner { width: 50px; height: 50px; border: 5px solid #2c3e50; border-top: 5px solid transparent; border-radius: 50%; animation: spin 1s linear infinite; }
   @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   .sidebar-wrapper { }
-  .meta-info { color: #666; font-size: 0.75rem; margin-bottom: 0.75rem; }
-  .content-skeleton { width: 100%; height: 20px; background: #e0e0e0; margin: 0.5rem 0; border-radius: 4px; }
   @media (min-width: 769px) {
-    .container { flex-direction: row; }
-    main { margin-right: 250px; padding: 2rem; }
-    .image-container, .video-container, .placeholder { max-width: 480px; height: 270px; }
-    .post-image, .post-video { max-width: 480px; height: 270px; }
+    .video-container, .placeholder { max-width: 480px; height: 270px; }
+    .post-video { max-width: 480px; height: 270px; }
     .sidebar-wrapper { width: 250px; min-height: 1200px; flex-shrink: 0; }
   }
   @media (max-width: 480px) {
-    .image-container, .video-container, .placeholder { max-width: 240px; height: 135px; }
-    .post-image, .post-video { max-width: 240px; height: 135px; }
-    main { padding: 0.5rem; }
-    .content-section { min-height: 150px; }
+    .video-container, .placeholder { max-width: 240px; height: 135px; }
+    .post-video { max-width: 240px; height: 135px; }
   }
   @media (max-width: 320px) {
-    .image-container, .video-container, .placeholder { max-width: 200px; height: 112.5px; }
-    .post-image, .post-video { max-width: 200px; height: 112.5px; }
-    main { padding: 0.25rem; }
-    .content-section { min-height: 120px; }
+    .video-container, .placeholder { max-width: 200px; height: 112.5px; }
+    .post-video { max-width: 200px; height: 112.5px; }
   }
 `;
 
 const parseLinks = (text) => {
   if (!text) return '';
   const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+|\/[^\s)]+)\)/g;
-  let html = text;
-  html = html.replace(linkRegex, (match, linkText, url) => {
+  return text.replace(linkRegex, (match, linkText, url) => {
     const isInternal = url.startsWith('/');
     const target = url.startsWith('vscode://') ? '_self' : '_blank';
     const rel = isInternal ? '' : 'rel="noopener"';
     return `<a href="${url}" class="text-blue-600 hover:text-blue-800" ${rel} target="${target}" aria-label="${isInternal ? 'Navigate to' : 'Visit'} ${linkText}">${linkText}</a>`;
   });
-  return html;
 };
 
 const PostPage = memo(() => {
@@ -82,7 +98,12 @@ const PostPage = memo(() => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
 
   const post = useSelector(state => state.postReducer.post);
-  const relatedPosts = useSelector(state => state.postReducer.posts?.filter(p => p.postId !== post?.postId && p.category?.toLowerCase() === post?.category?.toLowerCase()).slice(0, 3) || []);
+  const relatedPosts = useSelector(state => 
+    state.postReducer.posts?.filter(p => 
+      p.postId !== post?.postId && 
+      p.category?.toLowerCase() === post?.category?.toLowerCase()
+    ).slice(0, 3) || []
+  );
   const completedPosts = useSelector(state => state.postReducer.completedPosts || []);
 
   useEffect(() => {
@@ -98,14 +119,11 @@ const PostPage = memo(() => {
       try {
         await dispatch(fetchPostBySlug(slug));
         setHasFetched(true);
-        if (typeof window !== 'undefined' && window.requestIdleCallback) {
-          window.requestIdleCallback(() => {
-            Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-          }, { timeout: 10000 });
-        } else {
+        // Defer non-critical fetches
+        if (typeof window !== 'undefined') {
           setTimeout(() => {
             Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-          }, 10000);
+          }, 2000);
         }
       } catch (error) {
         console.error('Fetch post failed:', error);
@@ -141,78 +159,71 @@ const PostPage = memo(() => {
         readTimeElement.textContent = `${time}`;
       }
     };
-    if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(calculate, { timeout: 10000 });
-    } else {
-      setTimeout(calculate, 10000);
-    }
+    // Run immediately for critical content
+    calculate();
   }, [post]);
 
   useEffect(() => {
     if (!post) return;
-    if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(() => {
-        const pageTitle = `${post.title} | Zedemy, India`;
-        const pageDescription = truncateText(post.summary || post.content, 160) || `Learn ${post.title?.toLowerCase() || ''} with Zedemy's tutorials.`;
-        const pageKeywords = post.keywords
-          ? `${post.keywords}, Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`
-          : `Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`;
-        const canonicalUrl = `https://zedemy.vercel.app/post/${slug}`;
-        const ogImage = post.titleImage
-          ? `${post.titleImage}?w=1200&format=avif&q=1`
-          : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
-        const schemas = [
+    const pageTitle = `${post.title} | Zedemy, India`;
+    const pageDescription = truncateText(post.summary || post.content, 160) || `Learn ${post.title?.toLowerCase() || ''} with Zedemy's tutorials.`;
+    const pageKeywords = post.keywords
+      ? `${post.keywords}, Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`
+      : `Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`;
+    const canonicalUrl = `https://zedemy.vercel.app/post/${slug}`;
+    const ogImage = post.titleImage
+      ? `${post.titleImage}?w=1200&format=avif&q=75`
+      : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
+    const schemas = [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BlogPosting',
+        headline: post.title || '',
+        description: pageDescription,
+        keywords: pageKeywords.split(', ').filter(Boolean),
+        articleSection: post.category || 'Tech Tutorials',
+        author: { '@type': 'Person', name: post.author || 'Zedemy Team' },
+        publisher: {
+          '@type': 'Organization',
+          name: 'Zedemy',
+          logo: { '@type': 'ImageObject', url: ogImage },
+        },
+        datePublished: post.date || new Date().toISOString(),
+        dateModified: post.date || new Date().toISOString(),
+        image: ogImage,
+        url: canonicalUrl,
+        mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
+        timeRequired: `PT${readTime}M`,
+        wordCount: 0,
+        inLanguage: 'en',
+        sameAs: ['https://x.com/zedemy', 'https://linkedin.com/company/zedemy'],
+      },
+      {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
           {
-            '@context': 'https://schema.org',
-            '@type': 'BlogPosting',
-            headline: post.title || '',
-            description: pageDescription,
-            keywords: pageKeywords.split(', ').filter(Boolean),
-            articleSection: post.category || 'Tech Tutorials',
-            author: { '@type': 'Person', name: post.author || 'Zedemy Team' },
-            publisher: {
-              '@type': 'Organization',
-              name: 'Zedemy',
-              logo: { '@type': 'ImageObject', url: ogImage },
-            },
-            datePublished: post.date || new Date().toISOString(),
-            dateModified: post.date || new Date().toISOString(),
-            image: ogImage,
-            url: canonicalUrl,
-            mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
-            timeRequired: `PT${readTime}M`,
-            wordCount: 0,
-            inLanguage: 'en',
-            sameAs: ['https://x.com/zedemy', 'https://linkedin.com/company/zedemy'],
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: 'https://zedemy.vercel.app/',
           },
           {
-            '@context': 'https://schema.org',
-            '@type': 'BreadcrumbList',
-            itemListElement: [
-              {
-                '@type': 'ListItem',
-                position: 1,
-                name: 'Home',
-                item: 'https://zedemy.vercel.app/',
-              },
-              {
-                '@type': 'ListItem',
-                position: 2,
-                name: post.category || 'Blog',
-                item: `https://zedemy.vercel.app/category/${post.category?.toLowerCase() || 'blog'}`,
-              },
-              {
-                '@type': 'ListItem',
-                position: 3,
-                name: post.title || '',
-                item: canonicalUrl,
-              },
-            ],
+            '@type': 'ListItem',
+            position: 2,
+            name: post.category || 'Blog',
+            item: `https://zedemy.vercel.app/category/${post.category?.toLowerCase() || 'blog'}`,
           },
-        ];
-        startTransition(() => setStructuredData(schemas));
-      }, { timeout: 10000 });
-    }
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: post.title || '',
+            item: canonicalUrl,
+          },
+        ],
+      },
+    ];
+    startTransition(() => setStructuredData(schemas));
   }, [post, slug, readTime]);
 
   const formattedDate = post?.date && !isNaN(new Date(post.date).getTime())
@@ -225,15 +236,21 @@ const PostPage = memo(() => {
 
   const parsedContent = post?.content ? parseLinks(post.content) : 'Loading content...';
 
+  // Load non-critical CSS asynchronously
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = nonCriticalCSS;
+    document.head.appendChild(style);
+    return () => style.remove();
+  }, []);
+
   if (!post && !hasFetched) {
     return (
       <div className="container">
         <main>
-          <div className="skeleton" />
+          <div className="content-skeleton" />
+          <div className="content-skeleton" style={{ width: '80%' }} />
         </main>
-        <aside className="sidebar-wrapper">
-          <div className="placeholder" style={{ height: '1200px' }}>Loading sidebar...</div>
-        </aside>
       </div>
     );
   }
@@ -267,16 +284,16 @@ const PostPage = memo(() => {
         {post.titleImage && (
           <link
             rel="preload"
-            href={`${post.titleImage}?w=100&format=avif&q=1`}
+            href={`${post.titleImage}?w=100&format=avif&q=75`}
             as="image"
             fetchpriority="high"
             imagesrcset={`
-              ${post.titleImage}?w=100&format=avif&q=1 100w,
-              ${post.titleImage}?w=150&format=avif&q=1 150w,
-              ${post.titleImage}?w=200&format=avif&q=1 200w,
-              ${post.titleImage}?w=240&format=avif&q=1 240w,
-              ${post.titleImage}?w=280&format=avif&q=1 280w,
-              ${post.titleImage}?w=480&format=avif&q=1 480w
+              ${post.titleImage}?w=100&format=avif&q=75 100w,
+              ${post.titleImage}?w=150&format=avif&q=75 150w,
+              ${post.titleImage}?w=200&format=avif&q=75 200w,
+              ${post.titleImage}?w=240&format=avif&q=75 240w,
+              ${post.titleImage}?w=280&format=avif&q=75 280w,
+              ${post.titleImage}?w=480&format=avif&q=75 480w
             `}
             imagesizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
           />
@@ -285,7 +302,7 @@ const PostPage = memo(() => {
         <meta property="og:description" content={truncateText(post.summary || post.content, 160)} />
         <meta
           property="og:image"
-          content={post.titleImage ? `${post.titleImage}?w=1200&format=avif&q=1` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
+          content={post.titleImage ? `${post.titleImage}?w=1200&format=avif&q=75` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
         />
         <meta property="og:image:alt" content={`${post.title} tutorial`} />
         <meta property="og:image:width" content="1200" />
@@ -298,9 +315,9 @@ const PostPage = memo(() => {
         <meta name="twitter:description" content={truncateText(post.summary || post.content, 160)} />
         <meta
           name="twitter:image"
-          content={post.titleImage ? `${post.titleImage}?w=1200&format=avif&q=1` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
+          content={post.titleImage ? `${post.titleImage}?w=1200&format=avif&q=75` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
         />
-        <style>{css}</style>
+        <style>{criticalCSS}</style>
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
       <div className="container">
@@ -310,14 +327,14 @@ const PostPage = memo(() => {
               {post.titleImage && (
                 <div className={`image-container ${isImageLoaded ? 'image-loaded' : ''}`}>
                   <img
-                    src={`${post.titleImage}?w=100&format=avif&q=1`}
+                    src={`${post.titleImage}?w=100&format=avif&q=75`}
                     srcSet={`
-                      ${post.titleImage}?w=100&format=avif&q=1 100w,
-                      ${post.titleImage}?w=150&format=avif&q=1 150w,
-                      ${post.titleImage}?w=200&format=avif&q=1 200w,
-                      ${post.titleImage}?w=240&format=avif&q=1 240w,
-                      ${post.titleImage}?w=280&format=avif&q=1 280w,
-                      ${post.titleImage}?w=480&format=avif&q=1 480w
+                      ${post.titleImage}?w=100&format=avif&q=75 100w,
+                      ${post.titleImage}?w=150&format=avif&q=75 150w,
+                      ${post.titleImage}?w=200&format=avif&q=75 200w,
+                      ${post.titleImage}?w=240&format=avif&q=75 240w,
+                      ${post.titleImage}?w=280&format=avif&q=75 280w,
+                      ${post.titleImage}?w=480&format=avif&q=75 480w
                     `}
                     sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
                     alt={post.title || 'Post image'}
@@ -339,14 +356,14 @@ const PostPage = memo(() => {
               <div className="meta-info">
                 <span>By {post.author || 'Unknown'}</span>
                 <span> | {formattedDate}</span>
-                <span> | Read time: <span id="read-time">Calculating...</span> min</span>
+                <span> | Read time: <span id="read-time">{readTime || 'Calculating...'}</span> min</span>
               </div>
             </header>
             <section className="content-section">
               <div dangerouslySetInnerHTML={{ __html: parsedContent }} />
             </section>
             {hasFetched && post && (
-              <Suspense fallback={<div className="placeholder" style={{ height: '500px' }}>Loading additional content...</div>}>
+              <Suspense fallback={<div className="content-skeleton" style={{ height: '200px' }} />}>
                 <PostContentNonCritical
                   post={post}
                   relatedPosts={relatedPosts}
@@ -364,7 +381,7 @@ const PostPage = memo(() => {
         </main>
         {hasFetched && post && (
           <aside className="sidebar-wrapper">
-            <Suspense fallback={<div className="placeholder" style={{ height: '1200px' }}>Loading sidebar...</div>}>
+            <Suspense fallback={<div className="content-skeleton" style={{ height: '300px' }} />}>
               <Sidebar
                 post={post}
                 isSidebarOpen={isSidebarOpen}
