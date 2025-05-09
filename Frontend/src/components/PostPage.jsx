@@ -2,100 +2,96 @@ import React, { useState, useRef, memo, Suspense, useDeferredValue, startTransit
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPostBySlug, fetchCompletedPosts, fetchPosts } from '../actions/postActions';
 import { useParams } from 'react-router-dom';
-import { truncateText } from './utils';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import PriorityContent from './PriorityContent';
+import { truncateText } from './utils';
 
 const PostContentNonCritical = React.lazy(() => import('./PostContentNonCritical'));
 const Sidebar = React.lazy(() => import('./Sidebar'));
 const StructuredData = React.lazy(() => import('./StructuredData'));
 
 const criticalCss = `
-  .container { 
-    display: flex; 
-    min-height: 100vh; 
-    flex-direction: row; 
-    width: 100%; 
-    box-sizing: border-box; 
+  .container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    width: 100%;
+    box-sizing: border-box;
     position: relative;
   }
-  main { 
-    flex: 1; 
-    padding: 1rem; 
-    background: #f4f4f9; 
-    box-sizing: border-box; 
+  main {
+    flex: 1;
+    padding: 0.5rem;
+    background: #f4f4f9;
+    box-sizing: border-box;
     min-height: 100vh;
   }
-  .sidebar-wrapper { 
-    width: 250px; 
-    flex-shrink: 0; 
-    position: sticky; 
-    top: 0; 
-    height: 100vh;
+  .sidebar-wrapper {
+    width: 100%;
+    position: relative;
+    height: auto;
   }
-  .loading-overlay { 
-    display: flex; 
-    justify-content: center; 
-    align-items: center; 
-    background: rgba(0, 0, 0, 0.5); 
-    min-height: 100vh; 
-    width: 100%; 
-    position: absolute; 
-    top: 0; 
-    left: 0; 
+  .loading-overlay {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    min-height: 100vh;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
     z-index: 1000;
   }
-  .spinner { 
-    width: 50px; 
-    height: 50px; 
-    border: 5px solid #2c3e50; 
-    border-top: 5px solid transparent; 
-    border-radius: 50%; 
-    animation: spin 1s linear infinite; 
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #2c3e50;
+    border-top: 4px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
   }
-  .error-message { 
-    color: #d32f2f; 
-    font-size: 1rem; 
-    text-align: center; 
-    padding: 2rem; 
-    background: #ffebee; 
-    border-radius: 0.375rem; 
-    margin: 1rem; 
+  .error-message {
+    color: #d32f2f;
+    font-size: 0.875rem;
+    text-align: center;
+    padding: 1rem;
+    background: #ffebee;
+    border-radius: 0.25rem;
+    margin: 0.5rem;
   }
-  @keyframes spin { 
-    0% { transform: rotate(0deg); } 
-    100% { transform: rotate(360deg); } 
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
   }
-  @media (max-width: 768px) {
-    .container { 
-      flex-direction: column; 
+  @media (min-width: 768px) {
+    .container {
+      flex-direction: row;
     }
-    .sidebar-wrapper { 
-      width: 100%; 
-      position: relative; 
-      height: auto; 
+    .sidebar-wrapper {
+      width: 250px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
     }
-    main { 
-      padding: 0.5rem; 
-    }
-    .toggle-button { 
-      display: block !important; 
+    main {
+      padding: 1rem;
     }
   }
 `;
 
-const PostPage = memo(() => {
+const PostPage = memo(({ initialPost, initialError }) => {
   const { slug } = useParams();
   const dispatch = useDispatch();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState(null);
   const deferredActiveSection = useDeferredValue(activeSection);
   const subtitlesListRef = useRef(null);
-  const [hasFetched, setHasFetched] = useState(false);
+  const [hasFetched, setHasFetched] = useState(!!initialPost || !!initialError);
 
-  const post = useSelector(state => state.postReducer.post);
-  const error = useSelector(state => state.postReducer.error);
-  const relatedPosts = useSelector(state => 
+  const post = useSelector(state => state.postReducer.post) || initialPost;
+  const error = useSelector(state => state.postReducer.error) || initialError;
+  const relatedPosts = useSelector(state =>
     state.postReducer.posts?.filter(p => p.postId !== post?.postId && p.category?.toLowerCase() === post?.category?.toLowerCase()).slice(0, 3) || []
   );
   const completedPosts = useSelector(state => state.postReducer.completedPosts || []);
@@ -111,27 +107,25 @@ const PostPage = memo(() => {
       )
     : 0;
 
-  // Fetch critical data only once
   React.useEffect(() => {
-    if (!hasFetched) {
+    if (!hasFetched && !initialPost && !initialError) {
       console.log('[PostPage] Starting fetch for slug:', slug);
       setHasFetched(true);
       dispatch(fetchPostBySlug(slug)).then(() => {
-        // Defer non-critical fetches
         if (typeof window !== 'undefined' && window.requestIdleCallback) {
           window.requestIdleCallback(() => {
             Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-          }, { timeout: 5000 });
+          }, { timeout: 3000 });
         } else {
           setTimeout(() => {
             Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
           }, 1000);
         }
-      }).catch(error => {
-        console.error('Fetch post failed:', error);
+      }).catch(err => {
+        console.error('Fetch post failed:', err);
       });
     }
-  }, [dispatch, slug, hasFetched]);
+  }, [dispatch, slug, hasFetched, initialPost, initialError]);
 
   if (error) {
     return (
@@ -171,13 +165,31 @@ const PostPage = memo(() => {
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
         <link rel="preconnect" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
+        {post?.titleImage && (
+          <link
+            rel="preload"
+            as="image"
+            href={`${post.titleImage}?w=280&format=avif&q=75`}
+            media="(max-width: 767px)"
+          />
+        )}
+        {post?.titleImage && (
+          <link
+            rel="preload"
+            as="image"
+            href={`${post.titleImage}?w=600&format=avif&q=75`}
+            media="(min-width: 768px)"
+          />
+        )}
         <style>{criticalCss}</style>
       </Helmet>
       <div className="container">
         <main role="main" aria-label="Main content">
-          <PriorityContent post={post} readTime={readTime} />
+          <Suspense fallback={<div className="loading-overlay"><div className="spinner" /></div>}>
+            <PriorityContent post={post} readTime={readTime} />
+          </Suspense>
           {hasFetched && post && (
-            <Suspense fallback={<div className="placeholder" style={{ minHeight: '500px' }}>Loading additional content...</div>}>
+            <Suspense fallback={<div className="placeholder" style={{ minHeight: '400px' }} />}>
               <PostContentNonCritical
                 post={post}
                 relatedPosts={relatedPosts}
@@ -194,7 +206,7 @@ const PostPage = memo(() => {
         </main>
         {hasFetched && post && (
           <aside className="sidebar-wrapper">
-            <Suspense fallback={<div className="placeholder" style={{ minHeight: '200px' }}>Loading sidebar...</div>}>
+            <Suspense fallback={<div className="placeholder" style={{ minHeight: '200px' }} />}>
               <Sidebar
                 post={post}
                 isSidebarOpen={isSidebarOpen}
@@ -222,5 +234,15 @@ const PostPage = memo(() => {
     </HelmetProvider>
   );
 });
+
+export async function getServerSideProps({ params }) {
+  const { slug } = params;
+  try {
+    const post = await (await import('../actions/postActions')).fetchCriticalPostBySlug(slug)();
+    return { props: { initialPost: post, initialError: null } };
+  } catch (error) {
+    return { props: { initialPost: null, initialError: error.message } };
+  }
+}
 
 export default PostPage;
