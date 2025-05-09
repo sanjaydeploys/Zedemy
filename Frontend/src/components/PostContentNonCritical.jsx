@@ -82,7 +82,9 @@ const ImageContainer = styled.figure`
   }
   @media (max-width: 480px) {
     max-width: 240px;
-    height: 135px;
+    height: 135
+
+px;
     contain-intrinsic-size: 240px 135px;
   }
   @media (max-width: 320px) {
@@ -174,7 +176,7 @@ const Placeholder = styled.div`
   font-size: 0.875rem;
   @media (min-width: 769px) {
     max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '480px' : maxWidth || '480px')};
-    height: ${({ height }) => (height === '157.5px' ? '270px' : height || '270px')};
+    height: ${({ height }) => height === '450px' ? '600px' : (height === '157.5px' ? '270px' : height || '270px')};
   }
   @media (max-width: 480px) {
     max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '240px' : maxWidth || '240px')};
@@ -220,7 +222,6 @@ const ReferencesSection = styled.section`
   width: 100%;
   max-width: 100%;
   min-height: 300px;
-  transition: height 0.2s ease;
 `;
 
 const ReferenceLink = styled.a`
@@ -253,6 +254,15 @@ const NavigationLinks = styled.nav`
     display: inline-flex;
     align-items: center;
     padding: 0.5rem;
+  }
+`;
+
+const RelatedPostsSection = styled.section`
+  width: 100%;
+  max-width: 100%;
+  min-height: 450px;
+  @media (min-width: 769px) {
+    min-height: 600px;
   }
 `;
 
@@ -343,9 +353,11 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
   if (!subtitle) return null;
 
   return (
-    <section id={`subtitle-${index}`} aria-labelledby={`subtitle-${index}-heading`} style={{ minHeight: '400px', transition: 'height 0.2s ease' }}>
-      <SubtitleHeader id={`subtitle-${index}-heading`}>
-        {Array.isArray(parsedTitle) ? parsedTitle.map((elem, i) => (
+    <section id={`subtitle-${index}`} aria-labelledby={`subtitle-${index
+
+}-heading`} style={{ minHeight: '400px' }}>
+      < SubtitleHeader id={`subtitle-${index}-heading`} >
+        { Array.isArray(parsedTitle) ? parsedTitle.map((elem, i) => (
           <React.Fragment key={i}>
             {typeof elem === 'string' ? elem : (
               elem.isInternal ? (
@@ -543,6 +555,39 @@ const LazySubtitleSection = memo(({ subtitle, index, category }) => {
   );
 });
 
+const LazyRelatedPostsSection = memo(({ relatedPosts }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef();
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          startTransition(() => setIsVisible(true));
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '300px', threshold: 0.1 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} style={{ width: '100%', maxWidth: '100%' }}>
+      {isVisible ? (
+        <RelatedPostsSection aria-labelledby="related-posts-heading">
+          <Suspense fallback={<Placeholder height="450px">Loading related posts...</Placeholder>}>
+            <RelatedPosts relatedPosts={relatedPosts} />
+          </Suspense>
+        </RelatedPostsSection>
+      ) : (
+        <Placeholder height="450px">Loading related posts...</Placeholder>
+      )}
+    </div>
+  );
+});
+
 const LazyReferencesSection = memo(({ post }) => {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef();
@@ -712,7 +757,7 @@ const PostContentNonCritical = memo(
         )}
 
         {post.summary && (
-          <section id="summary" aria-labelledby="summary-heading" style={{ minHeight: '200px', transition: 'height 0.2s ease' }}>
+          <section id="summary" aria-labelledby="summary-heading" style={{ minHeight: '200px' }}>
             <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
             <p style={{ fontSize: '1.1rem', lineHeight: '1.7' }}>
               {Array.isArray(parsedSummary) ? parsedSummary.map((elem, i) => (
@@ -759,11 +804,7 @@ const PostContentNonCritical = memo(
           {isCompleted ? 'Completed' : 'Mark as Completed'}
         </CompleteButton>
 
-        <section aria-labelledby="related-posts-heading" style={{ minHeight: '450px', transition: 'height 0.2s ease' }}>
-          <Suspense fallback={<Placeholder height="450px">Loading related posts...</Placeholder>}>
-            <RelatedPosts relatedPosts={relatedPosts} />
-          </Suspense>
-        </section>
+        <LazyRelatedPostsSection relatedPosts={relatedPosts} />
 
         <LazyReferencesSection post={post} />
       </>
