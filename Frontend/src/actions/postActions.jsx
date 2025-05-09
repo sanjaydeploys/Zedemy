@@ -26,7 +26,7 @@ const cache = new Map();
 const parseLinksForPreRender = (text, category) => {
   if (!text) return '';
   const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+|\/[^\s)]+)\)/g;
-  return text.replace(linkRegex, (match, linkText, url) => {
+  return text.slice(0, 1000).replace(linkRegex, (match, linkText, url) => {
     const isInternal = url.startsWith('/');
     return isInternal
       ? `<a href="${url}" class="text-blue-600 hover:text-blue-800" aria-label="Navigate to ${linkText}">${linkText}</a>`
@@ -35,7 +35,7 @@ const parseLinksForPreRender = (text, category) => {
 };
 
 export const fetchCriticalPostBySlug = (slug) => async () => {
-  console.log('[fetchCriticalPostBySlug] Fetching critical post by slug:', slug);
+  console.log('[fetchCriticalPostBySlug] Fetching critical post:', slug);
   const cacheKey = `critical-post-${slug}`;
   if (cache.has(cacheKey)) {
     return cache.get(cacheKey);
@@ -58,7 +58,7 @@ export const fetchCriticalPostBySlug = (slug) => async () => {
 };
 
 export const fetchPostBySlug = (slug) => async dispatch => {
-  console.log('[fetchPostBySlug] Fetching post by slug:', slug);
+  console.log('[fetchPostBySlug] Fetching post:', slug);
   const cacheKey = `post-${slug}`;
   if (cache.has(cacheKey)) {
     dispatch({ type: FETCH_POST_SUCCESS, payload: cache.get(cacheKey) });
@@ -67,9 +67,6 @@ export const fetchPostBySlug = (slug) => async dispatch => {
   try {
     const res = await axios.get(`${API_BASE_URL}/post/${slug}`);
     const contentField = res.data.content || res.data.body || res.data.text || '';
-    if (!contentField) {
-      console.warn('[fetchPostBySlug] No content field found:', res.data);
-    }
     const post = {
       ...res.data,
       preRenderedContent: parseLinksForPreRender(contentField, res.data.category),
@@ -87,7 +84,7 @@ export const fetchPostBySlug = (slug) => async dispatch => {
 };
 
 export const searchPosts = (query) => async dispatch => {
-  console.log('[searchPosts] Searching posts with query:', query);
+  console.log('[searchPosts] Searching posts:', query);
   try {
     const res = await axios.get(`${API_BASE_URL}/search?query=${encodeURIComponent(query)}`);
     dispatch({ type: SEARCH_POSTS_SUCCESS, payload: res.data });
@@ -138,86 +135,59 @@ export const fetchUserPosts = () => async (dispatch) => {
 
 export const addPost = (title, content, category, subtitles, summary, titleImage, superTitles, titleVideo, titleImageHash, videoHash) => async (dispatch, getState) => {
   const token = localStorage.getItem('token');
-  console.log('[addPost] Starting add post process...');
+  console.log('[addPost] Starting add post...');
   if (!token) {
     console.error('[addPost] No auth token found');
     toast.error('Please log in to add a post.', { position: 'top-right', autoClose: 2000 });
     return;
   }
-
-  console.log('[addPost] Token found, adding new post...');
+  console.log('[addPost] Token found, adding post...');
   const { user } = getState().auth || JSON.parse(localStorage.getItem('user') || '{}');
   if (!user) {
-    console.error('[addPost] User not found in state or localStorage');
+    console.error('[addPost] User not found');
     return;
   }
-
   const postData = { 
-    title, 
-    content, 
-    category, 
-    subtitles, 
-    summary, 
-    titleImage, 
-    superTitles, 
-    titleVideo, 
-    titleImageHash, 
-    videoHash, 
-    author: user.name 
+    title, content, category, subtitles, summary, titleImage, superTitles, titleVideo, titleImageHash, videoHash, author: user.name 
   };
-  console.log('[addPost] Sending post data to backend:', postData);
-
   try {
     setAuthToken(token);
-    const res = await axios.post(API_BASE_URL, postData, {
-      headers: { 'x-auth-token': token }
-    });
+    const res = await axios.post(API_BASE_URL, postData, { headers: { 'x-auth-token': token } });
     dispatch({ type: ADD_POST_SUCCESS, payload: res.data });
     toast.success('Post added successfully!', { position: 'top-right', autoClose: 2000 });
-
-    console.log('[addPost] Fetching users to notify for category:', category);
-    const usersToNotify = await axios.get(`https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/users/category/${category}`, {
+    console.log('[addPost] Fetching users to notify:', category);
+    await axios.get(`https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/users/category/${category}`, {
       headers: { 'x-auth-token': token }
     });
   } catch (error) {
-    console.error('[addPost] Error adding post:', {
-      message: error.message,
-      response: error.response ? error.response.data : 'No response'
-    });
+    console.error('[addPost] Error:', { message: error.message, response: error.response?.data });
     toast.error('Failed to add post.', { position: 'top-right', autoClose: 2000 });
   }
 };
 
 export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
-  console.log('[markPostAsCompleted] Starting process with postId:', postId);
+  console.log('[markPostAsCompleted] Starting:', postId);
   if (!postId) {
-    console.error('[markPostAsCompleted] Invalid postId: undefined');
-    toast.error('Invalid post ID. Please try again.', { position: 'top-right', autoClose: 2000 });
+    console.error('[markPostAsCompleted] Invalid postId');
+    toast.error('Invalid post ID.', { position: 'top-right', autoClose: 2000 });
     return;
   }
-
   const token = localStorage.getItem('token');
   if (!token) {
-    console.error('[markPostAsCompleted] No auth token found');
+    console.error('[markPostAsCompleted] No auth token');
     toast.error('Please log in to mark posts as completed.', { position: 'top-right', autoClose: 2000 });
     return;
   }
-
-  console.log('[markPostAsCompleted] Token found, checking completed posts...');
   const { completedPosts = [] } = getState().postReducer || {};
   if (completedPosts.some(post => post.postId === postId)) {
-    console.log('[markPostAsCompleted] Post already marked as completed:', postId);
+    console.log('[markPostAsCompleted] Post already completed:', postId);
     toast.info('This post is already marked as completed.', { position: 'top-right', autoClose: 2000 });
     return;
   }
-
   try {
     setAuthToken(token);
-    const res = await axios.put(`${API_BASE_URL}/complete/${postId}`, {}, {
-      headers: { 'x-auth-token': token }
-    });
+    const res = await axios.put(`${API_BASE_URL}/complete/${postId}`, {}, { headers: { 'x-auth-token': token } });
     dispatch({ type: MARK_POST_COMPLETED_SUCCESS, payload: { postId } });
-
     if (res.data.certificateUrl) {
       console.log('[markPostAsCompleted] Certificate issued:', res.data.certificateUrl);
       toast.success(`Category completed! Certificate issued: ${res.data.certificateUrl}`, {
@@ -227,39 +197,29 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
       });
       dispatch(fetchCertificates());
     } else {
-      console.log('[markPostAsCompleted] Post marked as completed, no certificate issued');
+      console.log('[markPostAsCompleted] Post marked as completed');
       toast.success('Post marked as completed!', { position: 'top-right', autoClose: 2000 });
     }
-
     dispatch(fetchCompletedPosts());
   } catch (error) {
-    console.error('[markPostAsCompleted] Error:', {
-      message: error.message,
-      response: error.response ? error.response.data : 'No response'
-    });
+    console.error('[markPostAsCompleted] Error:', { message: error.message, response: error.response?.data });
     toast.error(error.response?.data?.msg || 'Failed to mark post as completed.', { position: 'top-right', autoClose: 2000 });
   }
 };
 
 export const fetchCompletedPosts = () => async dispatch => {
   const token = localStorage.getItem('token');
-  console.log('[fetchCompletedPosts] Starting fetch process...');
+  console.log('[fetchCompletedPosts] Starting...');
   if (!token) {
-    console.log('[fetchCompletedPosts] No token found, skipping fetch');
+    console.log('[fetchCompletedPosts] No token found');
     return;
   }
-
   setAuthToken(token);
   try {
-    const res = await axios.get(`${API_BASE_URL}/completed`, {
-      headers: { 'x-auth-token': token }
-    });
+    const res = await axios.get(`${API_BASE_URL}/completed`, { headers: { 'x-auth-token': token } });
     dispatch({ type: FETCH_COMPLETED_POSTS_SUCCESS, payload: res.data });
   } catch (error) {
-    console.error('[fetchCompletedPosts] Error:', {
-      message: error.message,
-      response: error.response ? error.response.data : 'No response'
-    });
+    console.error('[fetchCompletedPosts] Error:', { message: error.message, response: error.response?.data });
     dispatch({ type: FETCH_COMPLETED_POSTS_FAILURE });
     toast.error('Failed to fetch completed posts.', { position: 'top-right', autoClose: 2000 });
   }
