@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, memo, Suspense, useDeferredValue, startTransition, useMemo } from 'react';
+import React, { useState, useEffect, useRef, memo, Suspense, useDeferredValue, startTransition } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPostBySlug, fetchCompletedPosts, fetchPosts } from '../actions/postActions';
 import { useParams } from 'react-router-dom';
@@ -177,42 +177,6 @@ const PostPage = memo(() => {
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
         <link rel="preconnect" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
-        {post.titleImage && (
-          <link
-            rel="preload"
-            href={`${post.titleImage}?w=100&format=avif&q=1`}
-            as="image"
-            fetchpriority="high"
-            imagesrcset={`
-              ${post.titleImage}?w=100&format=avif&q=1 100w,
-              ${post.titleImage}?w=150&format=avif&q=1 150w,
-              ${post.titleImage}?w=200&format=avif&q=1 200w,
-              ${post.titleImage}?w=240&format=avif&q=1 240w,
-              ${post.titleImage}?w=280&format=avif&q=1 280w,
-              ${post.titleImage}?w=480&format=avif&q=1 480w
-            `}
-            imagesizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
-          />
-        )}
-        <meta property="og:title" content={`${post.title} | Zedemy`} />
-        <meta property="og:description" content={truncateText(post.summary || post.content, 160)} />
-        <meta
-          property="og:image"
-          content={post.titleImage ? `${post.titleImage}?w=1200&format=avif&q=1` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
-        />
-        <meta property="og:image:alt" content={`${post.title} tutorial`} />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="675" />
-        <meta property="og:url" content={`https://zedemy.vercel.app/post/${slug}`} />
-        <meta property="og:type" content="article" />
-        <meta property="og:site_name" content="Zedemy" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={`${post.title} | Zedemy`} />
-        <meta name="twitter:description" content={truncateText(post.summary || post.content, 160)} />
-        <meta
-          name="twitter:image"
-          content={post.titleImage ? `${post.titleImage}?w=1200&format=avif&q=1` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
-        />
         <style>{css}</style>
       </Helmet>
       <div className="container">
