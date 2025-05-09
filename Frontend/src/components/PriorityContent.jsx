@@ -1,12 +1,15 @@
 import React, { memo, useMemo } from 'react';
+import { parseLinks } from './utils';
 
-const css = `
+const criticalCss = `
   .post-header { 
     font-size: clamp(1.5rem, 3vw, 2rem); 
     color: #011020; 
     margin: 0.75rem 0; 
     width: 100%; 
     max-width: 100%; 
+    font-weight: 700;
+    line-height: 1.2;
   }
   .content-section { 
     font-size: 0.875rem; 
@@ -27,22 +30,24 @@ const css = `
     height: 157.5px; 
     background: #e0e0e0; 
   }
-  .image-loaded { 
-    background: transparent; 
-  }
   .post-image { 
     width: 100%; 
     max-width: 280px; 
     height: 157.5px; 
     object-fit: contain; 
     border-radius: 0.375rem; 
-    position: relative; 
+    position: absolute; 
+    top: 0; 
+    left: 0; 
     z-index: 2; 
   }
   .meta-info { 
     color: #666; 
     font-size: 0.75rem; 
     margin-bottom: 0.75rem; 
+    display: flex; 
+    gap: 0.5rem; 
+    flex-wrap: wrap; 
   }
   .skeleton-image { 
     width: 100%; 
@@ -130,6 +135,7 @@ const css = `
 `;
 
 const PriorityContent = memo(({ post, readTime }) => {
+  console.log('[PriorityContent] Rendering with post:', post?.title, 'readTime:', readTime);
 
   const formattedDate = useMemo(() => {
     return post?.date && !isNaN(new Date(post.date).getTime())
@@ -140,6 +146,10 @@ const PriorityContent = memo(({ post, readTime }) => {
         })
       : 'Unknown Date';
   }, [post?.date]);
+
+  const parsedContent = useMemo(() => {
+    return post?.content ? parseLinks(post.content, post?.category || '') : ['Loading content...'];
+  }, [post?.content, post?.category]);
 
   if (!post) {
     return (
@@ -152,7 +162,7 @@ const PriorityContent = memo(({ post, readTime }) => {
         <section className="content-section">
           <div className="skeleton-content" />
         </section>
-        <style>{css}</style>
+        <style>{criticalCss}</style>
       </article>
     );
   }
@@ -192,9 +202,9 @@ const PriorityContent = memo(({ post, readTime }) => {
         </div>
       </header>
       <section className="content-section">
-        <div>{post.content || 'Loading content...'}</div>
+        <div>{parsedContent}</div>
       </section>
-      <style>{css}</style>
+      <style>{criticalCss}</style>
     </article>
   );
 });
