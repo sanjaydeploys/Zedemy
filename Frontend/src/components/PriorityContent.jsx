@@ -15,24 +15,15 @@ const criticalCss = `
     font-size: 0.875rem;
     line-height: 1.5;
     width: 100%;
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 1rem 0;
     padding: 0;
-    min-height: 60px;
-    contain-intrinsic-size: 100% 60px;
-    text-rendering: optimizeSpeed;
+    min-height: 150px;
+    contain-intrinsic-size: 100% 150px;
   }
   .content-wrapper {
     width: 100%;
-    min-height: 60px;
-    contain-intrinsic-size: 100% 60px;
-  }
-  .content-wrapper img {
-    width: 100%;
-    max-width: 280px;
-    height: auto;
-    object-fit: contain;
-    border-radius: 0.25rem;
-    contain-intrinsic-size: 280px 157.5px;
+    min-height: 150px;
+    contain-intrinsic-size: 100% 150px;
   }
   .image-container {
     width: 100%;
@@ -86,9 +77,9 @@ const criticalCss = `
   }
   .skeleton-content {
     width: 100%;
-    min-height: 60px;
-    margin: 0 0 0.5rem 0;
-    contain-intrinsic-size: 100% 60px;
+    min-height: 150px;
+    margin: 0 0 1rem 0;
+    contain-intrinsic-size: 100% 150px;
   }
   .skeleton-paragraph {
     width: 100%;
@@ -126,16 +117,12 @@ const criticalCss = `
     }
     .content-section {
       font-size: 1rem;
-      min-height: 200px;
-      contain-intrinsic-size: 100% 200px;
+      min-height: 220px;
+      contain-intrinsic-size: 100% 220px;
     }
     .content-wrapper {
-      min-height: 200px;
-      contain-intrinsic-size: 100% 200px;
-    }
-    .content-wrapper img {
-      max-width: 600px;
-      contain-intrinsic-size: 600px 337.5px;
+      min-height: 220px;
+      contain-intrinsic-size: 100% 220px;
     }
     .image-container {
       max-width: 600px;
@@ -156,8 +143,8 @@ const criticalCss = `
       contain-intrinsic-size: 80% 32px;
     }
     .skeleton-content {
-      min-height: 200px;
-      contain-intrinsic-size: 100% 200px;
+      min-height: 220px;
+      contain-intrinsic-size: 100% 220px;
     }
     .skeleton-paragraph {
       height: 100px;
@@ -176,15 +163,7 @@ const criticalCss = `
 `;
 
 const PriorityContent = memo(({ post, readTime }) => {
-  if (typeof window !== 'undefined' && window.requestIdleCallback) {
-    window.requestIdleCallback(() => {
-      console.log('[PriorityContent] Rendering with post:', post);
-    });
-  } else {
-    setTimeout(() => {
-      console.log('[PriorityContent] Rendering with post:', post);
-    }, 0);
-  }
+  console.log('[PriorityContent] Rendering with post:', post);
 
   if (!post || !post.title) {
     return (
