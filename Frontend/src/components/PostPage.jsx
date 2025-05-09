@@ -103,12 +103,11 @@ const PostPage = memo(() => {
   }, [post.content, post.summary]);
 
   React.useEffect(() => {
-    if (!post?.postId) {
-      console.log('[PostPage] No post found, fetching for slug:', slug);
-      dispatch(fetchPostBySlug(slug)).catch((err) => {
-        console.error('Fetch post failed:', err);
-      });
-    }
+    console.log('[PostPage] Fetching post for slug:', slug);
+    dispatch(fetchPostBySlug(slug)).catch((err) => {
+      console.error('Fetch post failed:', err);
+    });
+
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
       window.requestIdleCallback(
         () => {
@@ -119,7 +118,7 @@ const PostPage = memo(() => {
         { timeout: 500 }
       );
     }
-  }, [dispatch, slug, post?.postId]);
+  }, [dispatch, slug]);
 
   if (error) {
     return (
