@@ -38,7 +38,7 @@ const initialState = {
         posts: persistedState.postReducer?.posts || [],
         userPosts: persistedState.postReducer?.userPosts || [],
         completedPosts: persistedState.postReducer?.completedPosts || [],
-        post: null, // Do not persist individual post
+        post: persistedState.postReducer?.post || null,
         loading: persistedState.postReducer?.loading || false,
         searchResults: persistedState.postReducer?.searchResults || [],
         error: persistedState.postReducer?.error || null
@@ -122,7 +122,7 @@ store.subscribe(
                 posts: state.postReducer.posts,
                 userPosts: state.postReducer.userPosts,
                 completedPosts: state.postReducer.completedPosts,
-                post: null, // Do not persist individual post
+                post: state.postReducer.post,
                 loading: state.postReducer.loading,
                 searchResults: state.postReducer.searchResults,
                 error: state.postReducer.error
