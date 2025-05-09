@@ -20,6 +20,11 @@ const criticalCss = `
     min-height: 150px;
     contain-intrinsic-size: 100% 150px;
   }
+  .content-wrapper {
+    width: 100%;
+    min-height: 150px;
+    contain-intrinsic-size: 100% 150px;
+  }
   .image-container {
     width: 100%;
     max-width: 280px;
@@ -76,6 +81,23 @@ const criticalCss = `
     margin: 0 0 1rem 0;
     contain-intrinsic-size: 100% 150px;
   }
+  .skeleton-paragraph {
+    width: 100%;
+    height: 60px;
+    margin-bottom: 10px;
+    background: #e0e0e0;
+    border-radius: 0.25rem;
+    animation: pulse 1.5s ease-in-out infinite;
+    contain-intrinsic-size: 100% 60px;
+  }
+  .skeleton-content-container {
+    width: 100%;
+    min-height: 130px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    contain-intrinsic-size: 100% 130px;
+  }
   .skeleton-meta {
     width: 100px;
     height: 16px;
@@ -95,8 +117,12 @@ const criticalCss = `
     }
     .content-section {
       font-size: 1rem;
-      min-height: 200px;
-      contain-intrinsic-size: 100% 200px;
+      min-height: 220px;
+      contain-intrinsic-size: 100% 220px;
+    }
+    .content-wrapper {
+      min-height: 220px;
+      contain-intrinsic-size: 100% 220px;
     }
     .image-container {
       max-width: 600px;
@@ -117,8 +143,16 @@ const criticalCss = `
       contain-intrinsic-size: 80% 32px;
     }
     .skeleton-content {
-      min-height: 200px;
-      contain-intrinsic-size: 100% 200px;
+      min-height: 220px;
+      contain-intrinsic-size: 100% 220px;
+    }
+    .skeleton-paragraph {
+      height: 100px;
+      contain-intrinsic-size: 100% 100px;
+    }
+    .skeleton-content-container {
+      min-height: 210px;
+      contain-intrinsic-size: 100% 210px;
     }
     .skeleton-meta {
       width: 120px;
@@ -146,7 +180,12 @@ const PriorityContent = memo(({ post, readTime }) => {
           </div>
         </header>
         <section className="content-section" aria-hidden="true">
-          <div className="skeleton skeleton-content" />
+          <div className="skeleton skeleton-content">
+            <div className="skeleton-content-container">
+              <div className="skeleton-paragraph" />
+              <div className="skeleton-paragraph" />
+            </div>
+          </div>
         </section>
         <style>{criticalCss}</style>
       </article>
@@ -192,12 +231,12 @@ const PriorityContent = memo(({ post, readTime }) => {
           <span> | Read time: <span id="read-time">{readTime || '0'}</span> min</span>
         </div>
       </header>
-      <section
-        className="content-section"
-        role="region"
-        aria-label="Post content"
-        dangerouslySetInnerHTML={{ __html: post.preRenderedContent || post.content || '' }}
-      />
+      <section className="content-section" role="region" aria-label="Post content">
+        <div
+          className="content-wrapper"
+          dangerouslySetInnerHTML={{ __html: post.preRenderedContent || post.content || '' }}
+        />
+      </section>
       <style>{criticalCss}</style>
     </article>
   );
