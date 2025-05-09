@@ -15,13 +15,9 @@ const criticalCss = `
     width: 100%; 
     min-height: 300px; 
     opacity: 1;
-    transition: opacity 0.3s ease;
   }
   .content-section div { 
     margin: 0.5rem 0; 
-  }
-  .content-loading { 
-    opacity: 0;
   }
   .image-container { 
     width: 100%; 
@@ -30,7 +26,6 @@ const criticalCss = `
     position: relative; 
     aspect-ratio: 16 / 9; 
     height: 157.5px; 
-    background: #e0e0e0; 
   }
   .post-image { 
     width: 100%; 
@@ -84,8 +79,6 @@ const criticalCss = `
 
 const PriorityContent = memo(({ post, readTime }) => {
   console.log('[PriorityContent] Rendering with post:', post);
-  console.log('[PriorityContent] preRenderedContent:', post?.preRenderedContent);
-  console.log('[PriorityContent] raw content:', post?.content);
 
   if (!post) {
     return (
@@ -118,13 +111,18 @@ const PriorityContent = memo(({ post, readTime }) => {
         {post.titleImage && (
           <div className="image-container">
             <img
-              src={`${post.titleImage}?w=280&format=avif&q=1`}
+              src={`${post.titleImage}?w=280&format=avif&q=75`}
               alt={post.title || 'Post image'}
               className="post-image"
               width="280"
               height="157.5"
               decoding="async"
-              onError={() => console.error('Title Image Failed:', post.titleImage)}
+              loading="eager"
+              fetchpriority="high"
+              onError={(e) => {
+                console.error('Title Image Failed:', post.titleImage);
+                e.target.style.display = 'none';
+              }}
             />
           </div>
         )}
@@ -135,7 +133,7 @@ const PriorityContent = memo(({ post, readTime }) => {
           <span> | Read time: <span id="read-time">{readTime || '0'}</span> min</span>
         </div>
       </header>
-      <section className={`content-section ${!post.preRenderedContent && !post.content ? 'content-loading' : ''}`}>
+      <section className="content-section">
         {post.preRenderedContent ? (
           <div dangerouslySetInnerHTML={{ __html: post.preRenderedContent }} />
         ) : post.content ? (
