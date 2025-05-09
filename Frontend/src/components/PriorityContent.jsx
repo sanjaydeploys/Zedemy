@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 
 const criticalCss = `
   .post-header {
@@ -8,15 +8,21 @@ const criticalCss = `
     width: 100%;
     font-weight: 700;
     line-height: 1.2;
+    min-height: 1.5rem;
   }
   .content-section {
     font-size: 0.875rem;
     line-height: 1.5;
     width: 100%;
-    min-height: 200px;
+    min-height: 100px;
     box-sizing: border-box;
+    overflow: hidden;
+    transition: none;
+    margin: 0.5rem 0;
   }
-  .content-section div {
+  .content-wrapper {
+    width: 100%;
+    min-height: 100px;
     margin: 0.5rem 0;
   }
   .image-container {
@@ -24,13 +30,15 @@ const criticalCss = `
     max-width: 280px;
     margin: 0.5rem 0;
     aspect-ratio: 16 / 9;
-    height: 157.5px;
     position: relative;
+    min-height: 157.5px;
   }
   .post-image {
     width: 100%;
-    height: 157.5px;
-    object-fit: cover;
+    max-width: 280px;
+    max-height: 100%;
+    height: auto;
+    object-fit: contain;
     border-radius: 0.25rem;
     position: absolute;
     top: 0;
@@ -43,6 +51,7 @@ const criticalCss = `
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
+    min-height: 1rem;
   }
   .skeleton-image {
     width: 100%;
@@ -51,17 +60,13 @@ const criticalCss = `
     background: #e0e0e0;
     border-radius: 0.25rem;
     margin: 0.5rem 0;
+    position: absolute;
+    top: 0;
+    left: 0;
   }
   .skeleton-header {
     width: 60%;
     height: 1.25rem;
-    background: #e0e0e0;
-    border-radius: 0.25rem;
-    margin: 0.5rem 0;
-  }
-  .skeleton-meta {
-    width: 40%;
-    height: 0.75rem;
     background: #e0e0e0;
     border-radius: 0.25rem;
     margin: 0.5rem 0;
@@ -76,18 +81,22 @@ const criticalCss = `
   @media (min-width: 768px) {
     .post-header {
       font-size: 1.5rem;
+      min-height: 1.8rem;
     }
     .content-section {
       font-size: 0.9rem;
-      min-height: 300px;
+      min-height: 100px;
+      margin: 0.25rem 0;
+    }
+    .content-wrapper {
+      min-height: 100px;
     }
     .image-container {
       max-width: 600px;
-      height: 337.5px;
+      min-height: 337.5px;
     }
     .post-image {
       max-width: 600px;
-      height: 337.5px;
     }
     .skeleton-image {
       max-width: 600px;
@@ -102,6 +111,56 @@ const criticalCss = `
   }
 `;
 
+const TextContent = ({ content, category }) => {
+  const parsedContent = useMemo(() => {
+    if (!content) return [];
+    const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+|\/[^\s)]+)\)/g;
+    const elements = [];
+    let lastIndex = 0;
+    let match;
+    while ((match = linkRegex.exec(content)) !== null) {
+      const [fullMatch, linkText, url] = match;
+      if (match.index > lastIndex) {
+        elements.push(<span key={`text-${lastIndex}`}>{content.slice(lastIndex, match.index)}</span>);
+      }
+      elements.push(
+        url.startsWith('/') ? (
+          <a
+            key={`link-${match.index}`}
+            href={url}
+            className="text-blue-600 hover:text-blue-800"
+            aria-label={`Navigate to ${linkText}`}
+          >
+            {linkText}
+          </a>
+        ) : (
+          <a
+            key={`link-${match.index}`}
+            href={url}
+            target="_blank"
+            rel="noopener"
+            className="text-blue-600 hover:text-blue-800"
+            aria-label={`Visit ${linkText}`}
+          >
+            {linkText}
+          </a>
+        )
+      );
+      lastIndex = match.index + fullMatch.length;
+    }
+    if (lastIndex < content.length) {
+      elements.push(<span key={`text-${lastIndex}`}>{content.slice(lastIndex)}</span>);
+    }
+    return elements;
+  }, [content, category]);
+
+  return (
+    <div className="content-wrapper" role="region" aria-label="Post content">
+      {parsedContent}
+    </div>
+  );
+};
+
 const PriorityContent = memo(({ post, readTime }) => {
   console.log('[PriorityContent] Rendering with post:', post);
 
@@ -109,9 +168,13 @@ const PriorityContent = memo(({ post, readTime }) => {
     return (
       <article>
         <header>
-          <div className="skeleton-image" />
+          <div className="image-container">
+            <div className="skeleton-image" />
+          </div>
           <div className="skeleton-header" />
-          <div className="skeleton-meta" />
+          <div className="meta-info">
+            <div className="skeleton-meta" />
+          </div>
         </header>
         <section className="content-section">
           <div className="skeleton-content" />
@@ -145,7 +208,6 @@ const PriorityContent = memo(({ post, readTime }) => {
               alt={post.title || 'Post image'}
               className="post-image"
               width="280"
-              height="157.5"
               decoding="async"
               loading="eager"
               fetchpriority="high"
@@ -164,7 +226,7 @@ const PriorityContent = memo(({ post, readTime }) => {
         </div>
       </header>
       <section className="content-section">
-        <div dangerouslySetInnerHTML={{ __html: post.preRenderedContent || post.content || '' }} />
+        <TextContent content={post.preRenderedContent || post.content || ''} category={post.category} />
       </section>
       <style>{criticalCss}</style>
     </article>
