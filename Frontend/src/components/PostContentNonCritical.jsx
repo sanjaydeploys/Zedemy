@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, memo, useCallback, Suspense, startTransition } from 'react';
-import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { slugify } from './utils';
@@ -9,7 +8,13 @@ const RelatedPosts = React.lazy(() => import('./RelatedPosts'));
 const AccessibleZoom = React.lazy(() => import('./AccessibleZoom'));
 const ComparisonTable = React.lazy(() => import('./ComparisonTable'));
 const CodeHighlighter = React.lazy(() => import('./CodeHighlighter'));
+import styled, { keyframes } from 'styled-components';
 
+const pulse = keyframes`
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+`;
 const SubtitleHeader = styled.h2`
   font-size: clamp(1.25rem, 3vw, 1.5rem);
   color: #011020;
@@ -19,6 +24,8 @@ const SubtitleHeader = styled.h2`
   padding-left: 0.5rem;
   width: 100%;
   max-width: 100%;
+  min-height: 24px;
+  contain-intrinsic-size: 100% 24px;
 `;
 
 const CompleteButton = styled.button`
@@ -90,10 +97,6 @@ const ImageContainer = styled.figure`
     height: 112.5px;
     contain-intrinsic-size: 200px 112.5px;
   }
-`;
-
-const ImageLoaded = styled.div`
-  background: transparent;
 `;
 
 const PostImage = styled.img`
@@ -173,10 +176,11 @@ const Placeholder = styled.div`
   border-radius: 0.375rem;
   font-size: 0.875rem;
   contain-intrinsic-size: ${({ maxWidth, height }) => `${maxWidth || '280px'} ${height || '157.5px'}`};
+  animation: ${pulse} 1.5s ease-in-out infinite;
   @media (min-width: 769px) {
     max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '480px' : maxWidth || '480px')};
-    height: ${({ height }) => height === '450px' ? '1000px' : (height === '157.5px' ? '270px' : height || '270px')};
-    contain-intrinsic-size: ${({ maxWidth, height }) => `${maxWidth === '280px' ? '480px' : maxWidth || '480px'} ${height === '450px' ? '1000px' : (height === '157.5px' ? '270px' : height || '270px')}`};
+    height: ${({ height }) => (height === '157.5px' ? '270px' : height || '270px')};
+    contain-intrinsic-size: ${({ maxWidth, height }) => `${maxWidth === '280px' ? '480px' : maxWidth || '480px'} ${height === '157.5px' ? '270px' : height || '270px'}`};
   }
   @media (max-width: 480px) {
     max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '240px' : maxWidth || '240px')};
@@ -202,6 +206,7 @@ const SectionPlaceholder = styled.div`
   border-radius: 0.375rem;
   font-size: 0.875rem;
   contain-intrinsic-size: 100% ${({ minHeight }) => minHeight || '400px'};
+  animation: pulse 1.5s ease-in-out infinite;
 `;
 
 const ReferencesPlaceholder = styled.div`
@@ -216,6 +221,7 @@ const ReferencesPlaceholder = styled.div`
   border-radius: 0.375rem;
   font-size: 0.875rem;
   contain-intrinsic-size: 100% 500px;
+  animation: pulse 1.5s ease-in-out infinite;
 `;
 
 const ReferencesSection = styled.section`
@@ -226,6 +232,7 @@ const ReferencesSection = styled.section`
   width: 100%;
   max-width: 100%;
   min-height: ${({ referenceCount }) => 50 + referenceCount * 48 + 32}px;
+  contain-intrinsic-size: 100% ${({ referenceCount }) => 50 + referenceCount * 48 + 32}px;
 `;
 
 const ReferenceLink = styled.a`
@@ -265,11 +272,109 @@ const NavigationLinks = styled.nav`
 const RelatedPostsSection = styled.section`
   width: 100%;
   max-width: 100%;
-  min-height: 450px;
+  padding: 1rem 0;
+`;
+
+const SkeletonRelatedPost = styled.div`
+  width: 100%;
+  max-width: 280px;
+  margin: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  contain-intrinsic-size: 280px 260px;
   @media (min-width: 769px) {
-    min-height: 1000px;
+    max-width: 480px;
+    contain-intrinsic-size: 480px 380px;
+  }
+  @media (max-width: 480px) {
+    max-width: 240px;
+    contain-intrinsic-size: 240px 230px;
+  }
+  @media (max-width: 320px) {
+    max-width: 200px;
+    contain-intrinsic-size: 200px 200px;
   }
 `;
+
+const SkeletonImage = styled.div`
+  width: 100%;
+  max-width: 280px;
+  height: 157.5px;
+  background: #e0e0e0;
+  border-radius: 0.375rem;
+  animation: pulse 1.5s ease-in-out infinite;
+  contain-intrinsic-size: 280px 157.5px;
+  @media (min-width: 769px) {
+    max-width: 480px;
+    height: 270px;
+    contain-intrinsic-size: 480px 270px;
+  }
+  @media (max-width: 480px) {
+    max-width: 240px;
+    height: 135px;
+    contain-intrinsic-size: 240px 135px;
+  }
+  @media (max-width: 320px) {
+    max-width: 200px;
+    height: 112.5px;
+    contain-intrinsic-size: 200px 112.5px;
+  }
+`;
+
+const SkeletonTitle = styled.div`
+  width: 80%;
+  height: 24px;
+  background: #e0e0e0;
+  border-radius: 0.25rem;
+  animation: pulse 1.5s ease-in-out infinite;
+  contain-intrinsic-size: 80% 24px;
+  @media (min-width: 769px) {
+    height: 32px;
+    contain-intrinsic-size: 80% 32px;
+  }
+`;
+
+const SkeletonExcerpt = styled.div`
+  width: 100%;
+  height: 60px;
+  background: #e0e0e0;
+  border-radius: 0.25rem;
+  animation: pulse 1.5s ease-in-out infinite;
+  contain-intrinsic-size: 100% 60px;
+  @media (min-width: 769px) {
+    height: 80px;
+    contain-intrinsic-size: 100% 80px;
+  }
+`;
+
+const SkeletonRelatedPostsContainer = styled.div`
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 0;
+  contain-intrinsic-size: 100% 820px;
+  @media (min-width: 769px) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+    gap: 1.5rem;
+    contain-intrinsic-size: 100% 450px;
+  }
+`;
+
+const SkeletonRelatedPosts = () => (
+  <SkeletonRelatedPostsContainer aria-hidden="true">
+    {Array.from({ length: 3 }).map((_, i) => (
+      <SkeletonRelatedPost key={i}>
+        <SkeletonImage />
+        <SkeletonTitle />
+        <SkeletonExcerpt />
+      </SkeletonRelatedPost>
+    ))}
+  </SkeletonRelatedPostsContainer>
+);
 
 const debounce = (func, wait) => {
   let timeout;
@@ -358,7 +463,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
   if (!subtitle) return null;
 
   return (
-    <section id={`subtitle-${index}`} aria-labelledby={`subtitle-${index}-heading`} style={{ minHeight: '400px' }}>
+    <section id={`subtitle-${index}`} aria-labelledby={`subtitle-${index}-heading`} style={{ minHeight: '400px', containIntrinsicSize: '100% 400px' }}>
       <SubtitleHeader id={`subtitle-${index}-heading`}>
         {Array.isArray(parsedTitle) ? parsedTitle.map((elem, i) => (
           <React.Fragment key={i}>
@@ -577,15 +682,15 @@ const LazyRelatedPostsSection = memo(({ relatedPosts }) => {
   }, []);
 
   return (
-    <div ref={ref} style={{ width: '100%', maxWidth: '100%', minHeight: '450px', containIntrinsicSize: '100% 450px' }}>
+    <div ref={ref} style={{ width: '100%', maxWidth: '100%', containIntrinsicSize: '100% 820px' }}>
       {isVisible ? (
         <RelatedPostsSection aria-labelledby="related-posts-heading">
-          <Suspense fallback={<Placeholder height="450px">Loading related posts...</Placeholder>}>
+          <Suspense fallback={<SkeletonRelatedPosts />}>
             <RelatedPosts relatedPosts={relatedPosts} />
           </Suspense>
         </RelatedPostsSection>
       ) : (
-        <Placeholder height="450px">Loading related posts...</Placeholder>
+        <SkeletonRelatedPosts />
       )}
     </div>
   );
@@ -594,7 +699,7 @@ const LazyRelatedPostsSection = memo(({ relatedPosts }) => {
 const LazyReferencesSection = memo(({ post }) => {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef();
-  const referenceCount = post.references?.length || 2; // Default to 2 for fallback links
+  const referenceCount = post.references?.length || 2;
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -751,7 +856,11 @@ const PostContentNonCritical = memo(
     return (
       <>
         {(post.subtitles || []).map((subtitle, i) => (
-          <LazySubtitleSection key={i} subtitle={subtitle} index={i} category={post.category || ''} />
+          i === 0 ? (
+            <SubtitleSection key={i} subtitle={subtitle} index={i} category={post.category || ''} />
+          ) : (
+            <LazySubtitleSection key={i} subtitle={subtitle} index={i} category={post.category || ''} />
+          )
         ))}
 
         {post.superTitles?.length > 0 && (
