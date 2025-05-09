@@ -10,23 +10,28 @@ const PostContentNonCritical = React.lazy(() => import('./PostContentNonCritical
 const Sidebar = React.lazy(() => import('./Sidebar'));
 const StructuredData = React.lazy(() => import('./StructuredData'));
 
-const css = `
+const criticalCss = `
   .container { 
     display: flex; 
     min-height: 100vh; 
     flex-direction: row; 
     width: 100%; 
     box-sizing: border-box; 
+    position: relative;
   }
   main { 
     flex: 1; 
     padding: 1rem; 
     background: #f4f4f9; 
     box-sizing: border-box; 
+    min-height: 100vh;
   }
   .sidebar-wrapper { 
     width: 250px; 
     flex-shrink: 0; 
+    position: sticky; 
+    top: 0; 
+    height: 100vh;
   }
   .loading-overlay { 
     display: flex; 
@@ -35,6 +40,10 @@ const css = `
     background: rgba(0, 0, 0, 0.5); 
     min-height: 100vh; 
     width: 100%; 
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    z-index: 1000;
   }
   .spinner { 
     width: 50px; 
@@ -85,8 +94,10 @@ const PostPage = memo(() => {
   const [hasFetched, setHasFetched] = useState(false);
 
   const post = useSelector(state => state.postReducer.post);
-  const error = useSelector(state => state.postReducer.error); // Added to handle FETCH_POST_FAILURE
-  const relatedPosts = useSelector(state => state.postReducer.posts?.filter(p => p.postId !== post?.postId && p.category?.toLowerCase() === post?.category?.toLowerCase()).slice(0, 3) || []);
+  const error = useSelector(state => state.postReducer.error);
+  const relatedPosts = useSelector(state => 
+    state.postReducer.posts?.filter(p => p.postId !== post?.postId && p.category?.toLowerCase() === post?.category?.toLowerCase()).slice(0, 3) || []
+  );
   const completedPosts = useSelector(state => state.postReducer.completedPosts || []);
 
   const readTime = post?.content
@@ -100,52 +111,27 @@ const PostPage = memo(() => {
       )
     : 0;
 
-  if (!hasFetched) {
-    console.log('[PostPage] Starting fetch for slug:', slug);
-    startTransition(() => {
+  // Fetch critical data only once
+  React.useEffect(() => {
+    if (!hasFetched) {
+      console.log('[PostPage] Starting fetch for slug:', slug);
       setHasFetched(true);
-      setActiveSection(null);
-    });
-    dispatch(fetchPostBySlug(slug)).then(() => {
-      if (typeof window !== 'undefined' && window.requestIdleCallback) {
-        window.requestIdleCallback(() => {
-          Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-        }, { timeout: 10000 });
-      } else {
-        setTimeout(() => {
-          Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-        }, 10000);
-      }
-    }).catch(error => {
-      console.error('Fetch post failed:', error);
-    });
-  }
-
-  if (!post && !hasFetched) {
-    return (
-      <HelmetProvider>
-        <Helmet>
-          <html lang="en" />
-          <title>Loading... | Zedemy</title>
-          <meta name="description" content="Loading..." />
-          <meta name="keywords" content="Zedemy" />
-          <meta name="author" content="Zedemy Team" />
-          <meta name="robots" content="index, follow, max-image-preview:large" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
-          <style>{css}</style>
-        </Helmet>
-        <div className="container">
-          <main>
-            <PriorityContent post={null} readTime={0} />
-          </main>
-          <aside className="sidebar-wrapper">
-            <div className="placeholder" style={{ minHeight: '200px' }}>Loading sidebar...</div>
-          </aside>
-        </div>
-      </HelmetProvider>
-    );
-  }
+      dispatch(fetchPostBySlug(slug)).then(() => {
+        // Defer non-critical fetches
+        if (typeof window !== 'undefined' && window.requestIdleCallback) {
+          window.requestIdleCallback(() => {
+            Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
+          }, { timeout: 5000 });
+        } else {
+          setTimeout(() => {
+            Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
+          }, 1000);
+        }
+      }).catch(error => {
+        console.error('Fetch post failed:', error);
+      });
+    }
+  }, [dispatch, slug, hasFetched]);
 
   if (error) {
     return (
@@ -159,7 +145,7 @@ const PostPage = memo(() => {
           <meta name="robots" content="noindex" />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
-          <style>{css}</style>
+          <style>{criticalCss}</style>
         </Helmet>
         <div className="container">
           <main>
@@ -172,46 +158,20 @@ const PostPage = memo(() => {
     );
   }
 
-  if (!post) {
-    return (
-      <HelmetProvider>
-        <Helmet>
-          <html lang="en" />
-          <title>Loading... | Zedemy</title>
-          <meta name="description" content="Loading..." />
-          <meta name="keywords" content="Zedemy" />
-          <meta name="author" content="Zedemy Team" />
-          <meta name="robots" content="index, follow, max-image-preview:large" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
-          <style>{css}</style>
-        </Helmet>
-        <div className="container">
-          <div className="loading-overlay" aria-live="polite">
-            <div className="spinner" />
-          </div>
-        </div>
-      </HelmetProvider>
-    );
-  }
-
   return (
     <HelmetProvider>
       <Helmet>
         <html lang="en" />
-        <title>{`${post.title} | Zedemy`}</title>
-        <meta name="description" content={truncateText(post.summary || post.content, 160)} />
-        <meta
-          name="keywords"
-          content={post.keywords ? `${post.keywords}, Zedemy, ${post.category || ''}` : `Zedemy, ${post.category || ''}`}
-        />
-        <meta name="author" content={post.author || 'Zedemy Team'} />
+        <title>{post ? `${post.title} | Zedemy` : 'Loading... | Zedemy'}</title>
+        <meta name="description" content={post ? truncateText(post.summary || post.content, 160) : 'Loading...'} />
+        <meta name="keywords" content={post ? (post.keywords ? `${post.keywords}, Zedemy, ${post.category || ''}` : `Zedemy, ${post.category || ''}`) : 'Zedemy'} />
+        <meta name="author" content={post?.author || 'Zedemy Team'} />
         <meta name="robots" content="index, follow, max-image-preview:large" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
         <link rel="preconnect" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
-        <style>{css}</style>
+        <style>{criticalCss}</style>
       </Helmet>
       <div className="container">
         <main role="main" aria-label="Main content">
