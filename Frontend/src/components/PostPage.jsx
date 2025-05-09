@@ -17,16 +17,21 @@ const criticalCss = `
     min-height: 100vh;
     width: 100%;
     box-sizing: border-box;
+    position: relative;
   }
   main {
     flex: 1;
     padding: 0.5rem;
     background: #f4f4f9;
+    box-sizing: border-box;
     min-height: 100vh;
   }
   .sidebar-wrapper {
-    width: 100%;
-    height: auto;
+    width: 250px;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    box-sizing: border-box;
   }
   .error-message {
     color: #d32f2f;
@@ -37,15 +42,31 @@ const criticalCss = `
     border-radius: 0.25rem;
     margin: 0.5rem;
   }
+  @media (max-width: 768px) {
+    .container {
+      padding-top: 48px;
+    }
+    .sidebar-wrapper {
+      width: min(100%, 300px);
+      position: fixed;
+      top: 0.5rem;
+      right: ${(props) => (props.isSidebarOpen ? '0.5rem' : '-300px')};
+      margin: 0.5rem;
+      height: calc(100vh - 1rem);
+      transition: right 0.3s ease-in-out;
+      z-index: 1000;
+    }
+    main {
+      padding: 0.5rem;
+    }
+  }
   @media (min-width: 768px) {
     .container {
       flex-direction: row;
     }
     .sidebar-wrapper {
-      width: 250px;
-      position: sticky;
-      top: 0;
-      height: 100vh;
+      margin: 0;
+      right: 0;
     }
     main {
       padding: 1rem;
@@ -131,8 +152,8 @@ const PostPage = memo(() => {
     <HelmetProvider>
       <Helmet>
         <html lang="en" />
-        <title>{post ? `${post.title} | Zedemy` : 'Loading... | Zedemy'}</title>
-        <meta name="description" content={post ? truncateText(post.summary || post.content, 160) : 'Loading...'} />
+        <title>{post ? `${post.title} | Zedemy` : 'Zedemy'}</title>
+        <meta name="description" content={post ? truncateText(post.summary || post.content, 160) : 'Loading post content...'} />
         <meta name="keywords" content={post ? (post.keywords ? `${post.keywords}, Zedemy, ${post.category || ''}` : `Zedemy, ${post.category || ''}`) : 'Zedemy'} />
         <meta name="author" content={post?.author || 'Zedemy Team'} />
         <meta name="robots" content="index, follow, max-image-preview:large" />
@@ -178,7 +199,7 @@ const PostPage = memo(() => {
           )}
         </main>
         {hasFetched && post && (
-          <aside className="sidebar-wrapper">
+          <aside className={`sidebar-wrapper ${isSidebarOpen ? 'open' : ''}`}>
             <Suspense fallback={<div style={{ minHeight: '200px' }} />}>
               <Sidebar
                 post={post}
