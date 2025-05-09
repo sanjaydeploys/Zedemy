@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef, memo, Suspense, useDeferredValue, startTransition } from 'react';
+import React, { useState, useEffect, useRef, memo, Suspense, useDeferredValue, startTransition, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPostBySlug, fetchCompletedPosts, fetchPosts } from '../actions/postActions';
 import { useParams } from 'react-router-dom';
-import { truncateText } from './utils';
+import { parseLinks, truncateText } from './utils';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import PriorityContent from './PriorityContent';
 
@@ -44,6 +44,11 @@ const PostPage = memo(() => {
   const post = useSelector(state => state.postReducer.post);
   const relatedPosts = useSelector(state => state.postReducer.posts?.filter(p => p.postId !== post?.postId && p.category?.toLowerCase() === post?.category?.toLowerCase()).slice(0, 3) || []);
   const completedPosts = useSelector(state => state.postReducer.completedPosts || []);
+
+  const preRenderedContent = useMemo(() => {
+    if (!post?.content) return 'Loading content...';
+    return parseLinks(post.content, post?.category || '', true);
+  }, [post?.content, post?.category]);
 
   useEffect(() => {
     console.log('[PostPage] Starting fetch for slug:', slug);
@@ -128,7 +133,7 @@ const PostPage = memo(() => {
         </Helmet>
         <div className="container">
           <main>
-            <PriorityContent post={null} readTime={readTime} />
+            <PriorityContent preRenderedContent="Loading content..." post={null} readTime={readTime} />
           </main>
           <aside className="sidebar-wrapper">
             <div className="placeholder" style={{ height: '1200px' }}>Loading sidebar...</div>
@@ -181,7 +186,7 @@ const PostPage = memo(() => {
       </Helmet>
       <div className="container">
         <main role="main" aria-label="Main content">
-          <PriorityContent post={post} readTime={readTime} />
+          <PriorityContent preRenderedContent={preRenderedContent} post={post} readTime={readTime} />
           {hasFetched && post && (
             <Suspense fallback={<div className="placeholder" style={{ height: '500px' }}>Loading additional content...</div>}>
               <PostContentNonCritical
