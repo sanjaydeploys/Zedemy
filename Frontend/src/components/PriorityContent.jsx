@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useState, useEffect } from 'react';
 import { parseLinks } from './utils';
 
 const criticalCss = `
@@ -16,9 +16,10 @@ const criticalCss = `
     line-height: 1.7; 
     width: 100%; 
     max-width: 100%; 
-    min-height: 200px; 
+    height: 200px; 
+    overflow: hidden; 
   }
-  .content-section p { 
+  .content-section div { 
     margin: 0.5rem 0; 
   }
   .image-container { 
@@ -91,6 +92,12 @@ const criticalCss = `
       max-width: 480px; 
       height: 270px; 
     }
+    .content-section { 
+      height: 300px; 
+    }
+    .skeleton-content { 
+      height: 300px; 
+    }
   }
   @media (max-width: 480px) {
     .image-container { 
@@ -102,7 +109,7 @@ const criticalCss = `
       height: 135px; 
     }
     .content-section { 
-      min-height: 150px; 
+      height: 150px; 
     }
     .skeleton-image { 
       max-width: 240px; 
@@ -122,7 +129,7 @@ const criticalCss = `
       height: 112.5px; 
     }
     .content-section { 
-      min-height: 120px; 
+      height: 120px; 
     }
     .skeleton-image { 
       max-width: 200px; 
@@ -137,6 +144,8 @@ const criticalCss = `
 const PriorityContent = memo(({ post, readTime }) => {
   console.log('[PriorityContent] Rendering with post:', post?.title, 'readTime:', readTime);
 
+  const [isContentReady, setContentReady] = useState(false);
+
   const formattedDate = useMemo(() => {
     return post?.date && !isNaN(new Date(post.date).getTime())
       ? new Date(post.date).toLocaleDateString('en-US', {
@@ -148,8 +157,14 @@ const PriorityContent = memo(({ post, readTime }) => {
   }, [post?.date]);
 
   const parsedContent = useMemo(() => {
-    return post?.content ? parseLinks(post.content, post?.category || '') : ['Loading content...'];
+    return post?.content ? parseLinks(post.content, post?.category || '', true) : 'Loading content...';
   }, [post?.content, post?.category]);
+
+  useEffect(() => {
+    if (post?.content) {
+      setContentReady(true);
+    }
+  }, [post?.content]);
 
   if (!post) {
     return (
@@ -187,9 +202,8 @@ const PriorityContent = memo(({ post, readTime }) => {
               className="post-image"
               width="280"
               height="157.5"
-              fetchpriority="high"
-              decoding="sync"
-              loading="eager"
+              decoding="async"
+              loading="lazy"
               onError={() => console.error('Title Image Failed:', post.titleImage)}
             />
           </div>
@@ -202,7 +216,11 @@ const PriorityContent = memo(({ post, readTime }) => {
         </div>
       </header>
       <section className="content-section">
-        <div>{parsedContent}</div>
+        {isContentReady ? (
+          <div dangerouslySetInnerHTML={{ __html: parsedContent }} />
+        ) : (
+          <div className="skeleton-content" />
+        )}
       </section>
       <style>{criticalCss}</style>
     </article>
