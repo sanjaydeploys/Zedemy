@@ -1,5 +1,4 @@
-import React, { memo, useMemo, useState, useEffect } from 'react';
-import { parseLinks } from './utils';
+import React, { memo, useMemo } from 'react';
 
 const criticalCss = `
   .post-header { 
@@ -141,10 +140,8 @@ const criticalCss = `
   }
 `;
 
-const PriorityContent = memo(({ post, readTime }) => {
+const PriorityContent = memo(({ preRenderedContent, post, readTime }) => {
   console.log('[PriorityContent] Rendering with post:', post?.title, 'readTime:', readTime);
-
-  const [isContentReady, setContentReady] = useState(false);
 
   const formattedDate = useMemo(() => {
     return post?.date && !isNaN(new Date(post.date).getTime())
@@ -155,16 +152,6 @@ const PriorityContent = memo(({ post, readTime }) => {
         })
       : 'Unknown Date';
   }, [post?.date]);
-
-  const parsedContent = useMemo(() => {
-    return post?.content ? parseLinks(post.content, post?.category || '', true) : 'Loading content...';
-  }, [post?.content, post?.category]);
-
-  useEffect(() => {
-    if (post?.content) {
-      setContentReady(true);
-    }
-  }, [post?.content]);
 
   if (!post) {
     return (
@@ -216,11 +203,7 @@ const PriorityContent = memo(({ post, readTime }) => {
         </div>
       </header>
       <section className="content-section">
-        {isContentReady ? (
-          <div dangerouslySetInnerHTML={{ __html: parsedContent }} />
-        ) : (
-          <div className="skeleton-content" />
-        )}
+        <div dangerouslySetInnerHTML={{ __html: preRenderedContent }} />
       </section>
       <style>{criticalCss}</style>
     </article>
