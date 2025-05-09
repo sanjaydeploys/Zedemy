@@ -1,6 +1,6 @@
 import React, { memo, useState } from 'react';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
-import { parseLinks, truncateText } from './utils';
+import { truncateText } from './utils';
 
 const css = `
   .post-header { 
@@ -142,8 +142,6 @@ const PriorityContent = memo(({ post, slug, readTime, structuredData }) => {
       })
     : 'Unknown Date';
 
-  const parsedContent = post?.content ? parseLinks(post.content) : '';
-
   if (!post) {
     return (
       <HelmetProvider>
@@ -265,7 +263,7 @@ const PriorityContent = memo(({ post, slug, readTime, structuredData }) => {
           </div>
         </header>
         <section className="content-section">
-          <div dangerouslySetInnerHTML={{ __html: parsedContent }} />
+          <div>{post.content || 'Loading content...'}</div>
         </section>
       </article>
     </HelmetProvider>
