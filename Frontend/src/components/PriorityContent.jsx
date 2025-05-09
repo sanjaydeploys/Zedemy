@@ -13,10 +13,15 @@ const criticalCss = `
     font-size: 0.875rem; 
     line-height: 1.7; 
     width: 100%; 
-    min-height: 200px; 
+    min-height: 300px; 
+    opacity: 1;
+    transition: opacity 0.3s ease;
   }
   .content-section div { 
     margin: 0.5rem 0; 
+  }
+  .content-loading { 
+    opacity: 0;
   }
   .image-container { 
     width: 100%; 
@@ -70,7 +75,7 @@ const criticalCss = `
   }
   .skeleton-content { 
     width: 100%; 
-    min-height: 200px; 
+    min-height: 300px; 
     background: #e0e0e0; 
     border-radius: 0.375rem; 
     margin: 0.5rem 0; 
@@ -119,7 +124,6 @@ const PriorityContent = memo(({ post, readTime }) => {
               width="280"
               height="157.5"
               decoding="async"
-              loading="lazy"
               onError={() => console.error('Title Image Failed:', post.titleImage)}
             />
           </div>
@@ -131,7 +135,7 @@ const PriorityContent = memo(({ post, readTime }) => {
           <span> | Read time: <span id="read-time">{readTime || '0'}</span> min</span>
         </div>
       </header>
-      <section className="content-section">
+      <section className={`content-section ${!post.preRenderedContent && !post.content ? 'content-loading' : ''}`}>
         {post.preRenderedContent ? (
           <div dangerouslySetInnerHTML={{ __html: post.preRenderedContent }} />
         ) : post.content ? (
