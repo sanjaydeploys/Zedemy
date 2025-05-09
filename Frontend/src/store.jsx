@@ -78,21 +78,38 @@ const throttle = (func, limit) => {
 const initializeStore = async () => {
   const token = localStorage.getItem('token');
   if (token) {
-    console.log('[initializeStore] Token found, restoring auth and fetching data');
+    console.log('[initializeStore] Token found, restoring auth');
     try {
       // Load user first to ensure auth state is set
       await store.dispatch(loadUser());
-      // Fetch followed categories and wait for it to complete
+      // Fetch followed categories
       await store.dispatch(fetchFollowedCategories());
       console.log('[initializeStore] State after fetchFollowedCategories:', store.getState().notifications);
-      // Fetch other data in parallel
-      await Promise.all([
-        store.dispatch(fetchUserPosts()),
-        store.dispatch(fetchCompletedPosts()),
-        store.dispatch(fetchNotifications()),
-        store.dispatch(fetchCertificates()),
-      ]);
-      console.log('[initializeStore] Full state after initialization:', store.getState());
+
+      // Defer non-critical fetches to avoid blocking the initial render
+      if (typeof window !== 'undefined' && window.requestIdleCallback) {
+        window.requestIdleCallback(() => {
+          Promise.all([
+            store.dispatch(fetchUserPosts()),
+            store.dispatch(fetchCompletedPosts()),
+            store.dispatch(fetchNotifications()),
+            store.dispatch(fetchCertificates()),
+          ]).catch(error => {
+            console.error('[initializeStore] Error in deferred fetches:', error);
+          });
+        }, { timeout: 5000 });
+      } else {
+        setTimeout(() => {
+          Promise.all([
+            store.dispatch(fetchUserPosts()),
+            store.dispatch(fetchCompletedPosts()),
+            store.dispatch(fetchNotifications()),
+            store.dispatch(fetchCertificates()),
+          ]).catch(error => {
+            console.error('[initializeStore] Error in deferred fetches:', error);
+          });
+        }, 0);
+      }
     } catch (error) {
       console.error('[initializeStore] Error during initialization:', error);
     }
@@ -101,7 +118,7 @@ const initializeStore = async () => {
   }
 };
 
-// Run initialization and ensure it completes before proceeding
+// Run initialization without awaiting non-critical fetches
 initializeStore().catch(error => {
   console.error('[initializeStore] Initialization failed:', error);
 });
