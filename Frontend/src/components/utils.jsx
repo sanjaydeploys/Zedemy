@@ -1,10 +1,8 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
 
 const linkCache = new Map();
 
 export const parseLinks = (text, category, isHtml = false) => {
-  if (!text) return isHtml ? '' : [text];
+  if (!text) return isHtml ? '' : text;
 
   const cacheKey = `${text}-${category}-${isHtml}`;
   if (linkCache.has(cacheKey)) {
@@ -18,43 +16,11 @@ export const parseLinks = (text, category, isHtml = false) => {
     result = text.replace(linkRegex, (match, linkText, url) => {
       const isInternal = url.startsWith('/');
       return isInternal
-        ? `<a href="${url}" class="text-blue-600 hover:text-blue-800" aria-label="Navigate to ${linkText}">${linkText}</a>`
-        : `<a href="${url}" target="_blank" rel="noopener" class="text-blue-600 hover:text-blue-800" aria-label="Visit ${linkText}">${linkText}</a>`;
+        ? `<a href="${url}" class="text-blue-500 hover:text-blue-700">${linkText}</a>`
+        : `<a href="${url}" target="_blank" rel="noopener" class="text-blue-500 hover:text-blue-700">${linkText}</a>`;
     });
   } else {
-    const elements = [];
-    let lastIndex = 0;
-    let match;
-    while ((match = linkRegex.exec(text)) !== null) {
-      const [fullMatch, linkText, url] = match;
-      if (match.index > lastIndex) {
-        elements.push(text.slice(lastIndex, match.index));
-      }
-      const isInternal = url.startsWith('/');
-      elements.push(
-        isInternal ? (
-          <Link key={`${url}-${match.index}`} to={url} className="text-blue-600 hover:text-blue-800" aria-label={`Navigate to ${linkText}`}>
-            {linkText}
-          </Link>
-        ) : (
-          <a
-            key={`${url}-${match.index}`}
-            href={url}
-            target={url.startsWith('vscode://') ? '_self' : '_blank'}
-            rel="noopener"
-            className="text-blue-600 hover:text-blue-800"
-            aria-label={`Visit ${linkText}`}
-          >
-            {linkText}
-          </a>
-        )
-      );
-      lastIndex = match.index + fullMatch.length;
-    }
-    if (lastIndex < text.length) {
-      elements.push(text.slice(lastIndex));
-    }
-    result = elements.length ? elements : [text || ''];
+    result = text.replace(linkRegex, '$1'); // Simply strip the markdown syntax, keep the link text
   }
 
   linkCache.set(cacheKey, result);
