@@ -17,39 +17,16 @@ const criticalCss = `
     min-height: 100vh;
     width: 100%;
     box-sizing: border-box;
-    position: relative;
   }
   main {
     flex: 1;
     padding: 0.5rem;
     background: #f4f4f9;
-    box-sizing: border-box;
     min-height: 100vh;
   }
   .sidebar-wrapper {
     width: 100%;
-    position: relative;
     height: auto;
-  }
-  .loading-overlay {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: rgba(0, 0, 0, 0.5);
-    min-height: 100vh;
-    width: 100%;
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 1000;
-  }
-  .spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid #2c3e50;
-    border-top: 4px solid transparent;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
   }
   .error-message {
     color: #d32f2f;
@@ -59,10 +36,6 @@ const criticalCss = `
     background: #ffebee;
     border-radius: 0.25rem;
     margin: 0.5rem;
-  }
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
   }
   @media (min-width: 768px) {
     .container {
@@ -80,17 +53,17 @@ const criticalCss = `
   }
 `;
 
-const PostPage = memo(({ initialPost, initialError }) => {
+const PostPage = memo(() => {
   const { slug } = useParams();
   const dispatch = useDispatch();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState(null);
   const deferredActiveSection = useDeferredValue(activeSection);
   const subtitlesListRef = useRef(null);
-  const [hasFetched, setHasFetched] = useState(!!initialPost || !!initialError);
+  const [hasFetched, setHasFetched] = useState(false);
 
-  const post = useSelector(state => state.postReducer.post) || initialPost;
-  const error = useSelector(state => state.postReducer.error) || initialError;
+  const post = useSelector(state => state.postReducer.post);
+  const error = useSelector(state => state.postReducer.error);
   const relatedPosts = useSelector(state =>
     state.postReducer.posts?.filter(p => p.postId !== post?.postId && p.category?.toLowerCase() === post?.category?.toLowerCase()).slice(0, 3) || []
   );
@@ -108,24 +81,26 @@ const PostPage = memo(({ initialPost, initialError }) => {
     : 0;
 
   React.useEffect(() => {
-    if (!hasFetched && !initialPost && !initialError) {
+    if (!hasFetched) {
       console.log('[PostPage] Starting fetch for slug:', slug);
       setHasFetched(true);
-      dispatch(fetchPostBySlug(slug)).then(() => {
-        if (typeof window !== 'undefined' && window.requestIdleCallback) {
-          window.requestIdleCallback(() => {
-            Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-          }, { timeout: 3000 });
-        } else {
-          setTimeout(() => {
-            Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-          }, 1000);
-        }
-      }).catch(err => {
-        console.error('Fetch post failed:', err);
+      window.requestAnimationFrame(() => {
+        dispatch(fetchPostBySlug(slug)).then(() => {
+          if (typeof window !== 'undefined' && window.requestIdleCallback) {
+            window.requestIdleCallback(() => {
+              Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
+            }, { timeout: 3000 });
+          } else {
+            setTimeout(() => {
+              Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
+            }, 1000);
+          }
+        }).catch(err => {
+          console.error('Fetch post failed:', err);
+        });
       });
     }
-  }, [dispatch, slug, hasFetched, initialPost, initialError]);
+  }, [dispatch, slug, hasFetched]);
 
   if (error) {
     return (
@@ -169,7 +144,7 @@ const PostPage = memo(({ initialPost, initialError }) => {
           <link
             rel="preload"
             as="image"
-            href={`${post.titleImage}?w=280&format=avif&q=75`}
+            href={`${post.titleImage}?w=280&format=avif&q=50`}
             media="(max-width: 767px)"
           />
         )}
@@ -177,7 +152,7 @@ const PostPage = memo(({ initialPost, initialError }) => {
           <link
             rel="preload"
             as="image"
-            href={`${post.titleImage}?w=600&format=avif&q=75`}
+            href={`${post.titleImage}?w=600&format=avif&q=50`}
             media="(min-width: 768px)"
           />
         )}
@@ -185,11 +160,9 @@ const PostPage = memo(({ initialPost, initialError }) => {
       </Helmet>
       <div className="container">
         <main role="main" aria-label="Main content">
-          <Suspense fallback={<div className="loading-overlay"><div className="spinner" /></div>}>
-            <PriorityContent post={post} readTime={readTime} />
-          </Suspense>
+          <PriorityContent post={post} readTime={readTime} />
           {hasFetched && post && (
-            <Suspense fallback={<div className="placeholder" style={{ minHeight: '400px' }} />}>
+            <Suspense fallback={<div style={{ minHeight: '400px' }} />}>
               <PostContentNonCritical
                 post={post}
                 relatedPosts={relatedPosts}
@@ -206,7 +179,7 @@ const PostPage = memo(({ initialPost, initialError }) => {
         </main>
         {hasFetched && post && (
           <aside className="sidebar-wrapper">
-            <Suspense fallback={<div className="placeholder" style={{ minHeight: '200px' }} />}>
+            <Suspense fallback={<div style={{ minHeight: '200px' }} />}>
               <Sidebar
                 post={post}
                 isSidebarOpen={isSidebarOpen}
@@ -234,15 +207,5 @@ const PostPage = memo(({ initialPost, initialError }) => {
     </HelmetProvider>
   );
 });
-
-export async function getServerSideProps({ params }) {
-  const { slug } = params;
-  try {
-    const post = await (await import('../actions/postActions')).fetchCriticalPostBySlug(slug)();
-    return { props: { initialPost: post, initialError: null } };
-  } catch (error) {
-    return { props: { initialPost: null, initialError: error.message } };
-  }
-}
 
 export default PostPage;
