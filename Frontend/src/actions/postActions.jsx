@@ -13,24 +13,48 @@ import {
     FETCH_COMPLETED_POSTS_SUCCESS,
     MARK_POST_COMPLETED_SUCCESS,
     FETCH_COMPLETED_POSTS_FAILURE,
-    FETCH_POST_SUCCESS
+    FETCH_POST_SUCCESS,
+    FETCH_POST_FAILURE
 } from './types';
 import { fetchCertificates } from './certificateActions';
+
 const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
+
+const parseLinksForPreRender = (text, category) => {
+  if (!text) return '';
+  const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+|\/[^\s)]+)\)/g;
+  return text.replace(linkRegex, (match, linkText, url) => {
+    const isInternal = url.startsWith('/');
+    return isInternal
+      ? `<a href="${url}" class="text-blue-600 hover:text-blue-800" aria-label="Navigate to ${linkText}">${linkText}</a>`
+      : `<a href="${url}" target="_blank" rel="noopener" class="text-blue-600 hover:text-blue-800" aria-label="Visit ${linkText}">${linkText}</a>`;
+  });
+};
 
 export const fetchPostBySlug = (slug) => async dispatch => {
     console.log('[fetchPostBySlug] Fetching post by slug:', slug);
     try {
         const res = await axios.get(`${API_BASE_URL}/post/${slug}`);
         console.log('[fetchPostBySlug] Fetched post data:', res.data);
-        dispatch({ type: FETCH_POST_SUCCESS, payload: res.data });
+        const contentField = res.data.content || res.data.body || res.data.text || '';
+        if (!contentField) {
+            console.warn('[fetchPostBySlug] No content field found in API response:', res.data);
+        }
+        const post = {
+            ...res.data,
+            preRenderedContent: parseLinksForPreRender(contentField, res.data.category),
+        };
+        dispatch({ type: FETCH_POST_SUCCESS, payload: post });
     } catch (error) {
         console.error('[fetchPostBySlug] Error fetching post by slug:', {
             message: error.message,
             response: error.response ? error.response.data : 'No response'
         });
+        dispatch({ type: FETCH_POST_FAILURE, payload: error.message });
+        toast.error('Failed to fetch post.', { position: 'top-right', autoClose: 2000 });
     }
 };
+
 export const searchPosts = (query) => async dispatch => {
     console.log('[searchPosts] Searching posts with query:', query);
     try {
