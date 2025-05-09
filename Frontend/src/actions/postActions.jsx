@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import {
     FETCH_POSTS_SUCCESS,
+    FETCH_POSTS_FAILURE, // Added
     ADD_POST_SUCCESS,
     FETCH_USER_POSTS_SUCCESS,
     FETCH_USER_POSTS_REQUEST,
@@ -86,6 +87,8 @@ export const fetchPosts = () => async dispatch => {
             message: error.message,
             response: error.response ? error.response.data : 'No response'
         });
+        dispatch({ type: FETCH_POSTS_FAILURE, payload: error.message });
+        toast.error('Failed to fetch posts.', { position: 'top-right', autoClose: 2000 });
     }
 };
 
