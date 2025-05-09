@@ -15,15 +15,25 @@ const criticalCss = `
     font-size: 0.875rem;
     line-height: 1.5;
     width: 100%;
-    margin: 0 0 1rem 0;
+    margin: 0 0 0.5rem 0;
     padding: 0;
-    min-height: 150px;
-    contain-intrinsic-size: 100% 150px;
+    min-height: 60px;
+    contain-intrinsic-size: 100% 60px;
+    text-rendering: optimizeSpeed;
   }
   .content-wrapper {
     width: 100%;
-    min-height: 150px;
-    contain-intrinsic-size: 100% 150px;
+    min-height: 60px;
+    contain-intrinsic-size: 100% 60px;
+  }
+  .content-wrapper img {
+    width: 100%;
+    max-width: 280px;
+    height: auto;
+    object-fit: contain;
+    border-radius: 0.25rem;
+    contain-intrinsic-size: 280px 157.5px;
+    loading: lazy;
   }
   .image-container {
     width: 100%;
@@ -77,14 +87,13 @@ const criticalCss = `
   }
   .skeleton-content {
     width: 100%;
-    min-height: 150px;
-    margin: 0 0 1rem 0;
-    contain-intrinsic-size: 100% 150px;
+    min-height: 60px;
+    margin: 0 0 0.5rem 0;
+    contain-intrinsic-size: 100% 60px;
   }
   .skeleton-paragraph {
     width: 100%;
     height: 60px;
-    margin-bottom: 10px;
     background: #e0e0e0;
     border-radius: 0.25rem;
     animation: pulse 1.5s ease-in-out infinite;
@@ -92,11 +101,10 @@ const criticalCss = `
   }
   .skeleton-content-container {
     width: 100%;
-    min-height: 130px;
+    min-height: 60px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    contain-intrinsic-size: 100% 130px;
+    contain-intrinsic-size: 100% 60px;
   }
   .skeleton-meta {
     width: 100px;
@@ -117,12 +125,16 @@ const criticalCss = `
     }
     .content-section {
       font-size: 1rem;
-      min-height: 220px;
-      contain-intrinsic-size: 100% 220px;
+      min-height: 100px;
+      contain-intrinsic-size: 100% 100px;
     }
     .content-wrapper {
-      min-height: 220px;
-      contain-intrinsic-size: 100% 220px;
+      min-height: 100px;
+      contain-intrinsic-size: 100% 100px;
+    }
+    .content-wrapper img {
+      max-width: 600px;
+      contain-intrinsic-size: 600px 337.5px;
     }
     .image-container {
       max-width: 600px;
@@ -143,16 +155,16 @@ const criticalCss = `
       contain-intrinsic-size: 80% 32px;
     }
     .skeleton-content {
-      min-height: 220px;
-      contain-intrinsic-size: 100% 220px;
+      min-height: 100px;
+      contain-intrinsic-size: 100% 100px;
     }
     .skeleton-paragraph {
       height: 100px;
       contain-intrinsic-size: 100% 100px;
     }
     .skeleton-content-container {
-      min-height: 210px;
-      contain-intrinsic-size: 100% 210px;
+      min-height: 100px;
+      contain-intrinsic-size: 100% 100px;
     }
     .skeleton-meta {
       width: 120px;
@@ -163,7 +175,15 @@ const criticalCss = `
 `;
 
 const PriorityContent = memo(({ post, readTime }) => {
-  console.log('[PriorityContent] Rendering with post:', post);
+  if (typeof window !== 'undefined' && window.requestIdleCallback) {
+    window.requestIdleCallback(() => {
+      console.log('[PriorityContent] Rendering with post:', post);
+    });
+  } else {
+    setTimeout(() => {
+      console.log('[PriorityContent] Rendering with post:', post);
+    }, 0);
+  }
 
   if (!post || !post.title) {
     return (
@@ -182,7 +202,6 @@ const PriorityContent = memo(({ post, readTime }) => {
         <section className="content-section" aria-hidden="true">
           <div className="skeleton skeleton-content">
             <div className="skeleton-content-container">
-              <div className="skeleton-paragraph" />
               <div className="skeleton-paragraph" />
             </div>
           </div>
