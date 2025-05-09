@@ -186,10 +186,23 @@ const Placeholder = styled.div`
   }
 `;
 
+const SectionPlaceholder = styled.div`
+  width: 100%;
+  max-width: 100%;
+  min-height: ${({ minHeight }) => minHeight || '400px'};
+  background: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+`;
+
 const ReferencesPlaceholder = styled.div`
   width: 100%;
   max-width: 100%;
-  min-height: 200px;
+  min-height: 300px;
   background: #e0e0e0;
   display: flex;
   align-items: center;
@@ -206,7 +219,8 @@ const ReferencesSection = styled.section`
   border-radius: 0.375rem;
   width: 100%;
   max-width: 100%;
-  min-height: 200px;
+  min-height: 300px;
+  transition: height 0.2s ease;
 `;
 
 const ReferenceLink = styled.a`
@@ -329,7 +343,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
   if (!subtitle) return null;
 
   return (
-    <section id={`subtitle-${index}`} aria-labelledby={`subtitle-${index}-heading`}>
+    <section id={`subtitle-${index}`} aria-labelledby={`subtitle-${index}-heading`} style={{ minHeight: '400px', transition: 'height 0.2s ease' }}>
       <SubtitleHeader id={`subtitle-${index}-heading`}>
         {Array.isArray(parsedTitle) ? parsedTitle.map((elem, i) => (
           <React.Fragment key={i}>
@@ -502,6 +516,8 @@ const LazySubtitleSection = memo(({ subtitle, index, category }) => {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef();
 
+  const estimatedHeight = subtitle.bulletPoints?.length > 2 || subtitle.image || subtitle.video ? '600px' : '400px';
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -510,18 +526,18 @@ const LazySubtitleSection = memo(({ subtitle, index, category }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '500px', threshold: 0.1 }
+      { rootMargin: '200px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ width: '100%', maxWidth: '100%', minHeight: '200px' }}>
+    <div ref={ref} style={{ width: '100%', maxWidth: '100%', minHeight: estimatedHeight }}>
       {isVisible ? (
         <SubtitleSection subtitle={subtitle} index={index} category={category} />
       ) : (
-        <Placeholder>Loading section...</Placeholder>
+        <SectionPlaceholder minHeight={estimatedHeight}>Loading section...</SectionPlaceholder>
       )}
     </div>
   );
@@ -539,14 +555,14 @@ const LazyReferencesSection = memo(({ post }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '500px', threshold: 0.1 }
+      { rootMargin: '200px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ width: '100%', maxWidth: '100%' }}>
+    <div ref={ref} style={{ width: '100%', maxWidth: '100%', minHeight: '300px' }}>
       {isVisible ? (
         <ReferencesSection aria-labelledby="references-heading">
           <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
@@ -610,7 +626,7 @@ const PostContentNonCritical = memo(
               }
             });
           }
-        }, 100),
+        }, 80),
       [setActiveSection, subtitlesListRef]
     );
 
@@ -696,7 +712,7 @@ const PostContentNonCritical = memo(
         )}
 
         {post.summary && (
-          <section id="summary" aria-labelledby="summary-heading">
+          <section id="summary" aria-labelledby="summary-heading" style={{ minHeight: '200px', transition: 'height 0.2s ease' }}>
             <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
             <p style={{ fontSize: '1.1rem', lineHeight: '1.7' }}>
               {Array.isArray(parsedSummary) ? parsedSummary.map((elem, i) => (
@@ -743,7 +759,7 @@ const PostContentNonCritical = memo(
           {isCompleted ? 'Completed' : 'Mark as Completed'}
         </CompleteButton>
 
-        <section aria-labelledby="related-posts-heading">
+        <section aria-labelledby="related-posts-heading" style={{ minHeight: '450px', transition: 'height 0.2s ease' }}>
           <Suspense fallback={<Placeholder height="450px">Loading related posts...</Placeholder>}>
             <RelatedPosts relatedPosts={relatedPosts} />
           </Suspense>
