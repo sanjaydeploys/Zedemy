@@ -33,7 +33,6 @@ const criticalCss = `
     object-fit: contain;
     border-radius: 0.25rem;
     contain-intrinsic-size: 280px 157.5px;
-    loading: lazy;
   }
   .image-container {
     width: 100%;
@@ -94,6 +93,7 @@ const criticalCss = `
   .skeleton-paragraph {
     width: 100%;
     height: 60px;
+    margin-bottom: 10px;
     background: #e0e0e0;
     border-radius: 0.25rem;
     animation: pulse 1.5s ease-in-out infinite;
@@ -101,10 +101,11 @@ const criticalCss = `
   }
   .skeleton-content-container {
     width: 100%;
-    min-height: 60px;
+    min-height: 130px;
     display: flex;
     flex-direction: column;
-    contain-intrinsic-size: 100% 60px;
+    gap: 10px;
+    contain-intrinsic-size: 100% 130px;
   }
   .skeleton-meta {
     width: 100px;
@@ -125,12 +126,12 @@ const criticalCss = `
     }
     .content-section {
       font-size: 1rem;
-      min-height: 100px;
-      contain-intrinsic-size: 100% 100px;
+      min-height: 200px;
+      contain-intrinsic-size: 100% 200px;
     }
     .content-wrapper {
-      min-height: 100px;
-      contain-intrinsic-size: 100% 100px;
+      min-height: 200px;
+      contain-intrinsic-size: 100% 200px;
     }
     .content-wrapper img {
       max-width: 600px;
@@ -155,16 +156,16 @@ const criticalCss = `
       contain-intrinsic-size: 80% 32px;
     }
     .skeleton-content {
-      min-height: 100px;
-      contain-intrinsic-size: 100% 100px;
+      min-height: 200px;
+      contain-intrinsic-size: 100% 200px;
     }
     .skeleton-paragraph {
       height: 100px;
       contain-intrinsic-size: 100% 100px;
     }
     .skeleton-content-container {
-      min-height: 100px;
-      contain-intrinsic-size: 100% 100px;
+      min-height: 210px;
+      contain-intrinsic-size: 100% 210px;
     }
     .skeleton-meta {
       width: 120px;
@@ -202,6 +203,7 @@ const PriorityContent = memo(({ post, readTime }) => {
         <section className="content-section" aria-hidden="true">
           <div className="skeleton skeleton-content">
             <div className="skeleton-content-container">
+              <div className="skeleton-paragraph" />
               <div className="skeleton-paragraph" />
             </div>
           </div>
