@@ -82,9 +82,7 @@ const ImageContainer = styled.figure`
   }
   @media (max-width: 480px) {
     max-width: 240px;
-    height: 135
-
-px;
+    height: 135px;
     contain-intrinsic-size: 240px 135px;
   }
   @media (max-width: 320px) {
@@ -174,17 +172,21 @@ const Placeholder = styled.div`
   color: #666;
   border-radius: 0.375rem;
   font-size: 0.875rem;
+  contain-intrinsic-size: ${({ maxWidth, height }) => `${maxWidth || '280px'} ${height || '157.5px'}`};
   @media (min-width: 769px) {
     max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '480px' : maxWidth || '480px')};
-    height: ${({ height }) => height === '450px' ? '600px' : (height === '157.5px' ? '270px' : height || '270px')};
+    height: ${({ height }) => height === '450px' ? '800px' : (height === '157.5px' ? '270px' : height || '270px')};
+    contain-intrinsic-size: ${({ maxWidth, height }) => `${maxWidth === '280px' ? '480px' : maxWidth || '480px'} ${height === '450px' ? '800px' : (height === '157.5px' ? '270px' : height || '270px')}`};
   }
   @media (max-width: 480px) {
     max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '240px' : maxWidth || '240px')};
     height: ${({ height }) => (height === '157.5px' ? '135px' : height || '135px')};
+    contain-intrinsic-size: ${({ maxWidth, height }) => `${maxWidth === '280px' ? '240px' : maxWidth || '240px'} ${height === '157.5px' ? '135px' : height || '135px'}`};
   }
   @media (max-width: 320px) {
     max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '200px' : maxWidth || '200px')};
     height: ${({ height }) => (height === '157.5px' ? '112.5px' : height || '112.5px')};
+    contain-intrinsic-size: ${({ maxWidth, height }) => `${maxWidth === '280px' ? '200px' : maxWidth || '200px'} ${height === '157.5px' ? '112.5px' : height || '112.5px'}`};
   }
 `;
 
@@ -199,12 +201,13 @@ const SectionPlaceholder = styled.div`
   color: #666;
   border-radius: 0.375rem;
   font-size: 0.875rem;
+  contain-intrinsic-size: 100% ${({ minHeight }) => minHeight || '400px'};
 `;
 
 const ReferencesPlaceholder = styled.div`
   width: 100%;
   max-width: 100%;
-  min-height: 300px;
+  min-height: 400px;
   background: #e0e0e0;
   display: flex;
   align-items: center;
@@ -212,6 +215,7 @@ const ReferencesPlaceholder = styled.div`
   color: #666;
   border-radius: 0.375rem;
   font-size: 0.875rem;
+  contain-intrinsic-size: 100% 400px;
 `;
 
 const ReferencesSection = styled.section`
@@ -221,7 +225,7 @@ const ReferencesSection = styled.section`
   border-radius: 0.375rem;
   width: 100%;
   max-width: 100%;
-  min-height: 300px;
+  min-height: 400px;
 `;
 
 const ReferenceLink = styled.a`
@@ -231,13 +235,14 @@ const ReferenceLink = styled.a`
   margin: 0.25rem 0;
   padding: 0.25rem 0;
   font-size: 0.875rem;
-  min-height: 44px;
+  height: 48px;
   line-height: 1.5;
   &:hover {
     text-decoration: underline;
   }
   @media (max-width: 480px) {
     font-size: 0.75rem;
+    height: 44px;
   }
 `;
 
@@ -262,7 +267,7 @@ const RelatedPostsSection = styled.section`
   max-width: 100%;
   min-height: 450px;
   @media (min-width: 769px) {
-    min-height: 600px;
+    min-height: 800px;
   }
 `;
 
@@ -353,11 +358,9 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
   if (!subtitle) return null;
 
   return (
-    <section id={`subtitle-${index}`} aria-labelledby={`subtitle-${index
-
-}-heading`} style={{ minHeight: '400px' }}>
-      < SubtitleHeader id={`subtitle-${index}-heading`} >
-        { Array.isArray(parsedTitle) ? parsedTitle.map((elem, i) => (
+    <section id={`subtitle-${index}`} aria-labelledby={`subtitle-${index}-heading`} style={{ minHeight: '400px' }}>
+      <SubtitleHeader id={`subtitle-${index}-heading`}>
+        {Array.isArray(parsedTitle) ? parsedTitle.map((elem, i) => (
           <React.Fragment key={i}>
             {typeof elem === 'string' ? elem : (
               elem.isInternal ? (
@@ -567,14 +570,14 @@ const LazyRelatedPostsSection = memo(({ relatedPosts }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '300px', threshold: 0.1 }
+      { rootMargin: '500px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ width: '100%', maxWidth: '100%' }}>
+    <div ref={ref} style={{ width: '100%', maxWidth: '100%', minHeight: '450px' }}>
       {isVisible ? (
         <RelatedPostsSection aria-labelledby="related-posts-heading">
           <Suspense fallback={<Placeholder height="450px">Loading related posts...</Placeholder>}>
@@ -600,14 +603,14 @@ const LazyReferencesSection = memo(({ post }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '200px', threshold: 0.1 }
+      { rootMargin: '400px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ width: '100%', maxWidth: '100%', minHeight: '300px' }}>
+    <div ref={ref} style={{ width: '100%', maxWidth: '100%', minHeight: '400px' }}>
       {isVisible ? (
         <ReferencesSection aria-labelledby="references-heading">
           <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
