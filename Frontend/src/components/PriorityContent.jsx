@@ -4,7 +4,7 @@ const criticalCss = `
   .post-header {
     font-size: 1.25rem;
     color: #011020;
-    margin: 0.5rem 0;
+    margin: 0.25rem 0;
     width: 100%;
     font-weight: 700;
     line-height: 1.2;
@@ -14,21 +14,21 @@ const criticalCss = `
     font-size: 0.875rem;
     line-height: 1.5;
     width: 100%;
-    min-height: 100px;
+    margin: 0;
     box-sizing: border-box;
-    overflow: hidden;
-    transition: none;
-    margin: 0.5rem 0;
+  }
+  .content-height-wrapper {
+    width: 100%;
+    min-height: 200px;
   }
   .content-wrapper {
     width: 100%;
-    min-height: 100px;
-    margin: 0.5rem 0;
+    margin: 0.25rem 0;
   }
   .image-container {
     width: 100%;
     max-width: 280px;
-    margin: 0.5rem 0;
+    margin: 0.25rem 0;
     aspect-ratio: 16 / 9;
     position: relative;
     min-height: 157.5px;
@@ -36,9 +36,8 @@ const criticalCss = `
   .post-image {
     width: 100%;
     max-width: 280px;
-    max-height: 100%;
     height: auto;
-    object-fit: contain;
+    object-fit: cover;
     border-radius: 0.25rem;
     position: absolute;
     top: 0;
@@ -47,7 +46,7 @@ const criticalCss = `
   .meta-info {
     color: #666;
     font-size: 0.75rem;
-    margin: 0.5rem 0;
+    margin: 0.25rem 0;
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
@@ -59,7 +58,7 @@ const criticalCss = `
     height: 157.5px;
     background: #e0e0e0;
     border-radius: 0.25rem;
-    margin: 0.5rem 0;
+    margin: 0.25rem 0;
     position: absolute;
     top: 0;
     left: 0;
@@ -69,14 +68,14 @@ const criticalCss = `
     height: 1.25rem;
     background: #e0e0e0;
     border-radius: 0.25rem;
-    margin: 0.5rem 0;
+    margin: 0.25rem 0;
   }
   .skeleton-content {
     width: 100%;
     min-height: 200px;
     background: #e0e0e0;
     border-radius: 0.25rem;
-    margin: 0.5rem 0;
+    margin: 0;
   }
   @media (min-width: 768px) {
     .post-header {
@@ -85,11 +84,10 @@ const criticalCss = `
     }
     .content-section {
       font-size: 0.9rem;
-      min-height: 100px;
-      margin: 0.25rem 0;
+      min-height: auto;
     }
-    .content-wrapper {
-      min-height: 100px;
+    .content-height-wrapper {
+      min-height: 300px;
     }
     .image-container {
       max-width: 600px;
@@ -111,7 +109,7 @@ const criticalCss = `
   }
 `;
 
-const TextContent = ({ content, category }) => {
+const TextContent = ({ content }) => {
   const parsedContent = useMemo(() => {
     if (!content) return [];
     const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+|\/[^\s)]+)\)/g;
@@ -152,7 +150,7 @@ const TextContent = ({ content, category }) => {
       elements.push(<span key={`text-${lastIndex}`}>{content.slice(lastIndex)}</span>);
     }
     return elements;
-  }, [content, category]);
+  }, [content]);
 
   return (
     <div className="content-wrapper" role="region" aria-label="Post content">
@@ -189,7 +187,7 @@ const PriorityContent = memo(({ post, readTime }) => {
       ? new Date(post.date).toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'long',
-          day: 'numeric'
+          day: 'numeric',
         })
       : 'Unknown Date';
 
@@ -200,15 +198,13 @@ const PriorityContent = memo(({ post, readTime }) => {
           <div className="image-container">
             <img
               src={`${post.titleImage}?w=280&format=avif&q=50`}
-              srcSet={`
-                ${post.titleImage}?w=280&format=avif&q=50 280w,
-                ${post.titleImage}?w=600&format=avif&q=50 600w
-              `}
+              srcSet={`${post.titleImage}?w=280&format=avif&q=50 280w, ${post.titleImage}?w=600&format=avif&q=50 600w`}
               sizes="(max-width: 767px) 280px, 600px"
               alt={post.title || 'Post image'}
               className="post-image"
               width="280"
-              decoding="async"
+              height="157.5"
+              decoding="sync"
               loading="eager"
               fetchpriority="high"
               onError={(e) => {
@@ -226,7 +222,9 @@ const PriorityContent = memo(({ post, readTime }) => {
         </div>
       </header>
       <section className="content-section">
-        <TextContent content={post.preRenderedContent || post.content || ''} category={post.category} />
+        <div className="content-height-wrapper">
+          <TextContent content={post.preRenderedContent || post.content || ''} />
+        </div>
       </section>
       <style>{criticalCss}</style>
     </article>
