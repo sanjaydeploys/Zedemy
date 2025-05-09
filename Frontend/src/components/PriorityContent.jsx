@@ -1,13 +1,11 @@
-import React, { memo, useMemo } from 'react';
-import { parseLinks } from './utils';
+import React, { memo } from 'react';
 
 const criticalCss = `
   .post-header { 
-    font-size: clamp(1.5rem, 3vw, 2rem); 
+    font-size: 1.5rem; 
     color: #011020; 
     margin: 0.75rem 0; 
     width: 100%; 
-    max-width: 100%; 
     font-weight: 700;
     line-height: 1.2;
   }
@@ -15,10 +13,9 @@ const criticalCss = `
     font-size: 0.875rem; 
     line-height: 1.7; 
     width: 100%; 
-    max-width: 100%; 
     min-height: 200px; 
   }
-  .content-section p { 
+  .content-section div { 
     margin: 0.5rem 0; 
   }
   .image-container { 
@@ -73,83 +70,17 @@ const criticalCss = `
   }
   .skeleton-content { 
     width: 100%; 
-    height: 200px; 
+    min-height: 200px; 
     background: #e0e0e0; 
     border-radius: 0.375rem; 
     margin: 0.5rem 0; 
   }
-  @media (min-width: 769px) {
-    .image-container { 
-      max-width: 480px; 
-      height: 270px; 
-    }
-    .post-image { 
-      max-width: 480px; 
-      height: 270px; 
-    }
-    .skeleton-image { 
-      max-width: 480px; 
-      height: 270px; 
-    }
-  }
-  @media (max-width: 480px) {
-    .image-container { 
-      max-width: 240px; 
-      height: 135px; 
-    }
-    .post-image { 
-      max-width: 240px; 
-      height: 135px; 
-    }
-    .content-section { 
-      min-height: 150px; 
-    }
-    .skeleton-image { 
-      max-width: 240px; 
-      height: 135px; 
-    }
-    .skeleton-content { 
-      height: 150px; 
-    }
-  }
-  @media (max-width: 320px) {
-    .image-container { 
-      max-width: 200px; 
-      height: 112.5px; 
-    }
-    .post-image { 
-      max-width: 200px; 
-      height: 112.5px; 
-    }
-    .content-section { 
-      min-height: 120px; 
-    }
-    .skeleton-image { 
-      max-width: 200px; 
-      height: 112.5px; 
-    }
-    .skeleton-content { 
-      height: 120px; 
-    }
-  }
 `;
 
 const PriorityContent = memo(({ post, readTime }) => {
-  console.log('[PriorityContent] Rendering with post:', post?.title, 'readTime:', readTime);
-
-  const formattedDate = useMemo(() => {
-    return post?.date && !isNaN(new Date(post.date).getTime())
-      ? new Date(post.date).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        })
-      : 'Unknown Date';
-  }, [post?.date]);
-
-  const parsedContent = useMemo(() => {
-    return post?.content ? parseLinks(post.content, post?.category || '') : ['Loading content...'];
-  }, [post?.content, post?.category]);
+  console.log('[PriorityContent] Rendering with post:', post);
+  console.log('[PriorityContent] preRenderedContent:', post?.preRenderedContent);
+  console.log('[PriorityContent] raw content:', post?.content);
 
   if (!post) {
     return (
@@ -167,29 +98,28 @@ const PriorityContent = memo(({ post, readTime }) => {
     );
   }
 
+  const formattedDate =
+    post?.date && !isNaN(new Date(post.date).getTime())
+      ? new Date(post.date).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+      : 'Unknown Date';
+
   return (
     <article>
       <header>
         {post.titleImage && (
           <div className="image-container">
             <img
-              src={`${post.titleImage}?w=100&format=avif&q=1`}
-              srcSet={`
-                ${post.titleImage}?w=100&format=avif&q=1 100w,
-                ${post.titleImage}?w=150&format=avif&q=1 150w,
-                ${post.titleImage}?w=200&format=avif&q=1 200w,
-                ${post.titleImage}?w=240&format=avif&q=1 240w,
-                ${post.titleImage}?w=280&format=avif&q=1 280w,
-                ${post.titleImage}?w=480&format=avif&q=1 480w
-              `}
-              sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
+              src={`${post.titleImage}?w=280&format=avif&q=1`}
               alt={post.title || 'Post image'}
               className="post-image"
               width="280"
               height="157.5"
-              fetchpriority="high"
-              decoding="sync"
-              loading="eager"
+              decoding="async"
+              loading="lazy"
               onError={() => console.error('Title Image Failed:', post.titleImage)}
             />
           </div>
@@ -198,11 +128,17 @@ const PriorityContent = memo(({ post, readTime }) => {
         <div className="meta-info">
           <span>By {post.author || 'Unknown'}</span>
           <span> | {formattedDate}</span>
-          <span> | Read time: <span id="read-time">{readTime || 'Calculating...'}</span> min</span>
+          <span> | Read time: <span id="read-time">{readTime || '0'}</span> min</span>
         </div>
       </header>
       <section className="content-section">
-        <div>{parsedContent}</div>
+        {post.preRenderedContent ? (
+          <div dangerouslySetInnerHTML={{ __html: post.preRenderedContent }} />
+        ) : post.content ? (
+          <div>{post.content}</div>
+        ) : (
+          <div>Loading content...</div>
+        )}
       </section>
       <style>{criticalCss}</style>
     </article>
