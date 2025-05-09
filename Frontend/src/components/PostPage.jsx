@@ -4,8 +4,9 @@ import { fetchPostBySlug, fetchCompletedPosts, fetchPosts } from '../actions/pos
 import { useParams } from 'react-router-dom';
 import { slugify, truncateText } from './utils';
 
-// Lazy-load components
-const PriorityContent = React.lazy(() => import('./PriorityContent'));
+// Load PriorityContent eagerly
+import PriorityContent from './PriorityContent';
+// Lazy-load non-critical components
 const LowPriorityContent = React.lazy(() => import('./LowPriorityContent'));
 const Sidebar = React.lazy(() => import('./Sidebar'));
 
@@ -23,35 +24,6 @@ const css = `
     background: #f4f4f9; 
     display: flex; 
     flex-direction: column; 
-  }
-  .skeleton { 
-    width: 60%; 
-    height: 2rem; 
-    background: #e0e0e0; 
-    border-radius: 0.375rem; 
-    margin: 0.75rem 0 1rem; 
-  }
-  .skeleton-image { 
-    width: 100%; 
-    max-width: 280px; 
-    height: 157.5px; 
-    background: #e0e0e0; 
-    border-radius: 0.375rem; 
-    margin: 1rem 0; 
-  }
-  .skeleton-meta { 
-    width: 40%; 
-    height: 1rem; 
-    background: #e0e0e0; 
-    border-radius: 0.375rem; 
-    margin: 0.5rem 0; 
-  }
-  .skeleton-content { 
-    width: 100%; 
-    height: 200px; 
-    background: #e0e0e0; 
-    border-radius: 0.375rem; 
-    margin: 0.5rem 0; 
   }
   .loading-overlay { 
     display: flex; 
@@ -75,24 +47,15 @@ const css = `
   }
   .placeholder { 
     width: 100%; 
-    max-width: 280px; 
     height: 20px; 
     background: #e0e0e0; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    color: #666; 
     border-radius: 0.375rem; 
-    font-size: 0.875rem; 
+    margin: 0.5rem 0; 
   }
   @media (min-width: 769px) {
     main { 
       margin-right: 250px; 
       padding: 2rem; 
-    }
-    .skeleton-image { 
-      max-width: 480px; 
-      height: 270px; 
     }
   }
   @media (max-width: 768px) {
@@ -107,24 +70,10 @@ const css = `
     main { 
       padding: 0.5rem; 
     }
-    .skeleton-image { 
-      max-width: 240px; 
-      height: 135px; 
-    }
-    .skeleton-content { 
-      height: 150px; 
-    }
   }
   @media (max-width: 320px) {
     main { 
       padding: 0.25rem; 
-    }
-    .skeleton-image { 
-      max-width: 200px; 
-      height: 112.5px; 
-    }
-    .skeleton-content { 
-      height: 120px; 
     }
   }
 `;
@@ -165,7 +114,7 @@ const PostPage = memo(() => {
         // Defer non-critical fetches
         setTimeout(() => {
           Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
-        }, 2000); // Delay to prioritize LCP
+        }, 3000); // Increased delay to prioritize LCP
       } catch (error) {
         console.error('Fetch post failed:', error);
         if (retries > 0) {
@@ -197,7 +146,7 @@ const PostPage = memo(() => {
       setReadTime(time);
     };
     // Defer read time calculation
-    setTimeout(calculate, 2000);
+    setTimeout(calculate, 3000);
   }, [post]);
 
   useEffect(() => {
@@ -264,7 +213,7 @@ const PostPage = memo(() => {
       startTransition(() => setStructuredData(schemas));
     };
     // Defer structured data generation
-    setTimeout(generateStructuredData, 2000);
+    setTimeout(generateStructuredData, 3000);
   }, [post, slug, readTime]);
 
   if (!post && !hasFetched) {
@@ -272,10 +221,7 @@ const PostPage = memo(() => {
       <div className="container">
         <style>{css}</style>
         <main>
-          <div className="skeleton-image" />
-          <div className="skeleton" />
-          <div className="skeleton-meta" />
-          <div className="skeleton-content" />
+          <PriorityContent post={null} slug={slug} readTime={readTime} structuredData={structuredData} />
         </main>
         <div className="placeholder" style={{ height: '1200px', width: '250px' }}>Loading sidebar...</div>
       </div>
@@ -297,20 +243,17 @@ const PostPage = memo(() => {
     <div className="container">
       <style>{css}</style>
       <main>
-        <Suspense
-          fallback={
-            <>
-              <div className="skeleton-image" />
-              <div className="skeleton" />
-              <div className="skeleton-meta" />
-              <div className="skeleton-content" />
-            </>
-          }
-        >
-          <PriorityContent post={post} slug={slug} readTime={readTime} structuredData={structuredData} />
-        </Suspense>
+        <PriorityContent post={post} slug={slug} readTime={readTime} structuredData={structuredData} />
         {hasFetched && post && (
-          <Suspense fallback={<div className="placeholder" style={{ height: '100px' }}>Loading additional content...</div>}>
+          <Suspense
+            fallback={
+              <>
+                <div className="placeholder" />
+                <div className="placeholder" />
+                <div className="placeholder" />
+              </>
+            }
+          >
             <LowPriorityContent
               post={post}
               relatedPosts={relatedPosts}
