@@ -1,4 +1,4 @@
-import React, { memo, useState } from 'react';
+import React, { memo, useState, useEffect } from 'react';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { parseLinks, truncateText } from './utils';
 
@@ -46,12 +46,45 @@ const css = `
     font-size: 0.75rem; 
     margin-bottom: 0.75rem; 
   }
+  .skeleton-image { 
+    width: 100%; 
+    max-width: 280px; 
+    height: 157.5px; 
+    background: #e0e0e0; 
+    border-radius: 0.375rem; 
+    margin: 1rem 0; 
+  }
+  .skeleton-header { 
+    width: 60%; 
+    height: 2rem; 
+    background: #e0e0e0; 
+    border-radius: 0.375rem; 
+    margin: 0.75rem 0; 
+  }
+  .skeleton-meta { 
+    width: 40%; 
+    height: 1rem; 
+    background: #e0e0e0; 
+    border-radius: 0.375rem; 
+    margin: 0.5rem 0; 
+  }
+  .skeleton-content { 
+    width: 100%; 
+    height: 200px; 
+    background: #e0e0e0; 
+    border-radius: 0.375rem; 
+    margin: 0.5rem 0; 
+  }
   @media (min-width: 769px) {
     .image-container { 
       max-width: 480px; 
       height: 270px; 
     }
     .post-image { 
+      max-width: 480px; 
+      height: 270px; 
+    }
+    .skeleton-image { 
       max-width: 480px; 
       height: 270px; 
     }
@@ -68,6 +101,13 @@ const css = `
     .content-section { 
       min-height: 150px; 
     }
+    .skeleton-image { 
+      max-width: 240px; 
+      height: 135px; 
+    }
+    .skeleton-content { 
+      height: 150px; 
+    }
   }
   @media (max-width: 320px) {
     .image-container { 
@@ -81,11 +121,29 @@ const css = `
     .content-section { 
       min-height: 120px; 
     }
+    .skeleton-image { 
+      max-width: 200px; 
+      height: 112.5px; 
+    }
+    .skeleton-content { 
+      height: 120px; 
+    }
   }
 `;
 
 const PriorityContent = memo(({ post, slug, readTime, structuredData }) => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
+  const [parsedContent, setParsedContent] = useState(post?.content ? 'Loading content...' : '');
+
+  useEffect(() => {
+    if (!post?.content) return;
+    // Defer parseLinks to reduce main-thread blocking
+    const timeoutId = setTimeout(() => {
+      const result = parseLinks(post.content);
+      setParsedContent(result);
+    }, 1000); // Delay parsing to prioritize rendering
+    return () => clearTimeout(timeoutId);
+  }, [post?.content]);
 
   const formattedDate = post?.date && !isNaN(new Date(post.date).getTime())
     ? new Date(post.date).toLocaleDateString('en-US', {
@@ -95,25 +153,51 @@ const PriorityContent = memo(({ post, slug, readTime, structuredData }) => {
       })
     : 'Unknown Date';
 
-  const parsedContent = post?.content ? parseLinks(post.content) : 'Loading content...';
+  if (!post) {
+    return (
+      <HelmetProvider>
+        <Helmet>
+          <html lang="en" />
+          <title>Loading... | Zedemy</title>
+          <meta name="description" content="Loading..." />
+          <meta name="keywords" content="Zedemy" />
+          <meta name="author" content="Zedemy Team" />
+          <meta name="robots" content="index, follow, max-image-preview:large" />
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+          <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
+          <style>{css}</style>
+        </Helmet>
+        <article>
+          <header>
+            <div className="skeleton-image" />
+            <div className="skeleton-header" />
+            <div className="skeleton-meta" />
+          </header>
+          <section className="content-section">
+            <div className="skeleton-content" />
+          </section>
+        </article>
+      </HelmetProvider>
+    );
+  }
 
   return (
     <HelmetProvider>
       <Helmet>
         <html lang="en" />
-        <title>{`${post?.title || 'Loading...'} | Zedemy`}</title>
-        <meta name="description" content={truncateText(post?.summary || post?.content, 160) || 'Loading...'} />
+        <title>{`${post.title} | Zedemy`}</title>
+        <meta name="description" content={truncateText(post.summary || post.content, 160)} />
         <meta
           name="keywords"
-          content={post?.keywords ? `${post.keywords}, Zedemy, ${post?.category || ''}` : `Zedemy, ${post?.category || ''}`}
+          content={post.keywords ? `${post.keywords}, Zedemy, ${post.category || ''}` : `Zedemy, ${post.category || ''}`}
         />
-        <meta name="author" content={post?.author || 'Zedemy Team'} />
+        <meta name="author" content={post.author || 'Zedemy Team'} />
         <meta name="robots" content="index, follow, max-image-preview:large" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
         <link rel="preconnect" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
-        {post?.titleImage && (
+        {post.titleImage && (
           <link
             rel="preload"
             href={`${post.titleImage}?w=100&format=avif&q=1`}
@@ -130,31 +214,31 @@ const PriorityContent = memo(({ post, slug, readTime, structuredData }) => {
             imagesizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
           />
         )}
-        <meta property="og:title" content={`${post?.title || 'Loading...'} | Zedemy`} />
-        <meta property="og:description" content={truncateText(post?.summary || post?.content, 160) || 'Loading...'} />
+        <meta property="og:title" content={`${post.title} | Zedemy`} />
+        <meta property="og:description" content={truncateText(post.summary || post.content, 160)} />
         <meta
           property="og:image"
-          content={post?.titleImage ? `${post.titleImage}?w=1200&format=avif&q=1` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
+          content={post.titleImage ? `${post.titleImage}?w=1200&format=avif&q=1` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
         />
-        <meta property="og:image:alt" content={`${post?.title || 'Post'} tutorial`} />
+        <meta property="og:image:alt" content={`${post.title} tutorial`} />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="675" />
         <meta property="og:url" content={`https://zedemy.vercel.app/post/${slug}`} />
         <meta property="og:type" content="article" />
         <meta property="og:site_name" content="Zedemy" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={`${post?.title || 'Loading...'} | Zedemy`} />
-        <meta name="twitter:description" content={truncateText(post?.summary || post?.content, 160) || 'Loading...'} />
+        <meta name="twitter:title" content={`${post.title} | Zedemy`} />
+        <meta name="twitter:description" content={truncateText(post.summary || post.content, 160)} />
         <meta
           name="twitter:image"
-          content={post?.titleImage ? `${post.titleImage}?w=1200&format=avif&q=1` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
+          content={post.titleImage ? `${post.titleImage}?w=1200&format=avif&q=1` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
         />
         <style>{css}</style>
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
       <article>
         <header>
-          {post?.titleImage && (
+          {post.titleImage && (
             <div className={`image-container ${isImageLoaded ? 'image-loaded' : ''}`}>
               <img
                 src={`${post.titleImage}?w=100&format=avif&q=1`}
@@ -182,9 +266,9 @@ const PriorityContent = memo(({ post, slug, readTime, structuredData }) => {
               />
             </div>
           )}
-          <h1 className="post-header">{post?.title || 'Loading...'}</h1>
+          <h1 className="post-header">{post.title}</h1>
           <div className="meta-info">
-            <span>By {post?.author || 'Unknown'}</span>
+            <span>By {post.author || 'Unknown'}</span>
             <span> | {formattedDate}</span>
             <span> | Read time: <span id="read-time">{readTime || 'Calculating...'}</span> min</span>
           </div>
