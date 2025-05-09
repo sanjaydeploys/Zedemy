@@ -20,7 +20,6 @@ import {
 import { fetchCertificates } from './certificateActions';
 
 const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
-const cache = new Map();
 
 const parseLinksForPreRender = (text, category) => {
   if (!text) return '';
@@ -35,22 +34,16 @@ const parseLinksForPreRender = (text, category) => {
 
 export const fetchPostBySlug = (slug) => async dispatch => {
   console.log('[fetchPostBySlug] Fetching post:', slug);
-  const cacheKey = `post-${slug}`;
-  if (cache.has(cacheKey)) {
-    dispatch({ type: FETCH_POST_SUCCESS, payload: cache.get(cacheKey) });
-    return;
-  }
   try {
-    const res = await axios.get(`${API_BASE_URL}/post/${slug}`, {
-      headers: { 'Cache-Control': 'public, max-age=3600' }
-    });
+    const res = await axios.get(`${API_BASE_URL}/post/${slug}`);
     const contentField = res.data.content || res.data.body || res.data.text || '';
+    if (!contentField) {
+      console.warn('[fetchPostBySlug] No content field:', res.data);
+    }
     const post = {
       ...res.data,
-      preRenderedContent: parseLinksForPreRender(contentField.slice(0, 500), res.data.category), // Limit for LCP
-      fullContent: contentField
+      preRenderedContent: parseLinksForPreRender(contentField, res.data.category)
     };
-    cache.set(cacheKey, post);
     dispatch({ type: FETCH_POST_SUCCESS, payload: post });
   } catch (error) {
     console.error('[fetchPostBySlug] Error:', {
