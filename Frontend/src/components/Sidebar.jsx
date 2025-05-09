@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { parseLinks, slugify } from './utils';
 
 // Styled Components
 const SidebarContainer = styled.aside`
   width: 250px;
-  background: rgba(15, 1, 1, 0.82);
+  background: #0f0101;
   color: #ecf0f1;
   display: flex;
   flex-direction: column;
@@ -85,10 +85,19 @@ const ToggleButton = styled.button`
 `;
 
 const Sidebar = ({ post, isSidebarOpen, setSidebarOpen, activeSection, scrollToSection, subtitlesListRef }) => {
-  // Ensure scrollToSection is called with the correct arguments
+  const slugs = useMemo(() => {
+    return post?.subtitles?.reduce((acc, s, i) => {
+      acc[`subtitle-${i}`] = slugify(s.title);
+      return acc;
+    }, post.summary ? { summary: 'summary' } : {});
+  }, [post?.subtitles, post?.summary]);
+
   const handleScrollToSection = (sectionId) => {
     if (typeof scrollToSection === 'function') {
       scrollToSection(sectionId);
+      if (slugs && slugs[sectionId]) {
+        window.history.pushState(null, '', `#${slugs[sectionId]}`);
+      }
     } else {
       console.error('scrollToSection is not a function');
     }
@@ -132,4 +141,4 @@ const Sidebar = ({ post, isSidebarOpen, setSidebarOpen, activeSection, scrollToS
   );
 };
 
-export default Sidebar; 
+export default Sidebar;
