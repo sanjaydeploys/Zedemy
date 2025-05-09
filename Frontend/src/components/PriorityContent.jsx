@@ -1,4 +1,4 @@
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo, useState } from 'react';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { parseLinks, truncateText } from './utils';
 
@@ -133,17 +133,6 @@ const css = `
 
 const PriorityContent = memo(({ post, slug, readTime, structuredData }) => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
-  const [parsedContent, setParsedContent] = useState(post?.content ? 'Loading content...' : '');
-
-  useEffect(() => {
-    if (!post?.content) return;
-    // Defer parseLinks to reduce main-thread blocking
-    const timeoutId = setTimeout(() => {
-      const result = parseLinks(post.content);
-      setParsedContent(result);
-    }, 1000); // Delay parsing to prioritize rendering
-    return () => clearTimeout(timeoutId);
-  }, [post?.content]);
 
   const formattedDate = post?.date && !isNaN(new Date(post.date).getTime())
     ? new Date(post.date).toLocaleDateString('en-US', {
@@ -152,6 +141,8 @@ const PriorityContent = memo(({ post, slug, readTime, structuredData }) => {
         day: 'numeric',
       })
     : 'Unknown Date';
+
+  const parsedContent = post?.content ? parseLinks(post.content) : '';
 
   if (!post) {
     return (
