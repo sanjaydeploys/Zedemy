@@ -3,28 +3,38 @@ import { setAuthToken } from '../utils/setAuthToken';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import {
-    FETCH_POSTS_SUCCESS,
-    FETCH_POSTS_FAILURE,
-    ADD_POST_SUCCESS,
-    FETCH_USER_POSTS_SUCCESS,
-    FETCH_USER_POSTS_REQUEST,
-    FETCH_USER_POSTS_FAILURE,
-    SEARCH_POSTS_SUCCESS,
-    SEARCH_POSTS_FAILURE,
-    FETCH_COMPLETED_POSTS_SUCCESS,
-    MARK_POST_COMPLETED_SUCCESS,
-    FETCH_COMPLETED_POSTS_FAILURE,
-    FETCH_POST_SUCCESS,
-    FETCH_POST_FAILURE
+  FETCH_POSTS_SUCCESS,
+  FETCH_POSTS_FAILURE,
+  ADD_POST_SUCCESS,
+  FETCH_USER_POSTS_SUCCESS,
+  FETCH_USER_POSTS_REQUEST,
+  FETCH_USER_POSTS_FAILURE,
+  SEARCH_POSTS_SUCCESS,
+  SEARCH_POSTS_FAILURE,
+  FETCH_COMPLETED_POSTS_SUCCESS,
+  MARK_POST_COMPLETED_SUCCESS,
+  FETCH_COMPLETED_POSTS_FAILURE,
+  FETCH_POST_SUCCESS,
+  FETCH_POST_FAILURE
 } from './types';
 import { fetchCertificates } from './certificateActions';
 
 const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
 
+const sanitizeContent = (content) => {
+  if (!content) return '';
+  // Remove unsafe tags (e.g., <script>, <iframe>) and limit table sizes
+  return content
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+    .replace(/<table\b[^>]*>/gi, '<table style="max-width: 100%; overflow-x: auto;">');
+};
+
 const parseLinksForPreRender = (text, category) => {
   if (!text) return '';
+  const sanitizedText = sanitizeContent(text);
   const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+|\/[^\s)]+)\)/g;
-  return text.replace(linkRegex, (match, linkText, url) => {
+  return sanitizedText.replace(linkRegex, (match, linkText, url) => {
     const isInternal = url.startsWith('/');
     return isInternal
       ? `<a href="${url}" class="text-blue-600 hover:text-blue-800" aria-label="Navigate to ${linkText}">${linkText}</a>`
@@ -32,7 +42,7 @@ const parseLinksForPreRender = (text, category) => {
   });
 };
 
-export const fetchPostBySlug = (slug) => async dispatch => {
+export const fetchPostBySlug = (slug) => async (dispatch) => {
   console.log('[fetchPostBySlug] Fetching post:', slug);
   try {
     const res = await axios.get(`${API_BASE_URL}/post/${slug}`);
@@ -55,7 +65,7 @@ export const fetchPostBySlug = (slug) => async dispatch => {
   }
 };
 
-export const searchPosts = (query) => async dispatch => {
+export const searchPosts = (query) => async (dispatch) => {
   console.log('[searchPosts] Searching posts:', query);
   try {
     const res = await axios.get(`${API_BASE_URL}/search?query=${encodeURIComponent(query)}`);
@@ -70,7 +80,7 @@ export const searchPosts = (query) => async dispatch => {
   }
 };
 
-export const fetchPosts = () => async dispatch => {
+export const fetchPosts = () => async (dispatch) => {
   console.log('[fetchPosts] Fetching all posts...');
   const token = localStorage.getItem('token');
   if (token) setAuthToken(token);
@@ -105,7 +115,18 @@ export const fetchUserPosts = () => async (dispatch) => {
   }
 };
 
-export const addPost = (title, content, category, subtitles, summary, titleImage, superTitles, titleVideo, titleImageHash, videoHash) => async (dispatch, getState) => {
+export const addPost = (
+  title,
+  content,
+  category,
+  subtitles,
+  summary,
+  titleImage,
+  superTitles,
+  titleVideo,
+  titleImageHash,
+  videoHash
+) =>async (dispatch, getState) => {
   const token = localStorage.getItem('token');
   console.log('[addPost] Starting add post...');
   if (!token) {
@@ -164,16 +185,20 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
     return;
   }
   const { completedPosts = [] } = getState().postReducer || {};
-  if (completedPosts.some(post => post.postId === postId)) {
+  if (completedPosts.some((post) => post.postId === postId)) {
     console.log('[markPostAsCompleted] Post already completed:', postId);
     toast.info('This post is already completed.', { position: 'top-right', autoClose: 2000 });
     return;
   }
   try {
     setAuthToken(token);
-    const res = await axios.put(`${API_BASE_URL}/complete/${postId}`, {}, {
-      headers: { 'x-auth-token': token }
-    });
+    const res = await axios.put(
+      `${API_BASE_URL}/complete/${postId}`,
+      {},
+      {
+        headers: { 'x-auth-token': token }
+      }
+    );
     dispatch({ type: MARK_POST_COMPLETED_SUCCESS, payload: { postId } });
     if (res.data.certificateUrl) {
       toast.success(`Category completed! Certificate: ${res.data.certificateUrl}`, {
@@ -195,7 +220,7 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
   }
 };
 
-export const fetchCompletedPosts = () => async dispatch => {
+export const fetchCompletedPosts = () => async (dispatch) => {
   const token = localStorage.getItem('token');
   console.log('[fetchCompletedPosts] Starting fetch...');
   if (!token) {
