@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, memo, useCallback, Suspense, startTransition } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { slugify } from './utils';
 import { markPostAsCompleted } from '../actions/postActions';
 
@@ -37,6 +37,7 @@ const CompleteButton = styled.button`
   min-height: 48px;
   transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   z-index: 1000;
+  will-change: transform;
   &:hover:not(:disabled) {
     background: #34495e;
     transform: translateY(-2px);
@@ -72,18 +73,22 @@ const ImageContainer = styled.figure`
   position: relative;
   aspect-ratio: 16 / 9;
   height: 157.5px;
+  contain-intrinsic-size: 280px 157.5px;
   background: #e0e0e0;
   @media (min-width: 769px) {
     max-width: 480px;
     height: 270px;
+    contain-intrinsic-size: 480px 270px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
     height: 135px;
+    contain-intrinsic-size: 240px 135px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
     height: 112.5px;
+    contain-intrinsic-size: 200px 112.5px;
   }
 `;
 
@@ -119,17 +124,21 @@ const VideoContainer = styled.figure`
   margin: 1rem 0;
   aspect-ratio: 16 / 9;
   height: 157.5px;
+  contain-intrinsic-size: 280px 157.5px;
   @media (min-width: 769px) {
     max-width: 480px;
     height: 270px;
+    contain-intrinsic-size: 480px 270px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
     height: 135px;
+    contain-intrinsic-size: 240px 135px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
     height: 112.5px;
+    contain-intrinsic-size: 200px 112.5px;
   }
 `;
 
@@ -154,8 +163,8 @@ const PostVideo = styled.video`
 
 const Placeholder = styled.div`
   width: 100%;
-  max-width: 280px;
-  height: 157.5px;
+  max-width: ${({ maxWidth }) => maxWidth || '280px'};
+  height: ${({ height }) => height || '157.5px'};
   background: #e0e0e0;
   display: flex;
   align-items: center;
@@ -164,17 +173,30 @@ const Placeholder = styled.div`
   border-radius: 0.375rem;
   font-size: 0.875rem;
   @media (min-width: 769px) {
-    max-width: 480px;
-    height: 270px;
+    max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '480px' : maxWidth || '480px')};
+    height: ${({ height }) => (height === '157.5px' ? '270px' : height || '270px')};
   }
   @media (max-width: 480px) {
-    max-width: 240px;
-    height: 135px;
+    max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '240px' : maxWidth || '240px')};
+    height: ${({ height }) => (height === '157.5px' ? '135px' : height || '135px')};
   }
   @media (max-width: 320px) {
-    max-width: 200px;
-    height: 112.5px;
+    max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '200px' : maxWidth || '200px')};
+    height: ${({ height }) => (height === '157.5px' ? '112.5px' : height || '112.5px')};
   }
+`;
+
+const ReferencesPlaceholder = styled.div`
+  width: 100%;
+  max-width: 100%;
+  min-height: 200px;
+  background: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
 `;
 
 const ReferencesSection = styled.section`
@@ -184,6 +206,7 @@ const ReferencesSection = styled.section`
   border-radius: 0.375rem;
   width: 100%;
   max-width: 100%;
+  min-height: 200px;
 `;
 
 const ReferenceLink = styled.a`
@@ -227,14 +250,13 @@ const debounce = (func, wait) => {
   };
 };
 
-// Web Worker for parsing subtitles and bullet points
 const parseInWorker = (text, category) => {
   return new Promise((resolve) => {
     const workerCode = `
       self.onmessage = function(e) {
         const { text, category } = e.data;
-        const parseLinks = (text, category, isHtml = false) => {
-          if (!text) return isHtml ? '' : [text];
+        const parseLinks = (text, category) => {
+          if (!text) return [text];
           const linkRegex = /\\[([^\\]]+)\\]\\((https?:\\/\\/[^\\s)]+|vscode:\\/\\/[^\\s)]+|\\/[^\\s)]+)\\)/g;
           const elements = [];
           let lastIndex = 0;
@@ -252,8 +274,7 @@ const parseInWorker = (text, category) => {
           }
           return elements.length ? elements : [text || ''];
         };
-        const result = parseLinks(text, category, false);
-        self.postMessage(result);
+        self.postMessage(parseLinks(text, category));
       };
     `;
     const blob = new Blob([workerCode], { type: 'application/javascript' });
@@ -321,7 +342,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                 <a
                   href={elem.url}
                   target={elem.url.startsWith('vscode://') ? '_self' : '_blank'}
-                  rel="noopener"
+                  rel="noopener noreferrer"
                   className="text-blue-600 hover:text-blue-800"
                   aria-label={`Visit ${elem.linkText}`}
                 >
@@ -347,12 +368,12 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                   ${subtitle.image}?w=480&format=avif&q=1 480w
                 `}
                 sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
-                alt={subtitle.title || 'Subtitle image'}
+                alt={`Illustration for ${subtitle.title || 'section'}`}
                 width="280"
                 height="157.5"
-                loading="lazy"
+                loading={index === 0 ? 'eager' : 'lazy'}
                 decoding="async"
-                fetchpriority="low"
+                fetchpriority={index === 0 ? 'high' : 'low'}
                 onLoad={() => setIsImageLoaded(true)}
                 onError={() => {
                   console.error('Subtitle Image Failed:', subtitle.image);
@@ -373,7 +394,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
             height="157.5"
             loading="lazy"
             decoding="async"
-            aria-label={`Video for ${subtitle.title || 'subtitle'}`}
+            aria-label={`Video for ${subtitle.title || 'section'}`}
             fetchpriority="low"
           >
             <source src={`${subtitle.video}#t=0.1`} type="video/mp4" />
@@ -395,7 +416,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                       <a
                         href={elem.url}
                         target={elem.url.startsWith('vscode://') ? '_self' : '_blank'}
-                        rel="noopener"
+                        rel="noopener noreferrer"
                         className="text-blue-600 hover:text-blue-800"
                         aria-label={`Visit ${elem.linkText}`}
                       >
@@ -421,7 +442,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                         ${point.image}?w=480&format=avif&q=1 480w
                       `}
                       sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
-                      alt={`Example for ${point.text || 'bullet point'}`}
+                      alt={`Example illustration for ${point.text || 'point'}`}
                       width="280"
                       height="157.5"
                       loading="lazy"
@@ -447,9 +468,8 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                   height="157.5"
                   loading="lazy"
                   decoding="async"
-                  aria-label={`Video example for ${point.text || 'bullet point'}`}
+                  aria-label={`Video example for ${point.text || 'point'}`}
                   fetchpriority="low"
-                  onLoad={() => console.log('Point Video Loaded:', point.video)}
                 >
                   <source src={`${point.video}#t=0.1`} type="video/mp4" />
                 </PostVideo>
@@ -490,14 +510,14 @@ const LazySubtitleSection = memo(({ subtitle, index, category }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '1500px', threshold: 0.1 }
+      { rootMargin: '500px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ width: '100%', maxWidth: '100%' }}>
+    <div ref={ref} style={{ width: '100%', maxWidth: '100%', minHeight: '200px' }}>
       {isVisible ? (
         <SubtitleSection subtitle={subtitle} index={index} category={category} />
       ) : (
@@ -519,7 +539,7 @@ const LazyReferencesSection = memo(({ post }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '1500px', threshold: 0.1 }
+      { rootMargin: '500px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
@@ -532,7 +552,7 @@ const LazyReferencesSection = memo(({ post }) => {
           <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
           {post.references?.length > 0 ? (
             post.references.map((ref, i) => (
-              <ReferenceLink key={i} href={ref.url} target="_blank" rel="noopener" aria-label={`Visit ${ref.title}`}>
+              <ReferenceLink key={i} href={ref.url} target="_blank" rel="noopener noreferrer" aria-label={`Visit ${ref.title}`}>
                 {ref.title}
               </ReferenceLink>
             ))
@@ -541,7 +561,7 @@ const LazyReferencesSection = memo(({ post }) => {
               <ReferenceLink
                 href={`https://www.geeksforgeeks.org/${post.category?.toLowerCase().replace(/\s+/g, '-') || 'tutorials'}-tutorials`}
                 target="_blank"
-                rel="noopener"
+                rel="noopener noreferrer"
                 aria-label={`GeeksforGeeks ${post.category || 'Tutorials'} Tutorials`}
               >
                 GeeksforGeeks: {post.category || 'Tutorials'} Tutorials
@@ -549,7 +569,7 @@ const LazyReferencesSection = memo(({ post }) => {
               <ReferenceLink
                 href={`https://developer.mozilla.org/en-US/docs/Web/${post.category?.replace(/\s+/g, '') || 'Guide'}`}
                 target="_blank"
-                rel="noopener"
+                rel="noopener noreferrer"
                 aria-label={`MDN ${post.category || 'Documentation'} Documentation`}
               >
                 MDN: {post.category || 'Documentation'} Documentation
@@ -558,7 +578,7 @@ const LazyReferencesSection = memo(({ post }) => {
           )}
         </ReferencesSection>
       ) : (
-        <Placeholder>Loading references...</Placeholder>
+        <ReferencesPlaceholder>Loading references...</ReferencesPlaceholder>
       )}
     </div>
   );
@@ -590,7 +610,7 @@ const PostContentNonCritical = memo(
               }
             });
           }
-        }, 150),
+        }, 100),
       [setActiveSection, subtitlesListRef]
     );
 
@@ -690,7 +710,7 @@ const PostContentNonCritical = memo(
                       <a
                         href={elem.url}
                         target={elem.url.startsWith('vscode://') ? '_self' : '_blank'}
-                        rel="noopener"
+                        rel="noopener noreferrer"
                         className="text-blue-600 hover:text-blue-800"
                         aria-label={`Visit ${elem.linkText}`}
                       >
