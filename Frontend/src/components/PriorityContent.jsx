@@ -1,6 +1,4 @@
-import React, { memo, useState } from 'react';
-import { Helmet, HelmetProvider } from 'react-helmet-async';
-import { truncateText } from './utils';
+import React, { memo, useMemo } from 'react';
 
 const css = `
   .post-header { 
@@ -131,142 +129,73 @@ const css = `
   }
 `;
 
-const PriorityContent = memo(({ post, slug, readTime, structuredData }) => {
-  const [isImageLoaded, setIsImageLoaded] = useState(false);
+const PriorityContent = memo(({ post, readTime }) => {
 
-  const formattedDate = post?.date && !isNaN(new Date(post.date).getTime())
-    ? new Date(post.date).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
-    : 'Unknown Date';
+  const formattedDate = useMemo(() => {
+    return post?.date && !isNaN(new Date(post.date).getTime())
+      ? new Date(post.date).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+      : 'Unknown Date';
+  }, [post?.date]);
 
   if (!post) {
     return (
-      <HelmetProvider>
-        <Helmet>
-          <html lang="en" />
-          <title>Loading... | Zedemy</title>
-          <meta name="description" content="Loading..." />
-          <meta name="keywords" content="Zedemy" />
-          <meta name="author" content="Zedemy Team" />
-          <meta name="robots" content="index, follow, max-image-preview:large" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
-          <style>{css}</style>
-        </Helmet>
-        <article>
-          <header>
-            <div className="skeleton-image" />
-            <div className="skeleton-header" />
-            <div className="skeleton-meta" />
-          </header>
-          <section className="content-section">
-            <div className="skeleton-content" />
-          </section>
-        </article>
-      </HelmetProvider>
+      <article>
+        <header>
+          <div className="skeleton-image" />
+          <div className="skeleton-header" />
+          <div className="skeleton-meta" />
+        </header>
+        <section className="content-section">
+          <div className="skeleton-content" />
+        </section>
+        <style>{css}</style>
+      </article>
     );
   }
 
   return (
-    <HelmetProvider>
-      <Helmet>
-        <html lang="en" />
-        <title>{`${post.title} | Zedemy`}</title>
-        <meta name="description" content={truncateText(post.summary || post.content, 160)} />
-        <meta
-          name="keywords"
-          content={post.keywords ? `${post.keywords}, Zedemy, ${post.category || ''}` : `Zedemy, ${post.category || ''}`}
-        />
-        <meta name="author" content={post.author || 'Zedemy Team'} />
-        <meta name="robots" content="index, follow, max-image-preview:large" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
-        <link rel="preconnect" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
+    <article>
+      <header>
         {post.titleImage && (
-          <link
-            rel="preload"
-            href={`${post.titleImage}?w=100&format=avif&q=1`}
-            as="image"
-            fetchpriority="high"
-            imagesrcset={`
-              ${post.titleImage}?w=100&format=avif&q=1 100w,
-              ${post.titleImage}?w=150&format=avif&q=1 150w,
-              ${post.titleImage}?w=200&format=avif&q=1 200w,
-              ${post.titleImage}?w=240&format=avif&q=1 240w,
-              ${post.titleImage}?w=280&format=avif&q=1 280w,
-              ${post.titleImage}?w=480&format=avif&q=1 480w
-            `}
-            imagesizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
-          />
-        )}
-        <meta property="og:title" content={`${post.title} | Zedemy`} />
-        <meta property="og:description" content={truncateText(post.summary || post.content, 160)} />
-        <meta
-          property="og:image"
-          content={post.titleImage ? `${post.titleImage}?w=1200&format=avif&q=1` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
-        />
-        <meta property="og:image:alt" content={`${post.title} tutorial`} />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="675" />
-        <meta property="og:url" content={`https://zedemy.vercel.app/post/${slug}`} />
-        <meta property="og:type" content="article" />
-        <meta property="og:site_name" content="Zedemy" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={`${post.title} | Zedemy`} />
-        <meta name="twitter:description" content={truncateText(post.summary || post.content, 160)} />
-        <meta
-          name="twitter:image"
-          content={post.titleImage ? `${post.titleImage}?w=1200&format=avif&q=1` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'}
-        />
-        <style>{css}</style>
-        <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
-      </Helmet>
-      <article>
-        <header>
-          {post.titleImage && (
-            <div className={`image-container ${isImageLoaded ? 'image-loaded' : ''}`}>
-              <img
-                src={`${post.titleImage}?w=100&format=avif&q=1`}
-                srcSet={`
-                  ${post.titleImage}?w=100&format=avif&q=1 100w,
-                  ${post.titleImage}?w=150&format=avif&q=1 150w,
-                  ${post.titleImage}?w=200&format=avif&q=1 200w,
-                  ${post.titleImage}?w=240&format=avif&q=1 240w,
-                  ${post.titleImage}?w=280&format=avif&q=1 280w,
-                  ${post.titleImage}?w=480&format=avif&q=1 480w
-                `}
-                sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
-                alt={post.title || 'Post image'}
-                className="post-image"
-                width="280"
-                height="157.5"
-                fetchpriority="high"
-                decoding="sync"
-                loading="eager"
-                onLoad={() => setIsImageLoaded(true)}
-                onError={() => {
-                  console.error('Title Image Failed:', post.titleImage);
-                  setIsImageLoaded(true);
-                }}
-              />
-            </div>
-          )}
-          <h1 className="post-header">{post.title}</h1>
-          <div className="meta-info">
-            <span>By {post.author || 'Unknown'}</span>
-            <span> | {formattedDate}</span>
-            <span> | Read time: <span id="read-time">{readTime || 'Calculating...'}</span> min</span>
+          <div className="image-container">
+            <img
+              src={`${post.titleImage}?w=100&format=avif&q=1`}
+              srcSet={`
+                ${post.titleImage}?w=100&format=avif&q=1 100w,
+                ${post.titleImage}?w=150&format=avif&q=1 150w,
+                ${post.titleImage}?w=200&format=avif&q=1 200w,
+                ${post.titleImage}?w=240&format=avif&q=1 240w,
+                ${post.titleImage}?w=280&format=avif&q=1 280w,
+                ${post.titleImage}?w=480&format=avif&q=1 480w
+              `}
+              sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
+              alt={post.title || 'Post image'}
+              className="post-image"
+              width="280"
+              height="157.5"
+              fetchpriority="high"
+              decoding="sync"
+              loading="eager"
+              onError={() => console.error('Title Image Failed:', post.titleImage)}
+            />
           </div>
-        </header>
-        <section className="content-section">
-          <div>{post.content || 'Loading content...'}</div>
-        </section>
-      </article>
-    </HelmetProvider>
+        )}
+        <h1 className="post-header">{post.title}</h1>
+        <div className="meta-info">
+          <span>By {post.author || 'Unknown'}</span>
+          <span> | {formattedDate}</span>
+          <span> | Read time: <span id="read-time">{readTime || 'Calculating...'}</span> min</span>
+        </div>
+      </header>
+      <section className="content-section">
+        <div>{post.content || 'Loading content...'}</div>
+      </section>
+      <style>{css}</style>
+    </article>
   );
 });
 
