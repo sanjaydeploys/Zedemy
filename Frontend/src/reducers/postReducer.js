@@ -14,7 +14,8 @@ import {
     SEARCH_POSTS_CLEAR,
     MARK_POST_COMPLETED_SUCCESS,
     FETCH_COMPLETED_POSTS_SUCCESS,
-    FETCH_COMPLETED_POSTS_FAILURE
+    FETCH_COMPLETED_POSTS_FAILURE,
+    CLEAR_POST
 } from '../actions/types';
 
 const initialState = {
@@ -29,6 +30,8 @@ const initialState = {
 
 const postReducer = (state = initialState, action) => {
     switch (action.type) {
+        case CLEAR_POST:
+            return { ...state, post: null, error: null };
         case FETCH_POSTS_SUCCESS:
             return { ...state, posts: action.payload.posts || action.payload, error: null };
         case FETCH_POSTS_FAILURE:
