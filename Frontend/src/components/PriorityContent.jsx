@@ -2,45 +2,44 @@ import React, { memo } from 'react';
 
 const criticalCss = `
   .post-header {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     color: #011020;
     margin: 0.5rem 0;
-    width: 100%;
     font-weight: 700;
-    line-height: 1.2;
+    line-height: 1.3;
+    width: 100%;
   }
   .content-section {
     font-size: 0.875rem;
-    line-height: 1.6;
+    line-height: 1.5;
     width: 100%;
     min-height: 200px;
     opacity: 1;
   }
   .content-section div {
-    margin: 0.5rem 0;
+    margin: 0.25rem 0;
   }
   .image-container {
     width: 100%;
     max-width: 280px;
     margin: 0.5rem 0;
-    position: relative;
     aspect-ratio: 16 / 9;
     height: 157.5px;
+    position: relative;
   }
   .post-image {
     width: 100%;
     height: 157.5px;
-    object-fit: contain;
+    object-fit: cover;
     border-radius: 0.25rem;
     position: absolute;
     top: 0;
     left: 0;
-    z-index: 2;
   }
   .meta-info {
     color: #666;
     font-size: 0.75rem;
-    margin-bottom: 0.5rem;
+    margin: 0.5rem 0;
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
@@ -54,14 +53,14 @@ const criticalCss = `
     margin: 0.5rem 0;
   }
   .skeleton-header {
-    width: 60%;
-    height: 1.5rem;
+    width: 70%;
+    height: 1.25rem;
     background: #e0e0e0;
     border-radius: 0.25rem;
     margin: 0.5rem 0;
   }
   .skeleton-meta {
-    width: 40%;
+    width: 50%;
     height: 0.75rem;
     background: #e0e0e0;
     border-radius: 0.25rem;
@@ -72,11 +71,11 @@ const criticalCss = `
     min-height: 200px;
     background: #e0e0e0;
     border-radius: 0.25rem;
-    margin: 0.5rem 0;
+    margin: 0.25rem 0;
   }
   @media (min-width: 768px) {
     .post-header {
-      font-size: 1.7rem;
+      font-size: 1.5rem;
     }
     .content-section {
       font-size: 0.9rem;
@@ -95,7 +94,7 @@ const criticalCss = `
       height: 337.5px;
     }
     .skeleton-header {
-      height: 2rem;
+      height: 1.5rem;
     }
     .skeleton-content {
       min-height: 300px;
@@ -104,7 +103,7 @@ const criticalCss = `
 `;
 
 const PriorityContent = memo(({ post, readTime }) => {
-  console.log('[PriorityContent] Rendering with post:', post);
+  console.log('[PriorityContent] Rendering:', post);
 
   if (!post) {
     return (
@@ -124,11 +123,7 @@ const PriorityContent = memo(({ post, readTime }) => {
 
   const formattedDate =
     post?.date && !isNaN(new Date(post.date).getTime())
-      ? new Date(post.date).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        })
+      ? new Date(post.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
       : 'Unknown Date';
 
   return (
@@ -137,10 +132,10 @@ const PriorityContent = memo(({ post, readTime }) => {
         {post.titleImage && (
           <div className="image-container">
             <img
-              src={`${post.titleImage}?w=280&format=avif&q=75`}
+              src={`${post.titleImage}?w=280&format=avif&q=70`}
               srcSet={`
-                ${post.titleImage}?w=280&format=avif&q=75 280w,
-                ${post.titleImage}?w=600&format=avif&q=75 600w
+                ${post.titleImage}?w=280&format=avif&q=70 280w,
+                ${post.titleImage}?w=600&format=avif&q=70 600w
               `}
               sizes="(max-width: 767px) 280px, 600px"
               alt={post.title || 'Post image'}
@@ -151,7 +146,7 @@ const PriorityContent = memo(({ post, readTime }) => {
               loading="eager"
               fetchpriority="high"
               onError={(e) => {
-                console.error('Title Image Failed:', post.titleImage);
+                console.error('Image Failed:', post.titleImage);
                 e.target.style.display = 'none';
               }}
             />
