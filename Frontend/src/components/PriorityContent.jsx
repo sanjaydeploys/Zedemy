@@ -1,6 +1,4 @@
 import React, { memo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { markPostAsCompleted } from '../actions/postActions';
 
 const criticalCss = `
   .post-header {
@@ -75,36 +73,6 @@ const criticalCss = `
     border-radius: 0.25rem;
     margin: 0.5rem 0;
   }
-  .complete-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #fff;
-    background: #2c3e50;
-    border: none;
-    border-radius: 0.375rem;
-    cursor: pointer;
-    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-    margin: 0.5rem 0;
-  }
-  .complete-button:hover {
-    background: #34495e;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  }
-  .complete-button:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  .complete-button:disabled {
-    background: #95a5a6;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-  }
   @media (min-width: 768px) {
     .post-header {
       font-size: 1.5rem;
@@ -131,18 +99,11 @@ const criticalCss = `
     .skeleton-content {
       min-height: 300px;
     }
-    .complete-button {
-      padding: 0.75rem 1.5rem;
-      font-size: 1rem;
-      border-radius: 0.5rem;
-    }
   }
 `;
 
 const PriorityContent = memo(({ post, readTime }) => {
   console.log('[PriorityContent] Rendering with post:', post);
-  const dispatch = useDispatch();
-  const completedPosts = useSelector(state => state.postReducer.completedPosts || []);
 
   if (!post) {
     return (
@@ -168,14 +129,6 @@ const PriorityContent = memo(({ post, readTime }) => {
           day: 'numeric'
         })
       : 'Unknown Date';
-
-  const isCompleted = completedPosts.some(cp => cp.postId === post.postId);
-
-  const handleMarkAsCompleted = () => {
-    if (!isCompleted) {
-      dispatch(markPostAsCompleted(post.postId));
-    }
-  };
 
   return (
     <article>
@@ -212,14 +165,6 @@ const PriorityContent = memo(({ post, readTime }) => {
       </header>
       <section className="content-section">
         <div dangerouslySetInnerHTML={{ __html: post.preRenderedContent || post.content || '' }} />
-        <button
-          className="complete-button"
-          onClick={handleMarkAsCompleted}
-          disabled={isCompleted}
-          aria-label={isCompleted ? 'Post already marked as completed' : 'Mark post as completed'}
-        >
-          {isCompleted ? 'Completed' : 'Mark as Completed'}
-        </button>
       </section>
       <style>{criticalCss}</style>
     </article>
