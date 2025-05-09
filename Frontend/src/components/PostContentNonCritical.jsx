@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, memo, useCallback, Suspense, startTransition } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
-import { parseLinks, slugify } from './utils';
+import { useSelector, useDispatch } from 'react-redux';
+import { slugify } from './utils';
+import { markPostAsCompleted } from '../actions/postActions';
 
 const RelatedPosts = React.lazy(() => import('./RelatedPosts'));
 const AccessibleZoom = React.lazy(() => import('./AccessibleZoom'));
@@ -30,14 +32,36 @@ const CompleteButton = styled.button`
   border-radius: 0.375rem;
   cursor: ${({ isCompleted }) => (isCompleted ? 'not-allowed' : 'pointer')};
   font-size: 0.875rem;
+  font-weight: 500;
   min-width: 48px;
   min-height: 48px;
-  &:hover {
-    background: ${({ isCompleted }) => (isCompleted ? '#27ae60' : '#34495e')};
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  z-index: 1000;
+  &:hover:not(:disabled) {
+    background: #34495e;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+  &:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  &:disabled {
+    background: #95a5a6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  @media (min-width: 768px) {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    border-radius: 0.5rem;
   }
   @media (max-width: 480px) {
-    font-size: 0.75rem;
     padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    min-width: 44px;
+    min-height: 44px;
   }
 `;
 
@@ -543,6 +567,8 @@ const LazyReferencesSection = memo(({ post }) => {
 const PostContentNonCritical = memo(
   ({ post, relatedPosts, completedPosts, dispatch, isSidebarOpen, setSidebarOpen, activeSection, setActiveSection, subtitlesListRef }) => {
     const [parsedSummary, setParsedSummary] = useState(post.summary || '');
+    const completedPostsSelector = useSelector(state => state.postReducer.completedPosts || []);
+    const isCompleted = completedPostsSelector.some(cp => cp.postId === post.postId);
 
     const debouncedObserve = React.useMemo(
       () =>
@@ -617,9 +643,10 @@ const PostContentNonCritical = memo(
     }, [post, debouncedObserve]);
 
     const handleMarkAsCompleted = useCallback(() => {
-      if (!post) return;
-      dispatch({ type: 'MARK_POST_AS_COMPLETED', payload: post.postId });
-    }, [dispatch, post]);
+      if (!isCompleted && post) {
+        dispatch(markPostAsCompleted(post.postId));
+      }
+    }, [dispatch, post, isCompleted]);
 
     const scrollToSection = useCallback(
       (id, updateUrl = true) => {
@@ -688,12 +715,12 @@ const PostContentNonCritical = memo(
         </NavigationLinks>
 
         <CompleteButton
+          isCompleted={isCompleted}
           onClick={handleMarkAsCompleted}
-          disabled={completedPosts.some(p => p.postId === post.postId)}
-          isCompleted={completedPosts.some(p => p.postId === post.postId)}
-          aria-label={completedPosts.some(p => p.postId === post.postId) ? 'Post completed' : 'Mark as completed'}
+          disabled={isCompleted}
+          aria-label={isCompleted ? 'Post already marked as completed' : 'Mark post as completed'}
         >
-          {completedPosts.some(p => p.postId === post.postId) ? 'Completed' : 'Mark as Completed'}
+          {isCompleted ? 'Completed' : 'Mark as Completed'}
         </CompleteButton>
 
         <section aria-labelledby="related-posts-heading">
