@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 
 const criticalCss = `
   .post-header { 
-    font-size: 1.5rem; 
+    font-size: 1.7rem; 
     color: #011020; 
     margin: 0.75rem 0; 
     width: 100%; 
@@ -10,10 +10,9 @@ const criticalCss = `
     line-height: 1.2;
   }
   .content-section { 
-    font-size: 0.875rem; 
+    font-size: 0.9rem; 
     line-height: 1.7; 
     width: 100%; 
-    min-height: 300px; 
     opacity: 1;
   }
   .content-section div { 
