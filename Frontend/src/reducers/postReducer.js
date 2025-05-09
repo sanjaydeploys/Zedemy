@@ -14,8 +14,7 @@ import {
     SEARCH_POSTS_CLEAR,
     MARK_POST_COMPLETED_SUCCESS,
     FETCH_COMPLETED_POSTS_SUCCESS,
-    FETCH_COMPLETED_POSTS_FAILURE,
-    FETCH_CRITICAL_POST_SUCCESS
+    FETCH_COMPLETED_POSTS_FAILURE
 } from '../actions/types';
 
 const initialState = {
@@ -24,9 +23,8 @@ const initialState = {
     completedPosts: [],
     searchResults: [],
     post: null,
-    criticalPost: null,
     loading: false,
-    error: null,
+    error: null
 };
 
 const postReducer = (state = initialState, action) => {
@@ -50,21 +48,21 @@ const postReducer = (state = initialState, action) => {
                 ...state,
                 posts: [action.payload, ...state.posts],
                 userPosts: [action.payload, ...state.userPosts],
-                error: null,
+                error: null
             };
         case UPDATE_POST_SUCCESS:
             return {
                 ...state,
                 posts: state.posts.map(post => post.postId === action.payload.postId ? action.payload : post),
                 userPosts: state.userPosts.map(post => post.postId === action.payload.postId ? action.payload : post),
-                error: null,
+                error: null
             };
         case DELETE_POST_SUCCESS:
             return {
                 ...state,
                 posts: state.posts.filter(post => post.postId !== action.payload),
                 userPosts: state.userPosts.filter(post => post.postId !== action.payload),
-                error: null,
+                error: null
             };
         case SEARCH_POSTS_SUCCESS:
             return { ...state, searchResults: action.payload, error: null };
@@ -76,8 +74,6 @@ const postReducer = (state = initialState, action) => {
             return { ...state, post: action.payload, error: null };
         case FETCH_POST_FAILURE:
             return { ...state, post: null, error: action.payload };
-        case FETCH_CRITICAL_POST_SUCCESS:
-            return { ...state, criticalPost: action.payload, error: null };
         case MARK_POST_COMPLETED_SUCCESS:
             const newCompletedPost = state.posts.find(post => post.postId === action.payload.postId) || { postId: action.payload.postId };
             return {
@@ -85,7 +81,7 @@ const postReducer = (state = initialState, action) => {
                 completedPosts: state.completedPosts.some(post => post.postId === action.payload.postId)
                     ? state.completedPosts
                     : [...state.completedPosts, newCompletedPost],
-                error: null,
+                error: null
             };
         default:
             return state;
