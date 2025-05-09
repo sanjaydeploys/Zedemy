@@ -1,78 +1,105 @@
 import React, { memo } from 'react';
 
 const criticalCss = `
-  .post-header { 
-    font-size: 1.7rem; 
-    color: #011020; 
-    margin: 0.75rem 0; 
-    width: 100%; 
+  .post-header {
+    font-size: 1.5rem;
+    color: #011020;
+    margin: 0.5rem 0;
+    width: 100%;
     font-weight: 700;
     line-height: 1.2;
   }
-  .content-section { 
-    font-size: 0.9rem; 
-    line-height: 1.7; 
-    width: 100%; 
+  .content-section {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    width: 100%;
+    min-height: 200px;
     opacity: 1;
   }
-  .content-section div { 
-    margin: 0.5rem 0; 
+  .content-section div {
+    margin: 0.5rem 0;
   }
-  .image-container { 
-    width: 100%; 
-    max-width: 280px; 
-    margin: 1rem 0; 
-    position: relative; 
-    aspect-ratio: 16 / 9; 
-    height: 157.5px; 
+  .image-container {
+    width: 100%;
+    max-width: 280px;
+    margin: 0.5rem 0;
+    position: relative;
+    aspect-ratio: 16 / 9;
+    height: 157.5px;
   }
-  .post-image { 
-    width: 100%; 
-    max-width: 280px; 
-    height: 157.5px; 
-    object-fit: contain; 
-    border-radius: 0.375rem; 
-    position: absolute; 
-    top: 0; 
-    left: 0; 
-    z-index: 2; 
+  .post-image {
+    width: 100%;
+    height: 157.5px;
+    object-fit: contain;
+    border-radius: 0.25rem;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
   }
-  .meta-info { 
-    color: #666; 
-    font-size: 0.75rem; 
-    margin-bottom: 0.75rem; 
-    display: flex; 
-    gap: 0.5rem; 
-    flex-wrap: wrap; 
+  .meta-info {
+    color: #666;
+    font-size: 0.75rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
   }
-  .skeleton-image { 
-    width: 100%; 
-    max-width: 280px; 
-    height: 157.5px; 
-    background: #e0e0e0; 
-    border-radius: 0.375rem; 
-    margin: 1rem 0; 
+  .skeleton-image {
+    width: 100%;
+    max-width: 280px;
+    height: 157.5px;
+    background: #e0e0e0;
+    border-radius: 0.25rem;
+    margin: 0.5rem 0;
   }
-  .skeleton-header { 
-    width: 60%; 
-    height: 2rem; 
-    background: #e0e0e0; 
-    border-radius: 0.375rem; 
-    margin: 0.75rem 0; 
+  .skeleton-header {
+    width: 60%;
+    height: 1.5rem;
+    background: #e0e0e0;
+    border-radius: 0.25rem;
+    margin: 0.5rem 0;
   }
-  .skeleton-meta { 
-    width: 40%; 
-    height: 1rem; 
-    background: #e0e0e0; 
-    border-radius: 0.375rem; 
-    margin: 0.5rem 0; 
+  .skeleton-meta {
+    width: 40%;
+    height: 0.75rem;
+    background: #e0e0e0;
+    border-radius: 0.25rem;
+    margin: 0.5rem 0;
   }
-  .skeleton-content { 
-    width: 100%; 
-    min-height: 300px; 
-    background: #e0e0e0; 
-    border-radius: 0.375rem; 
-    margin: 0.5rem 0; 
+  .skeleton-content {
+    width: 100%;
+    min-height: 200px;
+    background: #e0e0e0;
+    border-radius: 0.25rem;
+    margin: 0.5rem 0;
+  }
+  @media (min-width: 768px) {
+    .post-header {
+      font-size: 1.7rem;
+    }
+    .content-section {
+      font-size: 0.9rem;
+      min-height: 300px;
+    }
+    .image-container {
+      max-width: 600px;
+      height: 337.5px;
+    }
+    .post-image {
+      max-width: 600px;
+      height: 337.5px;
+    }
+    .skeleton-image {
+      max-width: 600px;
+      height: 337.5px;
+    }
+    .skeleton-header {
+      height: 2rem;
+    }
+    .skeleton-content {
+      min-height: 300px;
+    }
   }
 `;
 
@@ -111,6 +138,11 @@ const PriorityContent = memo(({ post, readTime }) => {
           <div className="image-container">
             <img
               src={`${post.titleImage}?w=280&format=avif&q=75`}
+              srcSet={`
+                ${post.titleImage}?w=280&format=avif&q=75 280w,
+                ${post.titleImage}?w=600&format=avif&q=75 600w
+              `}
+              sizes="(max-width: 767px) 280px, 600px"
               alt={post.title || 'Post image'}
               className="post-image"
               width="280"
@@ -138,7 +170,7 @@ const PriorityContent = memo(({ post, readTime }) => {
         ) : post.content ? (
           <div>{post.content}</div>
         ) : (
-          <div>Loading content...</div>
+          <div className="skeleton-content" />
         )}
       </section>
       <style>{criticalCss}</style>
