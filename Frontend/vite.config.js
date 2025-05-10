@@ -62,10 +62,10 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /^https:\/\/d2rq30ca0zyvzp\.cloudfront\.net/,
+            urlPattern: /^https:\/\/zedemy-media-2025\.s3\.ap-south-1\.amazonaws\.com/,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'cloudfront-assets',
+              cacheName: 'media-cache',
               expiration: { maxEntries: 50, maxAgeSeconds: 30 * 24 * 60 * 60 },
               cacheableResponse: { statuses: [0, 200] },
             },
@@ -111,7 +111,6 @@ export default defineConfig({
           parse5: ['parse5'],
           lodash: ['lodash'],
           toast: ['react-toastify'],
-          // Prioritize PostPage and PriorityContent
           post: [
             path.resolve(__dirname, 'src/components/PostPage.jsx'),
             path.resolve(__dirname, 'src/components/PriorityContent.jsx'),
@@ -131,7 +130,7 @@ export default defineConfig({
     },
     outDir: 'dist',
     assetsDir: 'assets',
-    assetsInlineLimit: 8192,
+    assetsInlineLimit: 16384, // Increased to inline PriorityContent, PostPage, Layout
     chunkSizeWarningLimit: 250,
   },
   optimizeDeps: {
