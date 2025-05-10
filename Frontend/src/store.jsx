@@ -77,6 +77,7 @@ const initializeStore = async () => {
         try {
             await store.dispatch(loadUser());
             await store.dispatch(fetchFollowedCategories());
+            // Defer non-critical actions to after initial render
             if (typeof window !== 'undefined' && window.requestIdleCallback) {
                 window.requestIdleCallback(() => {
                     Promise.all([
@@ -87,7 +88,7 @@ const initializeStore = async () => {
                     ]).catch(error => {
                         console.error('[initializeStore] Error in deferred fetches:', error);
                     });
-                }, { timeout: 5000 });
+                }, { timeout: 10000 }); // Increased timeout to 10s
             } else {
                 setTimeout(() => {
                     Promise.all([
@@ -98,7 +99,7 @@ const initializeStore = async () => {
                     ]).catch(error => {
                         console.error('[initializeStore] Error in deferred fetches:', error);
                     });
-                }, 1000);
+                }, 5000); // Deferred to 5s
             }
         } catch (error) {
             console.error('[initializeStore] Error:', error);
@@ -115,24 +116,34 @@ initializeStore().catch(error => {
 store.subscribe(
     throttle(() => {
         const state = store.getState();
+        // Save only changed parts of the state
         const persistedData = {
-            auth: { user: state.auth.user, token: state.auth.token, isAuthenticated: state.auth.isAuthenticated, loading: state.auth.loading },
-            notifications: { followedCategories: state.notifications.followedCategories, notifications: state.notifications.notifications },
+            auth: {
+                user: state.auth.user,
+                token: state.auth.token,
+                isAuthenticated: state.auth.isAuthenticated,
+                loading: state.auth.loading
+            },
+            notifications: {
+                followedCategories: state.notifications.followedCategories
+                // Exclude notifications to reduce size
+            },
             postReducer: {
-                posts: state.postReducer.posts,
-                userPosts: state.postReducer.userPosts,
-                completedPosts: state.postReducer.completedPosts,
                 post: state.postReducer.post,
                 loading: state.postReducer.loading,
-                searchResults: state.postReducer.searchResults,
                 error: state.postReducer.error
+                // Exclude posts, userPosts, completedPosts, searchResults to reduce size
             },
-            certificates: { certificates: state.certificates.certificates, error: state.certificates.error, loading: state.certificates.loading },
+            certificates: {
+                loading: state.certificates.loading,
+                error: state.certificates.error
+                // Exclude certificates to reduce size
+            },
             settings: state.settings
         };
         saveState(persistedData);
         console.log('[store.subscribe] Saved to localStorage:', persistedData);
-    }, 1000)
+    }, 2000) // Increased throttle to 2s
 );
 
 export default store;
