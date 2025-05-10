@@ -1,7 +1,7 @@
-import React, { memo, useCallback, Suspense } from 'react';
+import React, { memo, Suspense, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import { slugify } from './utils';
+import { slugify, parseLinks } from './utils';
 import { markPostAsCompleted } from '../actions/postActions';
 import styled, { keyframes } from 'styled-components';
 
@@ -24,7 +24,6 @@ const SubtitleHeader = styled.h2`
   border-left: 4px solid #34db58;
   padding-left: 0.5rem;
   width: 100%;
-  line-height: 32px;
   min-height: 32px;
   contain-intrinsic-size: 100% 32px;
   box-sizing: border-box;
@@ -105,6 +104,7 @@ const PostImage = styled.img`
   object-fit: contain;
   border-radius: 0.375rem;
   box-sizing: border-box;
+  contain: layout;
   @media (min-width: 769px) {
     max-width: 480px;
   }
@@ -149,6 +149,7 @@ const PostVideo = styled.video`
   aspect-ratio: 16 / 9;
   border-radius: 0.375rem;
   box-sizing: border-box;
+  contain: layout;
   @media (min-width: 769px) {
     max-width: 480px;
   }
@@ -203,8 +204,8 @@ const SectionPlaceholder = styled.div`
   color: #666;
   border-radius: 0.375rem;
   font-size: 0.875rem;
-  animation: ${pulse} 1.5s ease-in-out infinite;
   contain-intrinsic-size: 100% 200px;
+  animation: ${pulse} 1.5s ease-in-out infinite;
   box-sizing: border-box;
   contain: layout;
 `;
@@ -215,8 +216,8 @@ const ReferencesSection = styled.section`
   background: #f9f9f9;
   border-radius: 0.375rem;
   width: 100%;
-  min-height: 120px;
-  contain-intrinsic-size: 100% 120px;
+  min-height: 150px;
+  contain-intrinsic-size: 100% 150px;
   box-sizing: border-box;
   contain: layout;
 `;
@@ -232,6 +233,7 @@ const ReferenceLink = styled.a`
   min-height: 24px;
   contain-intrinsic-size: 100% 24px;
   box-sizing: border-box;
+  contain: layout;
   &:hover {
     text-decoration: underline;
   }
@@ -249,8 +251,8 @@ const NavigationLinks = styled.nav`
   flex-wrap: wrap;
   font-size: 0.75rem;
   width: 100%;
-  min-height: 40px;
-  contain-intrinsic-size: 100% 40px;
+  min-height: 44px;
+  contain-intrinsic-size: 100% 44px;
   box-sizing: border-box;
   contain: layout;
   & a {
@@ -265,8 +267,8 @@ const NavigationLinks = styled.nav`
 const RelatedPostsSection = styled.section`
   width: 100%;
   padding: 1rem 0;
-  min-height: 380px;
-  contain-intrinsic-size: 100% 380px;
+  min-height: 450px;
+  contain-intrinsic-size: 100% 450px;
   box-sizing: border-box;
   contain: layout;
 `;
@@ -281,6 +283,7 @@ const SkeletonRelatedPost = styled.div`
   min-height: 260px;
   contain-intrinsic-size: 280px 260px;
   box-sizing: border-box;
+  contain: layout;
   @media (min-width: 769px) {
     max-width: 480px;
     min-height: 380px;
@@ -308,6 +311,7 @@ const SkeletonImage = styled.div`
   animation: ${pulse} 1.5s ease-in-out infinite;
   contain-intrinsic-size: 280px 157.5px;
   box-sizing: border-box;
+  contain: layout;
   @media (min-width: 769px) {
     max-width: 480px;
     min-height: 270px;
@@ -327,28 +331,30 @@ const SkeletonImage = styled.div`
 
 const SkeletonTitle = styled.div`
   width: 80%;
-  height: 24px;
+  min-height: 24px;
   background: #e0e0e0;
   border-radius: 0.25rem;
   animation: ${pulse} 1.5s ease-in-out infinite;
   contain-intrinsic-size: 80% 24px;
   box-sizing: border-box;
+  contain: layout;
   @media (min-width: 769px) {
-    height: 32px;
+    min-height: 32px;
     contain-intrinsic-size: 80% 32px;
   }
 `;
 
 const SkeletonExcerpt = styled.div`
   width: 100%;
-  height: 60px;
+  min-height: 60px;
   background: #e0e0e0;
   border-radius: 0.25rem;
   animation: ${pulse} 1.5s ease-in-out infinite;
   contain-intrinsic-size: 100% 60px;
   box-sizing: border-box;
+  contain: layout;
   @media (min-width: 769px) {
-    height: 80px;
+    min-height: 80px;
     contain-intrinsic-size: 100% 80px;
   }
 `;
@@ -359,8 +365,8 @@ const SkeletonRelatedPostsContainer = styled.div`
   flex-direction: column;
   gap: 1rem;
   padding: 1rem 0;
-  min-height: 380px;
-  contain-intrinsic-size: 100% 380px;
+  min-height: 450px;
+  contain-intrinsic-size: 100% 450px;
   box-sizing: border-box;
   contain: layout;
   @media (min-width: 769px) {
@@ -372,12 +378,13 @@ const SkeletonRelatedPostsContainer = styled.div`
 
 const SkeletonBulletPoint = styled.div`
   width: 100%;
-  height: 30px;
+  min-height: 30px;
   background: #e0e0e0;
   border-radius: 0.25rem;
   animation: ${pulse} 1.5s ease-in-out infinite;
   contain-intrinsic-size: 100% 30px;
   box-sizing: border-box;
+  contain: layout;
   margin-bottom: 0.5rem;
 `;
 
@@ -397,7 +404,7 @@ const SkeletonSummary = styled.div`
   contain: layout;
   & > div:first-child {
     width: 100%;
-    height: 32px;
+    min-height: 32px;
     background: #e0e0e0;
     border-radius: 0.25rem;
     animation: ${pulse} 1.5s ease-in-out infinite;
@@ -406,7 +413,7 @@ const SkeletonSummary = styled.div`
   }
   & > div:last-child {
     width: 100%;
-    height: 90px;
+    min-height: 90px;
     background: #e0e0e0;
     border-radius: 0.25rem;
     animation: ${pulse} 1.5s ease-in-out infinite;
@@ -416,8 +423,8 @@ const SkeletonSummary = styled.div`
 
 const SkeletonNavigationLinks = styled.div`
   width: 100%;
-  min-height: 40px;
-  contain-intrinsic-size: 100% 40px;
+  min-height: 44px;
+  contain-intrinsic-size: 100% 44px;
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
@@ -425,7 +432,7 @@ const SkeletonNavigationLinks = styled.div`
   contain: layout;
   & > div {
     width: 60px;
-    height: 24px;
+    min-height: 24px;
     background: #e0e0e0;
     border-radius: 0.25rem;
     animation: ${pulse} 1.5s ease-in-out infinite;
@@ -435,8 +442,8 @@ const SkeletonNavigationLinks = styled.div`
 
 const SkeletonReferences = styled.div`
   width: 100%;
-  min-height: 120px;
-  contain-intrinsic-size: 100% 120px;
+  min-height: 150px;
+  contain-intrinsic-size: 100% 150px;
   padding: 1rem;
   background: #f9f9f9;
   border-radius: 0.375rem;
@@ -444,7 +451,7 @@ const SkeletonReferences = styled.div`
   contain: layout;
   & > div:first-child {
     width: 100%;
-    height: 32px;
+    min-height: 32px;
     background: #e0e0e0;
     border-radius: 0.25rem;
     animation: ${pulse} 1.5s ease-in-out infinite;
@@ -453,7 +460,7 @@ const SkeletonReferences = styled.div`
   }
   & > div:not(:first-child) {
     width: 100%;
-    height: 24px;
+    min-height: 24px;
     background: #e0e0e0;
     border-radius: 0.25rem;
     animation: ${pulse} 1.5s ease-in-out infinite;
@@ -462,7 +469,7 @@ const SkeletonReferences = styled.div`
   }
   @media (max-width: 480px) {
     & > div:not(:first-child) {
-      height: 20px;
+      min-height: 20px;
       contain-intrinsic-size: 100% 20px;
     }
   }
@@ -480,32 +487,12 @@ const SkeletonRelatedPosts = () => (
   </SkeletonRelatedPostsContainer>
 );
 
-const parseLinks = (text, category) => {
-  if (!text) return [text];
-  const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+|\/[^\s)]+)\)/g;
-  const elements = [];
-  let lastIndex = 0;
-  let match;
-  while ((match = linkRegex.exec(text)) !== null) {
-    const [fullMatch, linkText, url] = match;
-    if (match.index > lastIndex) {
-      elements.push(text.slice(lastIndex, match.index));
-    }
-    elements.push({ linkText, url, isInternal: url.startsWith('/') });
-    lastIndex = match.index + fullMatch.length;
-  }
-  if (lastIndex < text.length) {
-    elements.push(text.slice(lastIndex));
-  }
-  return elements.length ? elements : [text || ''];
-};
-
 const SubtitleSection = memo(({ subtitle, index, category }) => {
-  const parsedTitle = React.useMemo(() => parseLinks(subtitle.title || '', category), [subtitle.title, category]);
+  const parsedTitle = React.useMemo(() => parseLinks(subtitle.title || '', category, false), [subtitle.title, category]);
   const parsedBulletPoints = React.useMemo(() =>
     (subtitle.bulletPoints || []).map(point => ({
       ...point,
-      text: parseLinks(point.text || '', category),
+      text: parseLinks(point.text || '', category, false),
     })), [subtitle.bulletPoints, category]);
   const [isImageLoaded, setIsImageLoaded] = React.useState(false);
   const [isPointImageLoaded, setIsPointImageLoaded] = React.useState({});
@@ -518,29 +505,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
       aria-labelledby={`subtitle-${index}-heading`}
       style={{ boxSizing: 'border-box', minHeight: '200px', containIntrinsicSize: '100% 200px', contain: 'layout' }}
     >
-      <SubtitleHeader id={`subtitle-${index}-heading`}>
-        {Array.isArray(parsedTitle) ? parsedTitle.map((elem, i) => (
-          <React.Fragment key={i}>
-            {typeof elem === 'string' ? elem : (
-              elem.isInternal ? (
-                <a href={elem.url} className="text-blue-600 hover:text-blue-800" aria-label={`Navigate to ${elem.linkText}`}>
-                  {elem.linkText}
-                </a>
-              ) : (
-                <a
-                  href={elem.url}
-                  target={elem.url.startsWith('vscode://') ? '_self' : '_blank'}
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800"
-                  aria-label={`Visit ${elem.linkText}`}
-                >
-                  {elem.linkText}
-                </a>
-              )
-            )}
-          </React.Fragment>
-        )) : parsedTitle}
-      </SubtitleHeader>
+      <SubtitleHeader id={`subtitle-${index}-heading`}>{parsedTitle}</SubtitleHeader>
       {subtitle.image && (
         <ImageContainer className={isImageLoaded ? 'image-loaded' : ''}>
           <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
@@ -588,29 +553,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
       <ul style={{ paddingLeft: '1.25rem', fontSize: '1.1rem', lineHeight: '1.7', boxSizing: 'border-box', minHeight: '90px', containIntrinsicSize: '100% 90px', contain: 'layout' }}>
         {parsedBulletPoints.map((point, j) => (
           <li key={j} style={{ marginBottom: '0.5rem', minHeight: '30px', containIntrinsicSize: '100% 30px', boxSizing: 'border-box' }}>
-            <span>
-              {Array.isArray(point.text) ? point.text.map((elem, k) => (
-                <React.Fragment key={k}>
-                  {typeof elem === 'string' ? elem : (
-                    elem.isInternal ? (
-                      <a href={elem.url} className="text-blue-600 hover:text-blue-800" aria-label={`Navigate to ${elem.linkText}`}>
-                        {elem.linkText}
-                      </a>
-                    ) : (
-                      <a
-                        href={elem.url}
-                        target={elem.url.startsWith('vscode://') ? '_self' : '_blank'}
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800"
-                        aria-label={`Visit ${elem.linkText}`}
-                      >
-                        {elem.linkText}
-                      </a>
-                    )
-                  )}
-                </React.Fragment>
-              )) : point.text}
-            </span>
+            <span>{point.text}</span>
             {point.image && (
               <ImageContainer className={isPointImageLoaded[j] ? 'image-loaded' : ''}>
                 <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
@@ -742,7 +685,7 @@ const PostContentNonCritical = memo(
   ({ post, relatedPosts, completedPosts, dispatch, isSidebarOpen, setSidebarOpen, activeSection, setActiveSection, subtitlesListRef }) => {
     const completedPostsSelector = useSelector(state => state.postReducer.completedPosts || []);
     const isCompleted = completedPostsSelector.some(cp => cp.postId === post.postId);
-    const parsedSummary = React.useMemo(() => parseLinks(post.summary || '', post.category || ''), [post.summary, post.category]);
+    const parsedSummary = React.useMemo(() => parseLinks(post.summary || '', post.category || '', false), [post.summary, post.category]);
     const subtitleSlugs = React.useMemo(() => {
       if (!post?.subtitles) return {};
       const slugs = {};
@@ -803,27 +746,7 @@ const PostContentNonCritical = memo(
             <section id="summary" aria-labelledby="summary-heading" style={{ boxSizing: 'border-box', minHeight: '150px', containIntrinsicSize: '100% 150px', contain: 'layout' }}>
               <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
               <p style={{ fontSize: '1.1rem', lineHeight: '1.7', boxSizing: 'border-box', minHeight: '90px', containIntrinsicSize: '100% 90px', contain: 'layout' }}>
-                {Array.isArray(parsedSummary) ? parsedSummary.map((elem, i) => (
-                  <React.Fragment key={i}>
-                    {typeof elem === 'string' ? elem : (
-                      elem.isInternal ? (
-                        <a href={elem.url} className="text-blue-600 hover:text-blue-800" aria-label={`Navigate to ${elem.linkText}`}>
-                          {elem.linkText}
-                        </a>
-                      ) : (
-                        <a
-                          href={elem.url}
-                          target={elem.url.startsWith('vscode://') ? '_self' : '_blank'}
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800"
-                          aria-label={`Visit ${elem.linkText}`}
-                        >
-                          {elem.linkText}
-                        </a>
-                      )
-                    )}
-                  </React.Fragment>
-                )) : parsedSummary}
+                {parsedSummary}
               </p>
             </section>
           </Suspense>
