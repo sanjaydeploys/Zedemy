@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useState } from 'react';
+import React, { memo } from 'react';
 
 const criticalCss = `
   * {
@@ -57,7 +57,7 @@ const criticalCss = `
   @media (min-width: 768px) {
     .post-header {
       font-size: 2rem;
-      height: 32px;
+      min-height: 32px;
     }
     .content-section {
       font-size: 1rem;
@@ -79,37 +79,15 @@ const criticalCss = `
 
 const PriorityContent = memo(({ post, readTime }) => {
   console.log('[PriorityContent] Rendering with post:', post);
-  const [content, setContent] = useState(null);
-
-  useEffect(() => {
-    if (post?.preRenderedContent) {
-      // Render first paragraph initially
-      const paragraphs = post.preRenderedContent.split('\n').filter(line => line.trim());
-      setContent(paragraphs.slice(0, 1).map((line, index) => (
-        <p key={index} className="content-wrapper">
-          <span dangerouslySetInnerHTML={{ __html: line }} />
-        </p>
-      )));
-
-      // Lazily load remaining content
-      setTimeout(() => {
-        setContent(paragraphs.map((line, index) => (
-          <p key={index} className="content-wrapper">
-            <span dangerouslySetInnerHTML={{ __html: line }} />
-          </p>
-        )));
-      }, 100);
-    }
-  }, [post?.preRenderedContent]);
 
   if (!post || !post.title) {
     return (
       <article style={{ contain: 'layout' }}>
         <header>
           <div className="image-container" aria-hidden="true">
-            <div style={{ width: '280px', height: '157.5px', background: '#e0e0e0', borderRadius: '0.25rem' }} />
+            <div style={{ width: '100%', maxWidth: '280px', height: '157.5px', background: '#e0e0e0', borderRadius: '0.25rem' }} />
           </div>
-          <div style={{ width: '80%', height: '24px', background: '#e0e0e0', borderRadius: '0.25rem' }} aria-hidden="true" />
+          <div style={{ width: '80%', height: '24px', background: '#e0e0e0', borderRadius: '0.25rem', margin: '0.5rem 0' }} aria-hidden="true" />
           <div className="meta-info" aria-hidden="true">
             <div style={{ width: '100px', height: '16px', background: '#e0e0e0', borderRadius: '0.25rem' }} />
             <div style={{ width: '100px', height: '16px', background: '#e0e0e0', borderRadius: '0.25rem' }} />
@@ -164,7 +142,9 @@ const PriorityContent = memo(({ post, readTime }) => {
         </div>
       </header>
       <section className="content-section" role="region" aria-label="Post content">
-        {content || (
+        {post.preRenderedContent ? (
+          <div className="content-wrapper" dangerouslySetInnerHTML={{ __html: post.preRenderedContent }} />
+        ) : (
           <div style={{ width: '100%', height: '150px', background: '#e0e0e0', borderRadius: '0.25rem' }} />
         )}
       </section>
