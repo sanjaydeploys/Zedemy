@@ -178,6 +178,7 @@ const Placeholder = styled.div`
 
 const SectionPlaceholder = styled.div`
   width: 100%;
+  height: 200px;
   background: #e0e0e0;
   display: flex;
   align-items: center;
@@ -185,6 +186,22 @@ const SectionPlaceholder = styled.div`
   color: #666;
   border-radius: 0.375rem;
   font-size: 0.875rem;
+  contain-intrinsic-size: 100% 200px;
+  animation: ${pulse} 1.5s ease-in-out infinite;
+  box-sizing: border-box;
+`;
+
+const ReferencesPlaceholder = styled.div`
+  width: 100%;
+  height: 150px;
+  background: #e0e0e0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  contain-intrinsic-size: 100% 150px;
   animation: ${pulse} 1.5s ease-in-out infinite;
   box-sizing: border-box;
 `;
@@ -195,6 +212,7 @@ const ReferencesSection = styled.section`
   background: #f9f9f9;
   border-radius: 0.375rem;
   width: 100%;
+  contain-intrinsic-size: 100% 150px;
   box-sizing: border-box;
 `;
 
@@ -206,12 +224,16 @@ const ReferenceLink = styled.a`
   padding: 0.25rem 0;
   font-size: 0.875rem;
   line-height: 1.5;
+  height: 24px;
+  contain-intrinsic-size: 100% 24px;
   box-sizing: border-box;
   &:hover {
     text-decoration: underline;
   }
   @media (max-width: 480px) {
     font-size: 0.75rem;
+    height: 20px;
+    contain-intrinsic-size: 100% 20px;
   }
 `;
 
@@ -222,18 +244,29 @@ const NavigationLinks = styled.nav`
   flex-wrap: wrap;
   font-size: 0.75rem;
   width: 100%;
+  contain-intrinsic-size: 100% 44px;
   box-sizing: border-box;
   & a {
     display: inline-flex;
     align-items: center;
     padding: 0.5rem;
+    height: 24px;
+    contain-intrinsic-size: 100% 24px;
   }
 `;
 
 const RelatedPostsSection = styled.section`
   width: 100%;
   padding: 1rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
   box-sizing: border-box;
+  @media (min-width: 769px) {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+    gap: 1.5rem;
+  }
 `;
 
 const SkeletonRelatedPost = styled.div`
@@ -316,11 +349,13 @@ const SkeletonRelatedPostsContainer = styled.div`
   flex-direction: column;
   gap: 1rem;
   padding: 1rem 0;
+  contain-intrinsic-size: 100% 820px;
   box-sizing: border-box;
   @media (min-width: 769px) {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
     gap: 1.5rem;
+    contain-intrinsic-size: 100% 450px;
   }
 `;
 
@@ -337,6 +372,7 @@ const SkeletonBulletPoint = styled.div`
 
 const SkeletonSubtitleSection = styled.div`
   width: 100%;
+  contain-intrinsic-size: 100% 200px;
   box-sizing: border-box;
 `;
 
@@ -426,7 +462,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
     <section
       id={`subtitle-${index}`}
       aria-labelledby={`subtitle-${index}-heading`}
-      style={{ boxSizing: 'border-box' }}
+      style={{ boxSizing: 'border-box', contain: 'layout' }}
     >
       <SubtitleHeader id={`subtitle-${index}-heading`}>
         {Array.isArray(parsedTitle) ? parsedTitle.map((elem, i) => (
@@ -611,14 +647,14 @@ const LazySubtitleSection = memo(({ subtitle, index, category }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '400px', threshold: 0.2 }
+      { rootMargin: '600px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ width: '100%', boxSizing: 'border-box' }}>
+    <div ref={ref} style={{ width: '100%', containIntrinsicSize: '100% 200px', boxSizing: 'border-box' }}>
       {isVisible ? (
         <SubtitleSection subtitle={subtitle} index={index} category={category} />
       ) : (
@@ -640,14 +676,14 @@ const LazyRelatedPostsSection = memo(({ relatedPosts }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '400px', threshold: 0.2 }
+      { rootMargin: '600px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ width: '100%', boxSizing: 'border-box' }}>
+    <div ref={ref} style={{ width: '100%', containIntrinsicSize: '100% 450px', boxSizing: 'border-box' }}>
       {isVisible ? (
         <RelatedPostsSection aria-labelledby="related-posts-heading">
           <SubtitleHeader id="related-posts-heading">Related Posts</SubtitleHeader>
@@ -674,14 +710,14 @@ const LazyReferencesSection = memo(({ post }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '400px', threshold: 0.2 }
+      { rootMargin: '600px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ width: '100%', boxSizing: 'border-box' }}>
+    <div ref={ref} style={{ width: '100%', containIntrinsicSize: '100% 150px', boxSizing: 'border-box' }}>
       {isVisible ? (
         <ReferencesSection aria-labelledby="references-heading">
           <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
@@ -713,7 +749,7 @@ const LazyReferencesSection = memo(({ post }) => {
           )}
         </ReferencesSection>
       ) : (
-        <SectionPlaceholder>Loading references...</SectionPlaceholder>
+        <ReferencesPlaceholder>Loading references...</ReferencesPlaceholder>
       )}
     </div>
   );
@@ -807,7 +843,7 @@ const PostContentNonCritical = memo(
     );
 
     return (
-      <>
+      <div style={{ width: '100%', boxSizing: 'border-box', contain: 'layout' }}>
         {(post.subtitles || []).map((subtitle, i) => (
           i === 0 ? (
             <Suspense key={i} fallback={<FirstSubtitleSkeleton bulletCount={subtitle.bulletPoints?.length || 3} />}>
@@ -825,7 +861,7 @@ const PostContentNonCritical = memo(
         )}
 
         {post.summary && (
-          <section id="summary" aria-labelledby="summary-heading" style={{ boxSizing: 'border-box' }}>
+          <section id="summary" aria-labelledby="summary-heading" style={{ boxSizing: 'border-box', containIntrinsicSize: '100% 100px' }}>
             <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
             <p style={{ fontSize: '1.1rem', lineHeight: '1.7', boxSizing: 'border-box' }}>
               {Array.isArray(parsedSummary) ? parsedSummary.map((elem, i) => (
@@ -875,7 +911,7 @@ const PostContentNonCritical = memo(
         <LazyRelatedPostsSection relatedPosts={relatedPosts} />
 
         <LazyReferencesSection post={post} />
-      </>
+      </div>
     );
   }
 );
