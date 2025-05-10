@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, memo, useCallback, Suspense, startTransition } from 'react';
+import React, { memo, useCallback, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { slugify } from './utils';
@@ -28,6 +28,7 @@ const SubtitleHeader = styled.h2`
   min-height: 32px;
   contain-intrinsic-size: 100% 32px;
   box-sizing: border-box;
+  contain: layout;
 `;
 
 const CompleteButton = styled.button`
@@ -45,17 +46,7 @@ const CompleteButton = styled.button`
   min-width: 48px;
   min-height: 36px;
   contain-intrinsic-size: 48px 36px;
-  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   z-index: 1000;
-  &:hover:not(:disabled) {
-    background: #34495e;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  }
-  &:active:not(:disabled) {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
   &:disabled {
     background: #95a5a6;
     cursor: not-allowed;
@@ -85,6 +76,7 @@ const ImageContainer = styled.figure`
   contain-intrinsic-size: 280px 157.5px;
   background: #e0e0e0;
   box-sizing: border-box;
+  contain: layout;
   &.image-loaded {
     background: none;
   }
@@ -132,6 +124,7 @@ const VideoContainer = styled.figure`
   min-height: 157.5px;
   contain-intrinsic-size: 280px 157.5px;
   box-sizing: border-box;
+  contain: layout;
   @media (min-width: 769px) {
     max-width: 480px;
     min-height: 270px;
@@ -169,9 +162,9 @@ const PostVideo = styled.video`
 
 const Placeholder = styled.div`
   width: 100%;
-  max-width: ${({ maxWidth }) => maxWidth || '280px'};
+  max-width: 280px;
   aspect-ratio: 16 / 9;
-  min-height: ${({ minHeight }) => minHeight || '157.5px'};
+  min-height: 157.5px;
   background: #e0e0e0;
   display: flex;
   align-items: center;
@@ -179,29 +172,30 @@ const Placeholder = styled.div`
   color: #666;
   border-radius: 0.375rem;
   font-size: 0.875rem;
-  contain-intrinsic-size: ${({ maxWidth, minHeight }) => `${maxWidth || '280px'} ${minHeight || '157.5px'}`};
+  contain-intrinsic-size: 280px 157.5px;
   animation: ${pulse} 1.5s ease-in-out infinite;
   box-sizing: border-box;
+  contain: layout;
   @media (min-width: 769px) {
-    max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '480px' : maxWidth || '480px')};
-    min-height: ${({ minHeight }) => (minHeight === '157.5px' ? '270px' : minHeight || '270px')};
-    contain-intrinsic-size: ${({ maxWidth, minHeight }) => `${maxWidth === '280px' ? '480px' : maxWidth || '480px'} ${minHeight === '157.5px' ? '270px' : minHeight || '270px'}`};
+    max-width: 480px;
+    min-height: 270px;
+    contain-intrinsic-size: 480px 270px;
   }
   @media (max-width: 480px) {
-    max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '240px' : maxWidth || '240px')};
-    min-height: ${({ minHeight }) => (minHeight === '157.5px' ? '135px' : minHeight || '135px')};
-    contain-intrinsic-size: ${({ maxWidth, minHeight }) => `${maxWidth === '280px' ? '240px' : maxWidth || '240px'} ${minHeight === '157.5px' ? '135px' : minHeight || '135px'}`};
+    max-width: 240px;
+    min-height: 135px;
+    contain-intrinsic-size: 240px 135px;
   }
   @media (max-width: 320px) {
-    max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '200px' : maxWidth || '200px')};
-    min-height: ${({ minHeight }) => (minHeight === '157.5px' ? '112.5px' : minHeight || '112.5px')};
-    contain-intrinsic-size: ${({ maxWidth, minHeight }) => `${maxWidth === '280px' ? '200px' : maxWidth || '200px'} ${minHeight === '157.5px' ? '112.5px' : minHeight || '112.5px'}`};
+    max-width: 200px;
+    min-height: 112.5px;
+    contain-intrinsic-size: 200px 112.5px;
   }
 `;
 
 const SectionPlaceholder = styled.div`
   width: 100%;
-  min-height: ${({ minHeight }) => minHeight || '100px'};
+  min-height: 200px;
   background: #e0e0e0;
   display: flex;
   align-items: center;
@@ -210,8 +204,9 @@ const SectionPlaceholder = styled.div`
   border-radius: 0.375rem;
   font-size: 0.875rem;
   animation: ${pulse} 1.5s ease-in-out infinite;
-  contain-intrinsic-size: 100% ${({ minHeight }) => minHeight || '100px'};
+  contain-intrinsic-size: 100% 200px;
   box-sizing: border-box;
+  contain: layout;
 `;
 
 const ReferencesSection = styled.section`
@@ -223,6 +218,7 @@ const ReferencesSection = styled.section`
   min-height: 120px;
   contain-intrinsic-size: 100% 120px;
   box-sizing: border-box;
+  contain: layout;
 `;
 
 const ReferenceLink = styled.a`
@@ -256,6 +252,7 @@ const NavigationLinks = styled.nav`
   min-height: 40px;
   contain-intrinsic-size: 100% 40px;
   box-sizing: border-box;
+  contain: layout;
   & a {
     display: inline-flex;
     align-items: center;
@@ -268,9 +265,10 @@ const NavigationLinks = styled.nav`
 const RelatedPostsSection = styled.section`
   width: 100%;
   padding: 1rem 0;
-  min-height: 300px;
-  contain-intrinsic-size: 100% 300px;
+  min-height: 380px;
+  contain-intrinsic-size: 100% 380px;
   box-sizing: border-box;
+  contain: layout;
 `;
 
 const SkeletonRelatedPost = styled.div`
@@ -361,9 +359,10 @@ const SkeletonRelatedPostsContainer = styled.div`
   flex-direction: column;
   gap: 1rem;
   padding: 1rem 0;
-  min-height: 300px;
-  contain-intrinsic-size: 100% 300px;
+  min-height: 380px;
+  contain-intrinsic-size: 100% 380px;
   box-sizing: border-box;
+  contain: layout;
   @media (min-width: 769px) {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
@@ -387,6 +386,7 @@ const SkeletonSubtitleSection = styled.div`
   min-height: 200px;
   contain-intrinsic-size: 100% 200px;
   box-sizing: border-box;
+  contain: layout;
 `;
 
 const SkeletonSummary = styled.div`
@@ -394,6 +394,7 @@ const SkeletonSummary = styled.div`
   min-height: 150px;
   contain-intrinsic-size: 100% 150px;
   box-sizing: border-box;
+  contain: layout;
   & > div:first-child {
     width: 100%;
     height: 32px;
@@ -421,6 +422,7 @@ const SkeletonNavigationLinks = styled.div`
   gap: 1rem;
   flex-wrap: wrap;
   box-sizing: border-box;
+  contain: layout;
   & > div {
     width: 60px;
     height: 24px;
@@ -439,6 +441,7 @@ const SkeletonReferences = styled.div`
   background: #f9f9f9;
   border-radius: 0.375rem;
   box-sizing: border-box;
+  contain: layout;
   & > div:first-child {
     width: 100%;
     height: 32px;
@@ -504,8 +507,8 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
       ...point,
       text: parseLinks(point.text || '', category),
     })), [subtitle.bulletPoints, category]);
-  const [isImageLoaded, setIsImageLoaded] = useState(false);
-  const [isPointImageLoaded, setIsPointImageLoaded] = useState({});
+  const [isImageLoaded, setIsImageLoaded] = React.useState(false);
+  const [isPointImageLoaded, setIsPointImageLoaded] = React.useState({});
 
   if (!subtitle) return null;
 
@@ -582,7 +585,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
           </PostVideo>
         </VideoContainer>
       )}
-      <ul style={{ paddingLeft: '1.25rem', fontSize: '1.1rem', lineHeight: '1.7', boxSizing: 'border-box', minHeight: '90px', containIntrinsicSize: '100% 90px' }}>
+      <ul style={{ paddingLeft: '1.25rem', fontSize: '1.1rem', lineHeight: '1.7', boxSizing: 'border-box', minHeight: '90px', containIntrinsicSize: '100% 90px', contain: 'layout' }}>
         {parsedBulletPoints.map((point, j) => (
           <li key={j} style={{ marginBottom: '0.5rem', minHeight: '30px', containIntrinsicSize: '100% 30px', boxSizing: 'border-box' }}>
             <span>
@@ -678,7 +681,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
 const FirstSubtitleSkeleton = ({ bulletCount = 3 }) => (
   <SkeletonSubtitleSection aria-hidden="true">
     <SubtitleHeader />
-    <ul style={{ paddingLeft: '1.25rem', boxSizing: 'border-box', minHeight: '90px', containIntrinsicSize: '100% 90px' }}>
+    <ul style={{ paddingLeft: '1.25rem', boxSizing: 'border-box', minHeight: '90px', containIntrinsicSize: '100% 90px', contain: 'layout' }}>
       {Array.from({ length: bulletCount }).map((_, i) => (
         <SkeletonBulletPoint key={i} />
       ))}
@@ -686,136 +689,60 @@ const FirstSubtitleSkeleton = ({ bulletCount = 3 }) => (
   </SkeletonSubtitleSection>
 );
 
-const LazySubtitleSection = memo(({ subtitle, index, category }) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const ref = useRef();
+const LazySubtitleSection = memo(({ subtitle, index, category }) => (
+  <Suspense fallback={<SectionPlaceholder>Loading section...</SectionPlaceholder>}>
+    <SubtitleSection subtitle={subtitle} index={index} category={category} />
+  </Suspense>
+));
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          startTransition(() => setIsVisible(true));
-          observer.disconnect();
-        }
-      },
-      { rootMargin: '600px', threshold: 0.1 }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, []);
+const LazyRelatedPostsSection = memo(({ relatedPosts }) => (
+  <Suspense fallback={<SkeletonRelatedPosts />}>
+    <RelatedPostsSection aria-labelledby="related-posts-heading">
+      <SubtitleHeader id="related-posts-heading">Related Posts</SubtitleHeader>
+      <RelatedPosts relatedPosts={relatedPosts} />
+    </RelatedPostsSection>
+  </Suspense>
+));
 
-  return (
-    <div ref={ref} style={{ width: '100%', minHeight: '200px', containIntrinsicSize: '100% 200px', boxSizing: 'border-box' }}>
-      {isVisible ? (
-        <SubtitleSection subtitle={subtitle} index={index} category={category} />
+const LazyReferencesSection = memo(({ post }) => (
+  <Suspense fallback={<SkeletonReferences><div /><div /><div /></SkeletonReferences>}>
+    <ReferencesSection aria-labelledby="references-heading">
+      <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
+      {post.references?.length > 0 ? (
+        post.references.map((ref, i) => (
+          <ReferenceLink key={i} href={ref.url} target="_blank" rel="noopener noreferrer" aria-label={`Visit ${ref.title}`}>
+            {ref.title}
+          </ReferenceLink>
+        ))
       ) : (
-        <SectionPlaceholder minHeight="200px">Loading section...</SectionPlaceholder>
+        <>
+          <ReferenceLink
+            href={`https://www.geeksforgeeks.org/${post.category?.toLowerCase().replace(/\s+/g, '-') || 'tutorials'}-tutorials`}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`GeeksforGeeks ${post.category || 'Tutorials'} Tutorials`}
+          >
+            GeeksforGeeks: {post.category || 'Tutorials'} Tutorials
+          </ReferenceLink>
+          <ReferenceLink
+            href={`https://developer.mozilla.org/en-US/docs/Web/${post.category?.replace(/\s+/g, '') || 'Guide'}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`MDN ${post.category || 'Documentation'} Documentation`}
+          >
+            MDN: {post.category || 'Documentation'} Documentation
+          </ReferenceLink>
+        </>
       )}
-    </div>
-  );
-});
-
-const LazyRelatedPostsSection = memo(({ relatedPosts }) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const ref = useRef();
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          startTransition(() => setIsVisible(true));
-          observer.disconnect();
-        }
-      },
-      { rootMargin: '600px', threshold: 0.1 }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div ref={ref} style={{ width: '100%', minHeight: '300px', containIntrinsicSize: '100% 300px', boxSizing: 'border-box' }}>
-      {isVisible ? (
-        <RelatedPostsSection aria-labelledby="related-posts-heading">
-          <SubtitleHeader id="related-posts-heading">Related Posts</SubtitleHeader>
-          <Suspense fallback={<SkeletonRelatedPosts />}>
-            <RelatedPosts relatedPosts={relatedPosts} />
-          </Suspense>
-        </RelatedPostsSection>
-      ) : (
-        <SkeletonRelatedPosts />
-      )}
-    </div>
-  );
-});
-
-const LazyReferencesSection = memo(({ post }) => {
-  const [isVisible, setIsVisible] = useState(false);
-  const ref = useRef();
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          startTransition(() => setIsVisible(true));
-          observer.disconnect();
-        }
-      },
-      { rootMargin: '600px', threshold: 0.1 }
-    );
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div ref={ref} style={{ width: '100%', minHeight: '120px', containIntrinsicSize: '100% 120px', boxSizing: 'border-box' }}>
-      {isVisible ? (
-        <ReferencesSection aria-labelledby="references-heading">
-          <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
-          {post.references?.length > 0 ? (
-            post.references.map((ref, i) => (
-              <ReferenceLink key={i} href={ref.url} target="_blank" rel="noopener noreferrer" aria-label={`Visit ${ref.title}`}>
-                {ref.title}
-              </ReferenceLink>
-            ))
-          ) : (
-            <>
-              <ReferenceLink
-                href={`https://www.geeksforgeeks.org/${post.category?.toLowerCase().replace(/\s+/g, '-') || 'tutorials'}-tutorials`}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`GeeksforGeeks ${post.category || 'Tutorials'} Tutorials`}
-              >
-                GeeksforGeeks: {post.category || 'Tutorials'} Tutorials
-              </ReferenceLink>
-              <ReferenceLink
-                href={`https://developer.mozilla.org/en-US/docs/Web/${post.category?.replace(/\s+/g, '') || 'Guide'}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`MDN ${post.category || 'Documentation'} Documentation`}
-              >
-                MDN: {post.category || 'Documentation'} Documentation
-              </ReferenceLink>
-            </>
-          )}
-        </ReferencesSection>
-      ) : (
-        <SkeletonReferences>
-          <div />
-          <div />
-          <div />
-        </SkeletonReferences>
-      )}
-    </div>
-  );
-});
+    </ReferencesSection>
+  </Suspense>
+));
 
 const PostContentNonCritical = memo(
   ({ post, relatedPosts, completedPosts, dispatch, isSidebarOpen, setSidebarOpen, activeSection, setActiveSection, subtitlesListRef }) => {
     const completedPostsSelector = useSelector(state => state.postReducer.completedPosts || []);
     const isCompleted = completedPostsSelector.some(cp => cp.postId === post.postId);
     const parsedSummary = React.useMemo(() => parseLinks(post.summary || '', post.category || ''), [post.summary, post.category]);
-
     const subtitleSlugs = React.useMemo(() => {
       if (!post?.subtitles) return {};
       const slugs = {};
@@ -825,29 +752,6 @@ const PostContentNonCritical = memo(
       if (post.summary) slugs.summary = 'summary';
       return slugs;
     }, [post]);
-
-    useEffect(() => {
-      const hash = window.location.hash.slice(1);
-      if (hash) {
-        const sectionId = Object.keys(subtitleSlugs).find(id => subtitleSlugs[id] === hash);
-        if (sectionId) {
-          setTimeout(() => scrollToSection(sectionId, false), 0);
-        }
-      }
-    }, [subtitleSlugs]);
-
-    useEffect(() => {
-      let lastLayoutShift = 0;
-      const observer = new PerformanceObserver((list) => {
-        for (const entry of list.getEntries()) {
-          if (entry.hadRecentInput) continue;
-          console.log('Layout Shift:', entry.value, 'Sources:', entry.sources);
-          lastLayoutShift = entry.value;
-        }
-      });
-      observer.observe({ type: 'layout-shift', buffered: true });
-      return () => observer.disconnect();
-    }, []);
 
     const handleMarkAsCompleted = useCallback(() => {
       if (!isCompleted && post) {
@@ -860,8 +764,8 @@ const PostContentNonCritical = memo(
         const section = document.getElementById(id);
         if (section) {
           section.scrollIntoView({ behavior: 'smooth' });
-          startTransition(() => setActiveSection(id));
-          if (isSidebarOpen) startTransition(() => setSidebarOpen(false));
+          setActiveSection(id);
+          if (isSidebarOpen) setSidebarOpen(false);
           if (updateUrl && subtitleSlugs[id]) {
             window.history.pushState(null, '', `#${subtitleSlugs[id]}`);
           }
@@ -870,21 +774,25 @@ const PostContentNonCritical = memo(
       [isSidebarOpen, setSidebarOpen, setActiveSection, subtitleSlugs]
     );
 
+    React.useEffect(() => {
+      const hash = window.location.hash.slice(1);
+      if (hash) {
+        const sectionId = Object.keys(subtitleSlugs).find(id => subtitleSlugs[id] === hash);
+        if (sectionId) {
+          setTimeout(() => scrollToSection(sectionId, false), 0);
+        }
+      }
+    }, [subtitleSlugs, scrollToSection]);
+
     return (
       <div style={{ width: '100%', minHeight: '1000px', containIntrinsicSize: '100% 1000px', boxSizing: 'border-box', contain: 'layout' }}>
         {(post.subtitles || []).map((subtitle, i) => (
-          i === 0 ? (
-            <Suspense key={i} fallback={<FirstSubtitleSkeleton bulletCount={subtitle.bulletPoints?.length || 3} />}>
-              <SubtitleSection subtitle={subtitle} index={i} category={post.category || ''} />
-            </Suspense>
-          ) : (
-            <LazySubtitleSection key={i} subtitle={subtitle} index={i} category={post.category || ''} />
-          )
+          <LazySubtitleSection key={i} subtitle={subtitle} index={i} category={post.category || ''} />
         ))}
 
         {post.superTitles?.length > 0 && (
           <Suspense fallback={<Placeholder maxWidth="100%" minHeight="200px">Loading comparison...</Placeholder>}>
-            <div style={{ width: '100%', minHeight: '200px', containIntrinsicSize: '100% 200px', boxSizing: 'border-box' }}>
+            <div style={{ width: '100%', minHeight: '200px', containIntrinsicSize: '100% 200px', boxSizing: 'border-box', contain: 'layout' }}>
               <ComparisonTable superTitles={post.superTitles} category={post.category || ''} />
             </div>
           </Suspense>
@@ -894,7 +802,7 @@ const PostContentNonCritical = memo(
           <Suspense fallback={<SkeletonSummary />}>
             <section id="summary" aria-labelledby="summary-heading" style={{ boxSizing: 'border-box', minHeight: '150px', containIntrinsicSize: '100% 150px', contain: 'layout' }}>
               <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
-              <p style={{ fontSize: '1.1rem', lineHeight: '1.7', boxSizing: 'border-box', minHeight: '90px', containIntrinsicSize: '100% 90px' }}>
+              <p style={{ fontSize: '1.1rem', lineHeight: '1.7', boxSizing: 'border-box', minHeight: '90px', containIntrinsicSize: '100% 90px', contain: 'layout' }}>
                 {Array.isArray(parsedSummary) ? parsedSummary.map((elem, i) => (
                   <React.Fragment key={i}>
                     {typeof elem === 'string' ? elem : (
