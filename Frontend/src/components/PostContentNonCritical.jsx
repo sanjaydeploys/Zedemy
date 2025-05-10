@@ -5,7 +5,6 @@ import { slugify } from './utils';
 import { markPostAsCompleted } from '../actions/postActions';
 import styled, { keyframes } from 'styled-components';
 
-// Placeholder for RelatedPosts (replace with your actual implementation)
 const RelatedPosts = React.lazy(() => import('./RelatedPosts'));
 const AccessibleZoom = React.lazy(() => import('./AccessibleZoom'));
 const ComparisonTable = React.lazy(() => import('./ComparisonTable'));
@@ -25,11 +24,9 @@ const SubtitleHeader = styled.h2`
   border-left: 4px solid #34db58;
   padding-left: 0.5rem;
   width: 100%;
-  max-width: 100%;
-  height: 32px;
   line-height: 32px;
+  contain-intrinsic-size: 100% 32px;
   box-sizing: border-box;
-  will-change: contents;
 `;
 
 const CompleteButton = styled.button`
@@ -45,10 +42,8 @@ const CompleteButton = styled.button`
   font-size: 0.875rem;
   font-weight: 500;
   min-width: 48px;
-  min-height: 48px;
   transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   z-index: 1000;
-  will-change: transform;
   &:hover:not(:disabled) {
     background: #34495e;
     transform: translateY(-2px);
@@ -61,66 +56,56 @@ const CompleteButton = styled.button`
   &:disabled {
     background: #95a5a6;
     cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
   }
   @media (min-width: 768px) {
     padding: 0.75rem 1.5rem;
     font-size: 1rem;
-    border-radius: 0.5rem;
   }
   @media (max-width: 480px) {
     padding: 0.5rem 0.75rem;
     font-size: 0.75rem;
     min-width: 44px;
-    min-height: 44px;
   }
 `;
 
 const ImageContainer = styled.figure`
   width: 100%;
   max-width: 280px;
-  margin: 3rem 0;
-  position: relative;
+  margin: 1rem 0;
   aspect-ratio: 16 / 9;
-  height: 157.5px;
+  contain-intrinsic-size: 280px 157.5px;
   background: #e0e0e0;
   box-sizing: border-box;
-  will-change: contents;
   @media (min-width: 769px) {
     max-width: 480px;
-    height: 270px;
+    contain-intrinsic-size: 480px 270px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
-    height: 135px;
+    contain-intrinsic-size: 240px 135px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
-    height: 112.5px;
+    contain-intrinsic-size: 200px 112.5px;
   }
 `;
 
 const PostImage = styled.img`
   width: 100%;
   max-width: 280px;
-  height: 157.5px;
+  height: auto;
+  aspect-ratio: 16 / 9;
   object-fit: contain;
   border-radius: 0.375rem;
-  position: relative;
-  z-index: 2;
   box-sizing: border-box;
   @media (min-width: 769px) {
     max-width: 480px;
-    height: 270px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
-    height: 135px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
-    height: 112.5px;
   }
 `;
 
@@ -129,47 +114,44 @@ const VideoContainer = styled.figure`
   max-width: 280px;
   margin: 1rem 0;
   aspect-ratio: 16 / 9;
-  height: 157.5px;
+  contain-intrinsic-size: 280px 157.5px;
   box-sizing: border-box;
-  will-change: contents;
   @media (min-width: 769px) {
     max-width: 480px;
-    height: 270px;
+    contain-intrinsic-size: 480px 270px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
-    height: 135px;
+    contain-intrinsic-size: 240px 135px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
-    height: 112.5px;
+    contain-intrinsic-size: 200px 112.5px;
   }
 `;
 
 const PostVideo = styled.video`
   width: 100%;
   max-width: 280px;
-  height: 157.5px;
+  height: auto;
+  aspect-ratio: 16 / 9;
   border-radius: 0.375rem;
   box-sizing: border-box;
   @media (min-width: 769px) {
     max-width: 480px;
-    height: 270px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
-    height: 135px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
-    height: 112.5px;
   }
 `;
 
 const Placeholder = styled.div`
   width: 100%;
   max-width: ${({ maxWidth }) => maxWidth || '280px'};
-  height: ${({ height }) => height || '157.5px'};
+  aspect-ratio: 16 / 9;
   background: #e0e0e0;
   display: flex;
   align-items: center;
@@ -177,27 +159,25 @@ const Placeholder = styled.div`
   color: #666;
   border-radius: 0.375rem;
   font-size: 0.875rem;
+  contain-intrinsic-size: ${({ maxWidth }) => `${maxWidth || '280px'} 157.5px`};
   animation: ${pulse} 1.5s ease-in-out infinite;
   box-sizing: border-box;
-  will-change: contents;
   @media (min-width: 769px) {
     max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '480px' : maxWidth || '480px')};
-    height: ${({ height }) => (height === '157.5px' ? '270px' : height || '270px')};
+    contain-intrinsic-size: ${({ maxWidth }) => `${maxWidth === '280px' ? '480px' : maxWidth || '480px'} 270px`};
   }
   @media (max-width: 480px) {
     max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '240px' : maxWidth || '240px')};
-    height: ${({ height }) => (height === '157.5px' ? '135px' : height || '135px')};
+    contain-intrinsic-size: ${({ maxWidth }) => `${maxWidth === '280px' ? '240px' : maxWidth || '240px'} 135px`};
   }
   @media (max-width: 320px) {
     max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '200px' : maxWidth || '200px')};
-    height: ${({ height }) => (height === '157.5px' ? '112.5px' : height || '112.5px')};
+    contain-intrinsic-size: ${({ maxWidth }) => `${maxWidth === '280px' ? '200px' : maxWidth || '200px'} 112.5px`};
   }
 `;
 
 const SectionPlaceholder = styled.div`
   width: 100%;
-  max-width: 100%;
-  height: 400px;
   background: #e0e0e0;
   display: flex;
   align-items: center;
@@ -207,23 +187,6 @@ const SectionPlaceholder = styled.div`
   font-size: 0.875rem;
   animation: ${pulse} 1.5s ease-in-out infinite;
   box-sizing: border-box;
-  will-change: contents;
-`;
-
-const ReferencesPlaceholder = styled.div`
-  width: 100%;
-  max-width: 100%;
-  height: 500px;
-  background: #e0e0e0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  animation: ${pulse} 1.5s ease-in-out infinite;
-  box-sizing: border-box;
-  will-change: contents;
 `;
 
 const ReferencesSection = styled.section`
@@ -232,10 +195,7 @@ const ReferencesSection = styled.section`
   background: #f9f9f9;
   border-radius: 0.375rem;
   width: 100%;
-  max-width: 100%;
   box-sizing: border-box;
-  contain: layout;
-  will-change: contents;
 `;
 
 const ReferenceLink = styled.a`
@@ -245,7 +205,6 @@ const ReferenceLink = styled.a`
   margin: 0.25rem 0;
   padding: 0.25rem 0;
   font-size: 0.875rem;
-  height: 48px;
   line-height: 1.5;
   box-sizing: border-box;
   &:hover {
@@ -253,7 +212,6 @@ const ReferenceLink = styled.a`
   }
   @media (max-width: 480px) {
     font-size: 0.75rem;
-    height: 44px;
   }
 `;
 
@@ -264,11 +222,8 @@ const NavigationLinks = styled.nav`
   flex-wrap: wrap;
   font-size: 0.75rem;
   width: 100%;
-  max-width: 100%;
   box-sizing: border-box;
-  contain: layout;
   & a {
-    min-height: 44px;
     display: inline-flex;
     align-items: center;
     padding: 0.5rem;
@@ -277,16 +232,8 @@ const NavigationLinks = styled.nav`
 
 const RelatedPostsSection = styled.section`
   width: 100%;
-  max-width: 100%;
   padding: 1rem 0;
   box-sizing: border-box;
-  contain: layout;
-  will-change: contents;
-  @media (min-width: 769px) {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
-    gap: 1.5rem;
-  }
 `;
 
 const SkeletonRelatedPost = styled.div`
@@ -296,38 +243,42 @@ const SkeletonRelatedPost = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  contain-intrinsic-size: 280px 260px;
   box-sizing: border-box;
   @media (min-width: 769px) {
     max-width: 480px;
+    contain-intrinsic-size: 480px 380px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
+    contain-intrinsic-size: 240px 230px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
+    contain-intrinsic-size: 200px 200px;
   }
 `;
 
 const SkeletonImage = styled.div`
   width: 100%;
   max-width: 280px;
-  height: 157.5px;
+  aspect-ratio: 16 / 9;
   background: #e0e0e0;
   border-radius: 0.375rem;
   animation: ${pulse} 1.5s ease-in-out infinite;
+  contain-intrinsic-size: 280px 157.5px;
   box-sizing: border-box;
-  will-change: contents;
   @media (min-width: 769px) {
     max-width: 480px;
-    height: 270px;
+    contain-intrinsic-size: 480px 270px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
-    height: 135px;
+    contain-intrinsic-size: 240px 135px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
-    height: 112.5px;
+    contain-intrinsic-size: 200px 112.5px;
   }
 `;
 
@@ -337,10 +288,11 @@ const SkeletonTitle = styled.div`
   background: #e0e0e0;
   border-radius: 0.25rem;
   animation: ${pulse} 1.5s ease-in-out infinite;
+  contain-intrinsic-size: 80% 24px;
   box-sizing: border-box;
-  will-change: contents;
   @media (min-width: 769px) {
     height: 32px;
+    contain-intrinsic-size: 80% 32px;
   }
 `;
 
@@ -350,23 +302,21 @@ const SkeletonExcerpt = styled.div`
   background: #e0e0e0;
   border-radius: 0.25rem;
   animation: ${pulse} 1.5s ease-in-out infinite;
+  contain-intrinsic-size: 100% 60px;
   box-sizing: border-box;
-  will-change: contents;
   @media (min-width: 769px) {
     height: 80px;
+    contain-intrinsic-size: 100% 80px;
   }
 `;
 
 const SkeletonRelatedPostsContainer = styled.div`
   width: 100%;
-  max-width: 100%;
   display: flex;
   flex-direction: column;
   gap: 1rem;
   padding: 1rem 0;
   box-sizing: border-box;
-  contain: layout;
-  will-change: contents;
   @media (min-width: 769px) {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
@@ -380,16 +330,14 @@ const SkeletonBulletPoint = styled.div`
   background: #e0e0e0;
   border-radius: 0.25rem;
   animation: ${pulse} 1.5s ease-in-out infinite;
+  contain-intrinsic-size: 100% 30px;
   box-sizing: border-box;
-  will-change: contents;
   margin-bottom: 0.5rem;
 `;
 
 const SkeletonSubtitleSection = styled.div`
   width: 100%;
-  max-width: 100%;
   box-sizing: border-box;
-  will-change: contents;
 `;
 
 const SkeletonRelatedPosts = () => (
@@ -461,31 +409,15 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
   const [isPointImageLoaded, setIsPointImageLoaded] = useState({});
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(() => {
-        parseInWorker(subtitle.title || '', category).then(setParsedTitle);
-        Promise.all(
-          (subtitle.bulletPoints || []).map(point =>
-            parseInWorker(point.text || '', category).then(parsedText => ({
-              ...point,
-              text: parsedText,
-            }))
-          )
-        ).then(setParsedBulletPoints);
-      }, { timeout: 6000 });
-    } else {
-      setTimeout(() => {
-        parseInWorker(subtitle.title || '', category).then(setParsedTitle);
-        Promise.all(
-          (subtitle.bulletPoints || []).map(point =>
-            parseInWorker(point.text || '', category).then(parsedText => ({
-              ...point,
-              text: parsedText,
-            }))
-          )
-        ).then(setParsedBulletPoints);
-      }, 6000);
-    }
+    parseInWorker(subtitle.title || '', category).then(setParsedTitle);
+    Promise.all(
+      (subtitle.bulletPoints || []).map(point =>
+        parseInWorker(point.text || '', category).then(parsedText => ({
+          ...point,
+          text: parsedText,
+        }))
+      )
+    ).then(setParsedBulletPoints);
   }, [subtitle, category]);
 
   if (!subtitle) return null;
@@ -494,7 +426,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
     <section
       id={`subtitle-${index}`}
       aria-labelledby={`subtitle-${index}-heading`}
-      style={{ boxSizing: 'border-box', contain: 'layout' }}
+      style={{ boxSizing: 'border-box' }}
     >
       <SubtitleHeader id={`subtitle-${index}-heading`}>
         {Array.isArray(parsedTitle) ? parsedTitle.map((elem, i) => (
@@ -535,8 +467,6 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                 `}
                 sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
                 alt={`Illustration for ${subtitle.title || 'section'}`}
-                width="280"
-                height="157.5"
                 loading={index === 0 ? 'eager' : 'lazy'}
                 decoding="async"
                 fetchpriority={index === 0 ? 'high' : 'low'}
@@ -556,8 +486,6 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
             controls
             preload="none"
             poster={`${subtitle.videoPoster || subtitle.image}?w=80&format=webp&q=5`}
-            width="280"
-            height="157.5"
             loading="lazy"
             decoding="async"
             aria-label={`Video for ${subtitle.title || 'section'}`}
@@ -569,7 +497,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
       )}
       <ul style={{ paddingLeft: '1.25rem', fontSize: '1.1rem', lineHeight: '1.7', boxSizing: 'border-box' }}>
         {parsedBulletPoints.map((point, j) => (
-          <li key={j} style={{ marginBottom: '0.5rem', boxSizing: 'border-box' }}>
+          <li key={j} style={{ marginBottom: '0.5rem', containIntrinsicSize: '100% 30px', boxSizing: 'border-box' }}>
             <span>
               {Array.isArray(point.text) ? point.text.map((elem, k) => (
                 <React.Fragment key={k}>
@@ -609,8 +537,6 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                       `}
                       sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
                       alt={`Illustration for ${point.text || 'example point'}`}
-                      width="280"
-                      height="157.5"
                       loading="lazy"
                       decoding="async"
                       fetchpriority="low"
@@ -630,8 +556,6 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                   controls
                   preload="none"
                   poster={`${point.videoPoster || point.image}?w=80&format=webp&q=5`}
-                  width="280"
-                  height="157.5"
                   loading="lazy"
                   decoding="async"
                   aria-label={`Video example for ${point.text || 'point'}`}
@@ -642,7 +566,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
               </VideoContainer>
             )}
             {point.codeSnippet && (
-              <Suspense fallback={<Placeholder height="150px">Loading code...</Placeholder>}>
+              <Suspense fallback={<Placeholder>Loading code...</Placeholder>}>
                 <CodeHighlighter
                   code={point.codeSnippet}
                   language={point.language || 'javascript'}
@@ -687,14 +611,14 @@ const LazySubtitleSection = memo(({ subtitle, index, category }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '600px', threshold: 0.1 }
+      { rootMargin: '400px', threshold: 0.2 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+    <div ref={ref} style={{ width: '100%', boxSizing: 'border-box' }}>
       {isVisible ? (
         <SubtitleSection subtitle={subtitle} index={index} category={category} />
       ) : (
@@ -716,14 +640,14 @@ const LazyRelatedPostsSection = memo(({ relatedPosts }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '600px', threshold: 0.1 }
+      { rootMargin: '400px', threshold: 0.2 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+    <div ref={ref} style={{ width: '100%', boxSizing: 'border-box' }}>
       {isVisible ? (
         <RelatedPostsSection aria-labelledby="related-posts-heading">
           <SubtitleHeader id="related-posts-heading">Related Posts</SubtitleHeader>
@@ -741,7 +665,6 @@ const LazyRelatedPostsSection = memo(({ relatedPosts }) => {
 const LazyReferencesSection = memo(({ post }) => {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef();
-  const referenceCount = post.references?.length || 2;
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -751,16 +674,16 @@ const LazyReferencesSection = memo(({ post }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '600px', threshold: 0.1 }
+      { rootMargin: '400px', threshold: 0.2 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+    <div ref={ref} style={{ width: '100%', boxSizing: 'border-box' }}>
       {isVisible ? (
-        <ReferencesSection aria-labelledby="references-heading" referenceCount={referenceCount}>
+        <ReferencesSection aria-labelledby="references-heading">
           <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
           {post.references?.length > 0 ? (
             post.references.map((ref, i) => (
@@ -790,7 +713,7 @@ const LazyReferencesSection = memo(({ post }) => {
           )}
         </ReferencesSection>
       ) : (
-        <ReferencesPlaceholder>Loading references...</ReferencesPlaceholder>
+        <SectionPlaceholder>Loading references...</SectionPlaceholder>
       )}
     </div>
   );
@@ -848,30 +771,18 @@ const PostContentNonCritical = memo(
 
     useEffect(() => {
       if (!post?.summary) return;
-      if (typeof window !== 'undefined' && window.requestIdleCallback) {
-        window.requestIdleCallback(() => {
-          parseInWorker(post.summary || '', post.category || '').then(setParsedSummary);
-        }, { timeout: 6000 });
-      } else {
-        setTimeout(() => {
-          parseInWorker(post.summary || '', post.category || '').then(setParsedSummary);
-        }, 6000);
-      }
+      parseInWorker(post.summary || '', post.category || '').then(setParsedSummary);
     }, [post]);
 
     useEffect(() => {
       if (!post) return;
-      if (typeof window !== 'undefined' && window.requestIdleCallback) {
-        window.requestIdleCallback(() => {
-          const observer = new IntersectionObserver(debouncedObserve, {
-            root: null,
-            rootMargin: '0px',
-            threshold: [0.1, 0.3, 0.5],
-          });
-          document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
-          return () => observer.disconnect();
-        }, { timeout: 6000 });
-      }
+      const observer = new IntersectionObserver(debouncedObserve, {
+        root: null,
+        rootMargin: '0px',
+        threshold: [0.1, 0.3, 0.5],
+      });
+      document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
+      return () => observer.disconnect();
     }, [post, debouncedObserve]);
 
     const handleMarkAsCompleted = useCallback(() => {
@@ -908,13 +819,13 @@ const PostContentNonCritical = memo(
         ))}
 
         {post.superTitles?.length > 0 && (
-          <Suspense fallback={<Placeholder height="350px">Loading comparison...</Placeholder>}>
+          <Suspense fallback={<Placeholder>Loading comparison...</Placeholder>}>
             <ComparisonTable superTitles={post.superTitles} category={post.category || ''} />
           </Suspense>
         )}
 
         {post.summary && (
-          <section id="summary" aria-labelledby="summary-heading" style={{ boxSizing: 'border-box', contain: 'layout' }}>
+          <section id="summary" aria-labelledby="summary-heading" style={{ boxSizing: 'border-box' }}>
             <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
             <p style={{ fontSize: '1.1rem', lineHeight: '1.7', boxSizing: 'border-box' }}>
               {Array.isArray(parsedSummary) ? parsedSummary.map((elem, i) => (
