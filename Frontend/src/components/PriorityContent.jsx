@@ -6,21 +6,34 @@ const criticalCss = `
     margin: 0;
     padding: 0;
   }
+  article {
+    width: 100%;
+    max-width: 100%;
+    contain: content;
+  }
   .post-header {
     font-size: 1.25rem;
     color: #011020;
     font-weight: 700;
     line-height: 1.2;
     min-height: 24px;
+    width: 100%;
   }
   .content-section {
     font-size: 0.875rem;
     line-height: 1.5;
     width: 100%;
     margin-bottom: 1rem;
+    min-height: 150px;
+    display: block;
+    overflow: visible;
   }
   .content-wrapper {
     width: 100%;
+    min-height: 150px;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
   }
   .content-link {
     color: #0066cc;
@@ -34,7 +47,7 @@ const criticalCss = `
     max-width: 280px;
     margin: 1rem 0;
     aspect-ratio: 16 / 9;
-    min-height: 157.5px;
+    height: 157.5px;
   }
   .post-image {
     width: 100%;
@@ -52,6 +65,31 @@ const criticalCss = `
     flex-direction: column;
     gap: 0.5rem;
     min-height: 60px;
+    width: 100%;
+  }
+  .skeleton {
+    background: #e0e0e0;
+    border-radius: 0.25rem;
+    width: 100%;
+  }
+  @media (max-width: 767px) {
+    .content-section {
+      font-size: 0.85rem;
+      line-height: 1.4;
+      padding: 0 0.5rem;
+    }
+    .content-wrapper {
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+    .post-header {
+      font-size: 1.1rem;
+      min-height: 20px;
+    }
+    .meta-info {
+      font-size: 0.7rem;
+      min-height: 50px;
+    }
   }
   @media (min-width: 768px) {
     .post-header {
@@ -60,10 +98,14 @@ const criticalCss = `
     }
     .content-section {
       font-size: 1rem;
+      padding: 0 1rem;
+    }
+    .content-wrapper {
+      font-size: 1rem;
     }
     .image-container {
       max-width: 600px;
-      min-height: 337.5px;
+      height: 337.5px;
     }
     .post-image {
       max-width: 600px;
@@ -86,17 +128,17 @@ const PriorityContent = memo(({ post, readTime }) => {
       <article>
         <header>
           <div className="image-container" aria-hidden="true">
-            <div style={{ width: '100%', maxWidth: '280px', height: '157.5px', background: '#e0e0e0', borderRadius: '0.25rem' }} />
+            <div className="skeleton" style={{ width: '100%', maxWidth: '280px', height: '157.5px' }} />
           </div>
-          <div style={{ width: '80%', height: '24px', background: '#e0e0e0', borderRadius: '0.25rem' }} aria-hidden="true" />
+          <div className="skeleton post-header" style={{ height: '24px', width: '80%' }} aria-hidden="true" />
           <div className="meta-info" aria-hidden="true">
-            <div style={{ width: '100px', height: '16px', background: '#e0e0e0', borderRadius: '0.25rem' }} />
-            <div style={{ width: '100px', height: '16px', background: '#e0e0e0', borderRadius: '0.25rem' }} />
-            <div style={{ width: '100px', height: '16px', background: '#e0e0e0', borderRadius: '0.25rem' }} />
+            <div className="skeleton" style={{ width: '100px', height: '16px' }} />
+            <div className="skeleton" style={{ width: '100px', height: '16px' }} />
+            <div className="skeleton" style={{ width: '100px', height: '16px' }} />
           </div>
         </header>
-        <section className="content-section" aria-hidden="true" style={{ minHeight: `${contentHeight}px` }}>
-          <div style={{ width: '100%', minHeight: `${contentHeight}px`, background: '#e0e0e0', borderRadius: '0.25rem' }} />
+        <section className="content-section" aria-hidden="true">
+          <div className="skeleton content-wrapper" style={{ minHeight: `${contentHeight}px` }} />
         </section>
         <style>{criticalCss}</style>
       </article>
@@ -142,7 +184,7 @@ const PriorityContent = memo(({ post, readTime }) => {
           <span> | Read time: <span id="read-time">{readTime || '0'}</span> min</span>
         </div>
       </header>
-      <section className="content-section" role="region" aria-label="Post content" style={{ minHeight: `${contentHeight}px` }}>
+      <section className="content-section" role="region" aria-label="Post content">
         <div
           className="content-wrapper"
           style={{ minHeight: `${contentHeight}px` }}
