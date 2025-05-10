@@ -25,8 +25,10 @@ const SubtitleHeader = styled.h2`
   padding-left: 0.5rem;
   width: 100%;
   line-height: 32px;
+  min-height: 32px;
   contain-intrinsic-size: 100% 32px;
   box-sizing: border-box;
+  contain: content;
 `;
 
 const CompleteButton = styled.button`
@@ -42,6 +44,7 @@ const CompleteButton = styled.button`
   font-size: 0.875rem;
   font-weight: 500;
   min-width: 48px;
+  min-height: 48px;
   transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   z-index: 1000;
   &:hover:not(:disabled) {
@@ -60,12 +63,15 @@ const CompleteButton = styled.button`
   @media (min-width: 768px) {
     padding: 0.75rem 1.5rem;
     font-size: 1rem;
+    min-height: 56px;
   }
   @media (max-width: 480px) {
     padding: 0.5rem 0.75rem;
     font-size: 0.75rem;
     min-width: 44px;
+    min-height: 44px;
   }
+  contain: content;
 `;
 
 const ImageContainer = styled.figure`
@@ -73,19 +79,24 @@ const ImageContainer = styled.figure`
   max-width: 280px;
   margin: 1rem 0;
   aspect-ratio: 16 / 9;
+  min-height: 157.5px;
   contain-intrinsic-size: 280px 157.5px;
   background: #e0e0e0;
   box-sizing: border-box;
+  contain: content;
   @media (min-width: 769px) {
     max-width: 480px;
+    min-height: 270px;
     contain-intrinsic-size: 480px 270px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
+    min-height: 135px;
     contain-intrinsic-size: 240px 135px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
+    min-height: 112.5px;
     contain-intrinsic-size: 200px 112.5px;
   }
 `;
@@ -98,6 +109,7 @@ const PostImage = styled.img`
   object-fit: contain;
   border-radius: 0.375rem;
   box-sizing: border-box;
+  contain: content;
   @media (min-width: 769px) {
     max-width: 480px;
   }
@@ -114,18 +126,23 @@ const VideoContainer = styled.figure`
   max-width: 280px;
   margin: 1rem 0;
   aspect-ratio: 16 / 9;
+  min-height: 157.5px;
   contain-intrinsic-size: 280px 157.5px;
   box-sizing: border-box;
+  contain: content;
   @media (min-width: 769px) {
     max-width: 480px;
+    min-height: 270px;
     contain-intrinsic-size: 480px 270px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
+    min-height: 135px;
     contain-intrinsic-size: 240px 135px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
+    min-height: 112.5px;
     contain-intrinsic-size: 200px 112.5px;
   }
 `;
@@ -137,6 +154,7 @@ const PostVideo = styled.video`
   aspect-ratio: 16 / 9;
   border-radius: 0.375rem;
   box-sizing: border-box;
+  contain: content;
   @media (min-width: 769px) {
     max-width: 480px;
   }
@@ -152,6 +170,7 @@ const Placeholder = styled.div`
   width: 100%;
   max-width: ${({ maxWidth }) => maxWidth || '280px'};
   aspect-ratio: 16 / 9;
+  min-height: ${({ maxWidth }) => (maxWidth === '280px' ? '157.5px' : maxWidth === '480px' ? '270px' : maxWidth === '240px' ? '135px' : '112.5px')};
   background: #e0e0e0;
   display: flex;
   align-items: center;
@@ -159,26 +178,30 @@ const Placeholder = styled.div`
   color: #666;
   border-radius: 0.375rem;
   font-size: 0.875rem;
-  contain-intrinsic-size: ${({ maxWidth }) => `${maxWidth || '280px'} 157.5px`};
+  contain-intrinsic-size: ${({ maxWidth }) => `${maxWidth || '280px'} ${maxWidth === '280px' ? '157.5px' : maxWidth === '480px' ? '270px' : maxWidth === '240px' ? '135px' : '112.5px'}`};
   animation: ${pulse} 1.5s ease-in-out infinite;
   box-sizing: border-box;
+  contain: content;
   @media (min-width: 769px) {
     max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '480px' : maxWidth || '480px')};
+    min-height: 270px;
     contain-intrinsic-size: ${({ maxWidth }) => `${maxWidth === '280px' ? '480px' : maxWidth || '480px'} 270px`};
   }
   @media (max-width: 480px) {
     max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '240px' : maxWidth || '240px')};
+    min-height: 135px;
     contain-intrinsic-size: ${({ maxWidth }) => `${maxWidth === '280px' ? '240px' : maxWidth || '240px'} 135px`};
   }
   @media (max-width: 320px) {
     max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '200px' : maxWidth || '200px')};
+    min-height: 112.5px;
     contain-intrinsic-size: ${({ maxWidth }) => `${maxWidth === '280px' ? '200px' : maxWidth || '200px'} 112.5px`};
   }
 `;
 
 const SectionPlaceholder = styled.div`
   width: 100%;
-  height: 200px;
+  min-height: 200px;
   background: #e0e0e0;
   display: flex;
   align-items: center;
@@ -186,24 +209,10 @@ const SectionPlaceholder = styled.div`
   color: #666;
   border-radius: 0.375rem;
   font-size: 0.875rem;
+  animation: ${pulse} 1.5s ease-in-out infinite;
+  box-sizing: border-box;
   contain-intrinsic-size: 100% 200px;
-  animation: ${pulse} 1.5s ease-in-out infinite;
-  box-sizing: border-box;
-`;
-
-const ReferencesPlaceholder = styled.div`
-  width: 100%;
-  height: 150px;
-  background: #e0e0e0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  contain-intrinsic-size: 100% 150px;
-  animation: ${pulse} 1.5s ease-in-out infinite;
-  box-sizing: border-box;
+  contain: content;
 `;
 
 const ReferencesSection = styled.section`
@@ -212,8 +221,10 @@ const ReferencesSection = styled.section`
   background: #f9f9f9;
   border-radius: 0.375rem;
   width: 100%;
-  contain-intrinsic-size: 100% 150px;
+  min-height: 150px;
   box-sizing: border-box;
+  contain-intrinsic-size: 100% 150px;
+  contain: content;
 `;
 
 const ReferenceLink = styled.a`
@@ -224,16 +235,15 @@ const ReferenceLink = styled.a`
   padding: 0.25rem 0;
   font-size: 0.875rem;
   line-height: 1.5;
-  height: 24px;
-  contain-intrinsic-size: 100% 24px;
+  min-height: 24px;
   box-sizing: border-box;
+  contain: content;
   &:hover {
     text-decoration: underline;
   }
   @media (max-width: 480px) {
     font-size: 0.75rem;
-    height: 20px;
-    contain-intrinsic-size: 100% 20px;
+    min-height: 20px;
   }
 `;
 
@@ -244,29 +254,25 @@ const NavigationLinks = styled.nav`
   flex-wrap: wrap;
   font-size: 0.75rem;
   width: 100%;
-  contain-intrinsic-size: 100% 44px;
+  min-height: 40px;
   box-sizing: border-box;
+  contain-intrinsic-size: 100% 40px;
+  contain: content;
   & a {
     display: inline-flex;
     align-items: center;
     padding: 0.5rem;
-    height: 24px;
-    contain-intrinsic-size: 100% 24px;
+    min-height: 24px;
   }
 `;
 
 const RelatedPostsSection = styled.section`
   width: 100%;
   padding: 1rem 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  min-height: 300px;
   box-sizing: border-box;
-  @media (min-width: 769px) {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
-    gap: 1.5rem;
-  }
+  contain-intrinsic-size: 100% 300px;
+  contain: content;
 `;
 
 const SkeletonRelatedPost = styled.div`
@@ -276,18 +282,23 @@ const SkeletonRelatedPost = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-height: 260px;
   contain-intrinsic-size: 280px 260px;
   box-sizing: border-box;
+  contain: content;
   @media (min-width: 769px) {
     max-width: 480px;
+    min-height: 380px;
     contain-intrinsic-size: 480px 380px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
+    min-height: 230px;
     contain-intrinsic-size: 240px 230px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
+    min-height: 200px;
     contain-intrinsic-size: 200px 200px;
   }
 `;
@@ -296,21 +307,26 @@ const SkeletonImage = styled.div`
   width: 100%;
   max-width: 280px;
   aspect-ratio: 16 / 9;
+  min-height: 157.5px;
   background: #e0e0e0;
   border-radius: 0.375rem;
   animation: ${pulse} 1.5s ease-in-out infinite;
   contain-intrinsic-size: 280px 157.5px;
   box-sizing: border-box;
+  contain: content;
   @media (min-width: 769px) {
     max-width: 480px;
+    min-height: 270px;
     contain-intrinsic-size: 480px 270px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
+    min-height: 135px;
     contain-intrinsic-size: 240px 135px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
+    min-height: 112.5px;
     contain-intrinsic-size: 200px 112.5px;
   }
 `;
@@ -318,13 +334,16 @@ const SkeletonImage = styled.div`
 const SkeletonTitle = styled.div`
   width: 80%;
   height: 24px;
+  min-height: 24px;
   background: #e0e0e0;
   border-radius: 0.25rem;
   animation: ${pulse} 1.5s ease-in-out infinite;
   contain-intrinsic-size: 80% 24px;
   box-sizing: border-box;
+  contain: content;
   @media (min-width: 769px) {
     height: 32px;
+    min-height: 32px;
     contain-intrinsic-size: 80% 32px;
   }
 `;
@@ -332,13 +351,16 @@ const SkeletonTitle = styled.div`
 const SkeletonExcerpt = styled.div`
   width: 100%;
   height: 60px;
+  min-height: 60px;
   background: #e0e0e0;
   border-radius: 0.25rem;
   animation: ${pulse} 1.5s ease-in-out infinite;
   contain-intrinsic-size: 100% 60px;
   box-sizing: border-box;
+  contain: content;
   @media (min-width: 769px) {
     height: 80px;
+    min-height: 80px;
     contain-intrinsic-size: 100% 80px;
   }
 `;
@@ -349,31 +371,38 @@ const SkeletonRelatedPostsContainer = styled.div`
   flex-direction: column;
   gap: 1rem;
   padding: 1rem 0;
-  contain-intrinsic-size: 100% 820px;
+  min-height: 300px;
   box-sizing: border-box;
+  contain-intrinsic-size: 100% 300px;
+  contain: content;
   @media (min-width: 769px) {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
     gap: 1.5rem;
-    contain-intrinsic-size: 100% 450px;
+    min-height: 400px;
+    contain-intrinsic-size: 100% 400px;
   }
 `;
 
 const SkeletonBulletPoint = styled.div`
   width: 100%;
   height: 30px;
+  min-height: 30px;
   background: #e0e0e0;
   border-radius: 0.25rem;
   animation: ${pulse} 1.5s ease-in-out infinite;
   contain-intrinsic-size: 100% 30px;
   box-sizing: border-box;
   margin-bottom: 0.5rem;
+  contain: content;
 `;
 
 const SkeletonSubtitleSection = styled.div`
   width: 100%;
-  contain-intrinsic-size: 100% 200px;
+  min-height: 200px;
   box-sizing: border-box;
+  contain-intrinsic-size: 100% 200px;
+  contain: content;
 `;
 
 const SkeletonRelatedPosts = () => (
@@ -462,7 +491,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
     <section
       id={`subtitle-${index}`}
       aria-labelledby={`subtitle-${index}-heading`}
-      style={{ boxSizing: 'border-box', contain: 'layout' }}
+      style={{ boxSizing: 'border-box', minHeight: '200px', contain: 'content' }}
     >
       <SubtitleHeader id={`subtitle-${index}-heading`}>
         {Array.isArray(parsedTitle) ? parsedTitle.map((elem, i) => (
@@ -531,9 +560,9 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
           </PostVideo>
         </VideoContainer>
       )}
-      <ul style={{ paddingLeft: '1.25rem', fontSize: '1.1rem', lineHeight: '1.7', boxSizing: 'border-box' }}>
+      <ul style={{ paddingLeft: '1.25rem', fontSize: '1.1rem', lineHeight: '1.7', boxSizing: 'border-box', minHeight: '100px', contain: 'content' }}>
         {parsedBulletPoints.map((point, j) => (
-          <li key={j} style={{ marginBottom: '0.5rem', containIntrinsicSize: '100% 30px', boxSizing: 'border-box' }}>
+          <li key={j} style={{ marginBottom: '0.5rem', minHeight: '30px', containIntrinsicSize: '100% 30px', boxSizing: 'border-box', contain: 'content' }}>
             <span>
               {Array.isArray(point.text) ? point.text.map((elem, k) => (
                 <React.Fragment key={k}>
@@ -627,7 +656,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
 const FirstSubtitleSkeleton = ({ bulletCount = 3 }) => (
   <SkeletonSubtitleSection aria-hidden="true">
     <SubtitleHeader />
-    <ul style={{ paddingLeft: '1.25rem', boxSizing: 'border-box' }}>
+    <ul style={{ paddingLeft: '1.25rem', boxSizing: 'border-box', minHeight: '100px', contain: 'content' }}>
       {Array.from({ length: bulletCount }).map((_, i) => (
         <SkeletonBulletPoint key={i} />
       ))}
@@ -647,14 +676,14 @@ const LazySubtitleSection = memo(({ subtitle, index, category }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '600px', threshold: 0.1 }
+      { rootMargin: '400px', threshold: 0.2 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ width: '100%', containIntrinsicSize: '100% 200px', boxSizing: 'border-box' }}>
+    <div ref={ref} style={{ width: '100%', minHeight: '200px', boxSizing: 'border-box', containIntrinsicSize: '100% 200px', contain: 'content' }}>
       {isVisible ? (
         <SubtitleSection subtitle={subtitle} index={index} category={category} />
       ) : (
@@ -676,14 +705,14 @@ const LazyRelatedPostsSection = memo(({ relatedPosts }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '600px', threshold: 0.1 }
+      { rootMargin: '400px', threshold: 0.2 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ width: '100%', containIntrinsicSize: '100% 450px', boxSizing: 'border-box' }}>
+    <div ref={ref} style={{ width: '100%', minHeight: '300px', boxSizing: 'border-box', containIntrinsicSize: '100% 300px', contain: 'content' }}>
       {isVisible ? (
         <RelatedPostsSection aria-labelledby="related-posts-heading">
           <SubtitleHeader id="related-posts-heading">Related Posts</SubtitleHeader>
@@ -710,14 +739,14 @@ const LazyReferencesSection = memo(({ post }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '600px', threshold: 0.1 }
+      { rootMargin: '400px', threshold: 0.2 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
 
   return (
-    <div ref={ref} style={{ width: '100%', containIntrinsicSize: '100% 150px', boxSizing: 'border-box' }}>
+    <div ref={ref} style={{ width: '100%', minHeight: '150px', boxSizing: 'border-box', containIntrinsicSize: '100% 150px', contain: 'content' }}>
       {isVisible ? (
         <ReferencesSection aria-labelledby="references-heading">
           <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
@@ -749,7 +778,7 @@ const LazyReferencesSection = memo(({ post }) => {
           )}
         </ReferencesSection>
       ) : (
-        <ReferencesPlaceholder>Loading references...</ReferencesPlaceholder>
+        <SectionPlaceholder>Loading references...</SectionPlaceholder>
       )}
     </div>
   );
@@ -843,7 +872,7 @@ const PostContentNonCritical = memo(
     );
 
     return (
-      <div style={{ width: '100%', boxSizing: 'border-box', contain: 'layout' }}>
+      <div style={{ width: '100%', minHeight: '100vh', boxSizing: 'border-box', contain: 'content' }}>
         {(post.subtitles || []).map((subtitle, i) => (
           i === 0 ? (
             <Suspense key={i} fallback={<FirstSubtitleSkeleton bulletCount={subtitle.bulletPoints?.length || 3} />}>
@@ -861,9 +890,9 @@ const PostContentNonCritical = memo(
         )}
 
         {post.summary && (
-          <section id="summary" aria-labelledby="summary-heading" style={{ boxSizing: 'border-box', containIntrinsicSize: '100% 100px' }}>
+          <section id="summary" aria-labelledby="summary-heading" style={{ boxSizing: 'border-box', minHeight: '150px', contain: 'content' }}>
             <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
-            <p style={{ fontSize: '1.1rem', lineHeight: '1.7', boxSizing: 'border-box' }}>
+            <p style={{ fontSize: '1.1rem', lineHeight: '1.7', boxSizing: 'border-box', minHeight: '100px', contain: 'content' }}>
               {Array.isArray(parsedSummary) ? parsedSummary.map((elem, i) => (
                 <React.Fragment key={i}>
                   {typeof elem === 'string' ? elem : (
