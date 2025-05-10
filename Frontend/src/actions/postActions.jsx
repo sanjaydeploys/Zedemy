@@ -1,24 +1,14 @@
 import axios from 'axios';
 import { setAuthToken } from '../utils/setAuthToken';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import {
-  FETCH_POSTS_SUCCESS,
-  FETCH_POSTS_FAILURE,
-  ADD_POST_SUCCESS,
-  FETCH_USER_POSTS_SUCCESS,
-  FETCH_USER_POSTS_REQUEST,
-  FETCH_USER_POSTS_FAILURE,
-  SEARCH_POSTS_SUCCESS,
-  SEARCH_POSTS_FAILURE,
-  FETCH_COMPLETED_POSTS_SUCCESS,
-  MARK_POST_COMPLETED_SUCCESS,
-  FETCH_COMPLETED_POSTS_FAILURE,
-  FETCH_POST_SUCCESS,
-  FETCH_POST_FAILURE,
-  CLEAR_POST
-} from './types';
+import { FETCH_POSTS_SUCCESS, FETCH_POSTS_FAILURE, ADD_POST_SUCCESS, FETCH_USER_POSTS_SUCCESS, FETCH_USER_POSTS_REQUEST, FETCH_USER_POSTS_FAILURE, SEARCH_POSTS_SUCCESS, SEARCH_POSTS_FAILURE, FETCH_COMPLETED_POSTS_SUCCESS, MARK_POST_COMPLETED_SUCCESS, FETCH_COMPLETED_POSTS_FAILURE, FETCH_POST_SUCCESS, FETCH_POST_FAILURE, CLEAR_POST } from './types';
 import { fetchCertificates } from './certificateActions';
+
+// Lazy-load react-toastify
+const loadToast = async () => {
+  const { toast } = await import('react-toastify');
+  await import('react-toastify/dist/ReactToastify.css');
+  return toast;
+};
 
 const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
 
@@ -30,54 +20,46 @@ const sanitizeContent = (content) => {
     .replace(/<table\b[^>]*>/gi, '<table style="max-width: 100%; overflow-x: auto;">');
 };
 
-// Parse content into structured blocks
-const parseContentToBlocks = (text, category) => {
+// Parse content into minimal blocks
+const parseContentToBlocks = (text) => {
   if (!text) return { blocks: [], height: 150 };
   const sanitizedText = sanitizeContent(text);
   const blocks = [];
   let estimatedHeight = 0;
-  const lineHeight = 24; // Desktop default
-  const linesPerBlock = 4; // Average lines per paragraph
-  const blockSpacing = 8; // Margin between blocks
+  const lineHeight = 24;
+  const blockSpacing = 8;
 
-  // Split content into paragraphs and links
-  const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+|\/[^\s)]+)\)/g;
-  let lastIndex = 0;
+  // Split by paragraphs and links
+  const paragraphs = sanitizedText.split('\n\n').filter(p => p.trim());
+  paragraphs.forEach((paragraph, index) => {
+    const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+|\/[^\s)]+)\)/g;
+    let lastIndex = 0;
+    let blockHeight = 0;
 
-  sanitizedText.replace(linkRegex, (match, linkText, url, index) => {
-    // Add text before the link as a paragraph
-    if (index > lastIndex) {
-      const paragraph = sanitizedText.slice(lastIndex, index).trim();
-      if (paragraph) {
-        blocks.push({ type: 'paragraph', content: paragraph });
-        estimatedHeight += linesPerBlock * lineHeight + blockSpacing;
+    paragraph.replace(linkRegex, (match, linkText, url, idx) => {
+      if (idx > lastIndex) {
+        const text = paragraph.slice(lastIndex, idx).trim();
+        if (text) {
+          blocks.push({ type: 'paragraph', content: text });
+          blockHeight += lineHeight * 2 + blockSpacing; // Assume 2 lines for short text
+        }
+      }
+      blocks.push({ type: 'link', text: linkText, url });
+      blockHeight += lineHeight + blockSpacing;
+      lastIndex = idx + match.length;
+      return match;
+    });
+
+    if (lastIndex < paragraph.length) {
+      const text = paragraph.slice(lastIndex).trim();
+      if (text) {
+        blocks.push({ type: 'paragraph', content: text });
+        blockHeight += lineHeight * 2 + blockSpacing;
       }
     }
-    // Add the link
-    blocks.push({
-      type: 'link',
-      text: linkText,
-      url,
-    });
-    estimatedHeight += lineHeight + blockSpacing;
-    lastIndex = index + match.length;
-    return match;
+
+    estimatedHeight += blockHeight;
   });
-
-  // Add remaining text as a paragraph
-  if (lastIndex < sanitizedText.length) {
-    const paragraph = sanitizedText.slice(lastIndex).trim();
-    if (paragraph) {
-      blocks.push({ type: 'paragraph', content: paragraph });
-      estimatedHeight += linesPerBlock * lineHeight + blockSpacing;
-    }
-  }
-
-  // Add a heading if category is present
-  if (category) {
-    blocks.unshift({ type: 'heading', content: `Category: ${category}` });
-    estimatedHeight += lineHeight * 1.5 + blockSpacing;
-  }
 
   return {
     blocks,
@@ -99,7 +81,7 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
     if (!contentField) {
       console.warn('[fetchPostBySlug] No content field:', res.data);
     }
-    const { blocks, height } = parseContentToBlocks(contentField, res.data.category);
+    const { blocks, height } = parseContentToBlocks(contentField);
     const post = {
       ...res.data,
       contentBlocks: blocks,
@@ -112,11 +94,12 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
       response: error.response ? error.response.data : 'No response'
     });
     dispatch({ type: FETCH_POST_FAILURE, payload: error.message });
+    const toast = await loadToast();
     toast.error('Failed to fetch post.', { position: 'top-right', autoClose: 2000 });
   }
 };
 
-// ... (rest of the file unchanged)
+// ... (rest of the file unchanged, with toast lazy-loaded similarly)
 export const searchPosts = (query) => async (dispatch) => {
   console.log('[searchPosts] Searching posts:', query);
   try {
@@ -128,6 +111,7 @@ export const searchPosts = (query) => async (dispatch) => {
       response: error.response ? error.response.data : 'No response'
     });
     dispatch({ type: SEARCH_POSTS_FAILURE, payload: error.response?.data?.message || 'Failed to search posts' });
+    const toast = await loadToast();
     toast.error('Failed to search posts.', { position: 'top-right', autoClose: 2000 });
   }
 };
@@ -147,6 +131,7 @@ export const fetchPosts = () => async (dispatch) => {
       response: error.response ? error.response.data : 'No response'
     });
     dispatch({ type: FETCH_POSTS_FAILURE, payload: error.message });
+    const toast = await loadToast();
     toast.error('Failed to fetch posts.', { position: 'top-right', autoClose: 2000 });
   }
 };
@@ -183,6 +168,7 @@ export const addPost = (
   console.log('[addPost] Starting add post...');
   if (!token) {
     console.error('[addPost] No auth token found');
+    const toast = await loadToast();
     toast.error('Please log in to add a post.', { position: 'top-right', autoClose: 2000 });
     return;
   }
@@ -210,6 +196,7 @@ export const addPost = (
       headers: { 'x-auth-token': token }
     });
     dispatch({ type: ADD_POST_SUCCESS, payload: res.data });
+    const toast = await loadToast();
     toast.success('Post added successfully!', { position: 'top-right', autoClose: 2000 });
     await axios.get(`https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/users/category/${category}`, {
       headers: { 'x-auth-token': token }
@@ -219,6 +206,7 @@ export const addPost = (
       message: error.message,
       response: error.response ? error.response.data : 'No response'
     });
+    const toast = await loadToast();
     toast.error('Failed to add post.', { position: 'top-right', autoClose: 2000 });
   }
 };
@@ -227,18 +215,21 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
   console.log('[markPostAsCompleted] Starting with postId:', postId);
   if (!postId) {
     console.error('[markPostAsCompleted] Invalid postId');
+    const toast = await loadToast();
     toast.error('Invalid post ID.', { position: 'top-right', autoClose: 2000 });
     return;
   }
   const token = localStorage.getItem('token');
   if (!token) {
     console.error('[markPostAsCompleted] No auth token');
+    const toast = await loadToast();
     toast.error('Please log in to mark posts.', { position: 'top-right', autoClose: 2000 });
     return;
   }
   const { completedPosts = [] } = getState().postReducer || {};
   if (completedPosts.some((post) => post.postId === postId)) {
     console.log('[markPostAsCompleted] Post already completed:', postId);
+    const toast = await loadToast();
     toast.info('This post is already completed.', { position: 'top-right', autoClose: 2000 });
     return;
   }
@@ -252,6 +243,7 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
       }
     );
     dispatch({ type: MARK_POST_COMPLETED_SUCCESS, payload: { postId } });
+    const toast = await loadToast();
     if (res.data.certificateUrl) {
       toast.success(`Category completed! Certificate: ${res.data.certificateUrl}`, {
         position: 'top-right',
@@ -268,6 +260,7 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
       message: error.message,
       response: error.response ? error.response.data : 'No response'
     });
+    const toast = await loadToast();
     toast.error(error.response?.data?.msg || 'Failed to mark post.', { position: 'top-right', autoClose: 2000 });
   }
 };
@@ -291,6 +284,7 @@ export const fetchCompletedPosts = () => async (dispatch) => {
       response: error.response ? error.response.data : 'No response'
     });
     dispatch({ type: FETCH_COMPLETED_POSTS_FAILURE });
+    const toast = await loadToast();
     toast.error('Failed to fetch completed posts.', { position: 'top-right', autoClose: 2000 });
   }
 };
