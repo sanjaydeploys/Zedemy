@@ -5,6 +5,7 @@ import { slugify } from './utils';
 import { markPostAsCompleted } from '../actions/postActions';
 import styled, { keyframes } from 'styled-components';
 
+// Placeholder for RelatedPosts (replace with your actual implementation)
 const RelatedPosts = React.lazy(() => import('./RelatedPosts'));
 const AccessibleZoom = React.lazy(() => import('./AccessibleZoom'));
 const ComparisonTable = React.lazy(() => import('./ComparisonTable'));
@@ -25,10 +26,8 @@ const SubtitleHeader = styled.h2`
   padding-left: 0.5rem;
   width: 100%;
   max-width: 100%;
-  min-height: 32px;
   height: 32px;
   line-height: 32px;
-  contain-intrinsic-size: 100% 32px;
   box-sizing: border-box;
   will-change: contents;
 `;
@@ -85,24 +84,20 @@ const ImageContainer = styled.figure`
   position: relative;
   aspect-ratio: 16 / 9;
   height: 157.5px;
-  contain-intrinsic-size: 280px 157.5px;
   background: #e0e0e0;
   box-sizing: border-box;
   will-change: contents;
   @media (min-width: 769px) {
     max-width: 480px;
     height: 270px;
-    contain-intrinsic-size: 480px 270px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
     height: 135px;
-    contain-intrinsic-size: 240px 135px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
     height: 112.5px;
-    contain-intrinsic-size: 200px 112.5px;
   }
 `;
 
@@ -135,23 +130,19 @@ const VideoContainer = styled.figure`
   margin: 1rem 0;
   aspect-ratio: 16 / 9;
   height: 157.5px;
-  contain-intrinsic-size: 280px 157.5px;
   box-sizing: border-box;
   will-change: contents;
   @media (min-width: 769px) {
     max-width: 480px;
     height: 270px;
-    contain-intrinsic-size: 480px 270px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
     height: 135px;
-    contain-intrinsic-size: 240px 135px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
     height: 112.5px;
-    contain-intrinsic-size: 200px 112.5px;
   }
 `;
 
@@ -186,31 +177,27 @@ const Placeholder = styled.div`
   color: #666;
   border-radius: 0.375rem;
   font-size: 0.875rem;
-  contain-intrinsic-size: ${({ maxWidth, height }) => `${maxWidth || '280px'} ${height || '157.5px'}`};
   animation: ${pulse} 1.5s ease-in-out infinite;
   box-sizing: border-box;
   will-change: contents;
   @media (min-width: 769px) {
     max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '480px' : maxWidth || '480px')};
     height: ${({ height }) => (height === '157.5px' ? '270px' : height || '270px')};
-    contain-intrinsic-size: ${({ maxWidth, height }) => `${maxWidth === '280px' ? '480px' : maxWidth || '480px'} ${height === '157.5px' ? '270px' : height || '270px'}`};
   }
   @media (max-width: 480px) {
     max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '240px' : maxWidth || '240px')};
     height: ${({ height }) => (height === '157.5px' ? '135px' : height || '135px')};
-    contain-intrinsic-size: ${({ maxWidth, height }) => `${maxWidth === '280px' ? '240px' : maxWidth || '240px'} ${height === '157.5px' ? '135px' : height || '135px'}`};
   }
   @media (max-width: 320px) {
     max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '200px' : maxWidth || '200px')};
     height: ${({ height }) => (height === '157.5px' ? '112.5px' : height || '112.5px')};
-    contain-intrinsic-size: ${({ maxWidth, height }) => `${maxWidth === '280px' ? '200px' : maxWidth || '200px'} ${height === '157.5px' ? '112.5px' : height || '112.5px'}`};
   }
 `;
 
 const SectionPlaceholder = styled.div`
   width: 100%;
   max-width: 100%;
-  min-height: ${({ minHeight }) => minHeight || '400px'};
+  height: 400px;
   background: #e0e0e0;
   display: flex;
   align-items: center;
@@ -218,8 +205,7 @@ const SectionPlaceholder = styled.div`
   color: #666;
   border-radius: 0.375rem;
   font-size: 0.875rem;
-  contain-intrinsic-size: 100% ${({ minHeight }) => minHeight || '400px'};
-  animation: pulse 1.5s ease-in-out infinite;
+  animation: ${pulse} 1.5s ease-in-out infinite;
   box-sizing: border-box;
   will-change: contents;
 `;
@@ -227,7 +213,7 @@ const SectionPlaceholder = styled.div`
 const ReferencesPlaceholder = styled.div`
   width: 100%;
   max-width: 100%;
-  min-height: 500px;
+  height: 500px;
   background: #e0e0e0;
   display: flex;
   align-items: center;
@@ -235,8 +221,7 @@ const ReferencesPlaceholder = styled.div`
   color: #666;
   border-radius: 0.375rem;
   font-size: 0.875rem;
-  contain-intrinsic-size: 100% 500px;
-  animation: pulse 1.5s ease-in-out infinite;
+  animation: ${pulse} 1.5s ease-in-out infinite;
   box-sizing: border-box;
   will-change: contents;
 `;
@@ -248,9 +233,8 @@ const ReferencesSection = styled.section`
   border-radius: 0.375rem;
   width: 100%;
   max-width: 100%;
-  min-height: ${({ referenceCount }) => 50 + referenceCount * 48 + 32}px;
-  contain-intrinsic-size: 100% ${({ referenceCount }) => 50 + referenceCount * 48 + 32}px;
   box-sizing: border-box;
+  contain: layout;
   will-change: contents;
 `;
 
@@ -282,6 +266,7 @@ const NavigationLinks = styled.nav`
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  contain: layout;
   & a {
     min-height: 44px;
     display: inline-flex;
@@ -294,13 +279,13 @@ const RelatedPostsSection = styled.section`
   width: 100%;
   max-width: 100%;
   padding: 1rem 0;
-  min-height: 820px;
-  contain-intrinsic-size: 100% 820px;
   box-sizing: border-box;
+  contain: layout;
   will-change: contents;
   @media (min-width: 769px) {
-    min-height: 450px;
-    contain-intrinsic-size: 100% 450px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+    gap: 1.5rem;
   }
 `;
 
@@ -311,24 +296,15 @@ const SkeletonRelatedPost = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  min-height: 260px;
-  contain-intrinsic-size: 280px 260px;
   box-sizing: border-box;
-  will-change: contents;
   @media (min-width: 769px) {
     max-width: 480px;
-    min-height: 380px;
-    contain-intrinsic-size: 480px 380px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
-    min-height: 230px;
-    contain-intrinsic-size: 240px 230px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
-    min-height: 200px;
-    contain-intrinsic-size: 200px 200px;
   }
 `;
 
@@ -338,24 +314,20 @@ const SkeletonImage = styled.div`
   height: 157.5px;
   background: #e0e0e0;
   border-radius: 0.375rem;
-  animation: pulse 1.5s ease-in-out infinite;
-  contain-intrinsic-size: 280px 157.5px;
+  animation: ${pulse} 1.5s ease-in-out infinite;
   box-sizing: border-box;
   will-change: contents;
   @media (min-width: 769px) {
     max-width: 480px;
     height: 270px;
-    contain-intrinsic-size: 480px 270px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
     height: 135px;
-    contain-intrinsic-size: 240px 135px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
     height: 112.5px;
-    contain-intrinsic-size: 200px 112.5px;
   }
 `;
 
@@ -364,13 +336,11 @@ const SkeletonTitle = styled.div`
   height: 24px;
   background: #e0e0e0;
   border-radius: 0.25rem;
-  animation: pulse 1.5s ease-in-out infinite;
-  contain-intrinsic-size: 80% 24px;
+  animation: ${pulse} 1.5s ease-in-out infinite;
   box-sizing: border-box;
   will-change: contents;
   @media (min-width: 769px) {
     height: 32px;
-    contain-intrinsic-size: 80% 32px;
   }
 `;
 
@@ -379,13 +349,11 @@ const SkeletonExcerpt = styled.div`
   height: 60px;
   background: #e0e0e0;
   border-radius: 0.25rem;
-  animation: pulse 1.5s ease-in-out infinite;
-  contain-intrinsic-size: 100% 60px;
+  animation: ${pulse} 1.5s ease-in-out infinite;
   box-sizing: border-box;
   will-change: contents;
   @media (min-width: 769px) {
     height: 80px;
-    contain-intrinsic-size: 100% 80px;
   }
 `;
 
@@ -396,16 +364,13 @@ const SkeletonRelatedPostsContainer = styled.div`
   flex-direction: column;
   gap: 1rem;
   padding: 1rem 0;
-  min-height: 820px;
-  contain-intrinsic-size: 100% 820px;
   box-sizing: border-box;
+  contain: layout;
   will-change: contents;
   @media (min-width: 769px) {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
     gap: 1.5rem;
-    min-height: 450px;
-    contain-intrinsic-size: 100% 450px;
   }
 `;
 
@@ -414,8 +379,7 @@ const SkeletonBulletPoint = styled.div`
   height: 30px;
   background: #e0e0e0;
   border-radius: 0.25rem;
-  animation: pulse 1.5s ease-in-out infinite;
-  contain-intrinsic-size: 100% 30px;
+  animation: ${pulse} 1.5s ease-in-out infinite;
   box-sizing: border-box;
   will-change: contents;
   margin-bottom: 0.5rem;
@@ -424,8 +388,6 @@ const SkeletonBulletPoint = styled.div`
 const SkeletonSubtitleSection = styled.div`
   width: 100%;
   max-width: 100%;
-  min-height: 400px;
-  contain-intrinsic-size: 100% 400px;
   box-sizing: border-box;
   will-change: contents;
 `;
@@ -528,13 +490,11 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
 
   if (!subtitle) return null;
 
-  const estimatedHeight = 32 + (subtitle.image ? 157.5 + 48 : 0) + (subtitle.video ? 157.5 + 16 : 0) + (subtitle.bulletPoints?.length || 0) * 38;
-
   return (
     <section
       id={`subtitle-${index}`}
       aria-labelledby={`subtitle-${index}-heading`}
-      style={{ minHeight: `${estimatedHeight}px`, containIntrinsicSize: `100% ${estimatedHeight}px`, boxSizing: 'border-box' }}
+      style={{ boxSizing: 'border-box', contain: 'layout' }}
     >
       <SubtitleHeader id={`subtitle-${index}-heading`}>
         {Array.isArray(parsedTitle) ? parsedTitle.map((elem, i) => (
@@ -609,7 +569,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
       )}
       <ul style={{ paddingLeft: '1.25rem', fontSize: '1.1rem', lineHeight: '1.7', boxSizing: 'border-box' }}>
         {parsedBulletPoints.map((point, j) => (
-          <li key={j} style={{ marginBottom: '0.5rem', minHeight: '30px', containIntrinsicSize: '100% 30px', boxSizing: 'border-box' }}>
+          <li key={j} style={{ marginBottom: '0.5rem', boxSizing: 'border-box' }}>
             <span>
               {Array.isArray(point.text) ? point.text.map((elem, k) => (
                 <React.Fragment key={k}>
@@ -719,8 +679,6 @@ const LazySubtitleSection = memo(({ subtitle, index, category }) => {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef();
 
-  const estimatedHeight = subtitle.bulletPoints?.length > 2 || subtitle.image || subtitle.video ? '600px' : '400px';
-
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -736,11 +694,11 @@ const LazySubtitleSection = memo(({ subtitle, index, category }) => {
   }, []);
 
   return (
-    <div ref={ref} style={{ width: '100%', maxWidth: '100%', minHeight: estimatedHeight, containIntrinsicSize: `100% ${estimatedHeight}`, boxSizing: 'border-box' }}>
+    <div ref={ref} style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
       {isVisible ? (
         <SubtitleSection subtitle={subtitle} index={index} category={category} />
       ) : (
-        <SectionPlaceholder minHeight={estimatedHeight}>Loading section...</SectionPlaceholder>
+        <SectionPlaceholder>Loading section...</SectionPlaceholder>
       )}
     </div>
   );
@@ -765,7 +723,7 @@ const LazyRelatedPostsSection = memo(({ relatedPosts }) => {
   }, []);
 
   return (
-    <div ref={ref} style={{ width: '100%', maxWidth: '100%', minHeight: '820px', containIntrinsicSize: '100% 820px', boxSizing: 'border-box' }}>
+    <div ref={ref} style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
       {isVisible ? (
         <RelatedPostsSection aria-labelledby="related-posts-heading">
           <SubtitleHeader id="related-posts-heading">Related Posts</SubtitleHeader>
@@ -800,7 +758,7 @@ const LazyReferencesSection = memo(({ post }) => {
   }, []);
 
   return (
-    <div ref={ref} style={{ width: '100%', maxWidth: '100%', minHeight: '500px', containIntrinsicSize: '100% 500px', boxSizing: 'border-box' }}>
+    <div ref={ref} style={{ width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
       {isVisible ? (
         <ReferencesSection aria-labelledby="references-heading" referenceCount={referenceCount}>
           <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
@@ -956,7 +914,7 @@ const PostContentNonCritical = memo(
         )}
 
         {post.summary && (
-          <section id="summary" aria-labelledby="summary-heading" style={{ minHeight: '200px', containIntrinsicSize: '100% 200px', boxSizing: 'border-box' }}>
+          <section id="summary" aria-labelledby="summary-heading" style={{ boxSizing: 'border-box', contain: 'layout' }}>
             <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
             <p style={{ fontSize: '1.1rem', lineHeight: '1.7', boxSizing: 'border-box' }}>
               {Array.isArray(parsedSummary) ? parsedSummary.map((elem, i) => (
