@@ -30,20 +30,59 @@ const sanitizeContent = (content) => {
     .replace(/<table\b[^>]*>/gi, '<table style="max-width: 100%; overflow-x: auto;">');
 };
 
-const parseLinksForPreRender = (text, category) => {
-  if (!text) return '';
+// Parse content into structured blocks
+const parseContentToBlocks = (text, category) => {
+  if (!text) return { blocks: [], height: 150 };
   const sanitizedText = sanitizeContent(text);
+  const blocks = [];
+  let estimatedHeight = 0;
+  const lineHeight = 24; // Desktop default
+  const linesPerBlock = 4; // Average lines per paragraph
+  const blockSpacing = 8; // Margin between blocks
+
+  // Split content into paragraphs and links
   const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+|\/[^\s)]+)\)/g;
-  const maxLinks = 50;
-  let linkCount = 0;
-  return sanitizedText.replace(linkRegex, (match, linkText, url) => {
-    if (linkCount >= maxLinks) return match;
-    linkCount++;
-    const isInternal = url.startsWith('/');
-    return isInternal
-      ? `<a href="${url}" class="text-blue-600 hover:text-blue-800" aria-label="Navigate to ${linkText}">${linkText}</a>`
-      : `<a href="${url}" target="_blank" rel="noopener" class="text-blue-600 hover:text-blue-800" aria-label="Visit ${linkText}">${linkText}</a>`;
+  let lastIndex = 0;
+
+  sanitizedText.replace(linkRegex, (match, linkText, url, index) => {
+    // Add text before the link as a paragraph
+    if (index > lastIndex) {
+      const paragraph = sanitizedText.slice(lastIndex, index).trim();
+      if (paragraph) {
+        blocks.push({ type: 'paragraph', content: paragraph });
+        estimatedHeight += linesPerBlock * lineHeight + blockSpacing;
+      }
+    }
+    // Add the link
+    blocks.push({
+      type: 'link',
+      text: linkText,
+      url,
+    });
+    estimatedHeight += lineHeight + blockSpacing;
+    lastIndex = index + match.length;
+    return match;
   });
+
+  // Add remaining text as a paragraph
+  if (lastIndex < sanitizedText.length) {
+    const paragraph = sanitizedText.slice(lastIndex).trim();
+    if (paragraph) {
+      blocks.push({ type: 'paragraph', content: paragraph });
+      estimatedHeight += linesPerBlock * lineHeight + blockSpacing;
+    }
+  }
+
+  // Add a heading if category is present
+  if (category) {
+    blocks.unshift({ type: 'heading', content: `Category: ${category}` });
+    estimatedHeight += lineHeight * 1.5 + blockSpacing;
+  }
+
+  return {
+    blocks,
+    height: Math.max(150, Math.min(600, estimatedHeight)),
+  };
 };
 
 export const fetchPostBySlug = (slug) => async (dispatch) => {
@@ -60,15 +99,11 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
     if (!contentField) {
       console.warn('[fetchPostBySlug] No content field:', res.data);
     }
-    // Estimate content height based on content length
-    const charCount = contentField.length;
-    const lines = Math.ceil(charCount / 80); // ~80 chars per line
-    const lineHeight = 24; // Assume desktop (24px) as default, adjust client-side if needed
-    const estimatedHeight = Math.max(150, Math.min(600, lines * lineHeight + 20));
+    const { blocks, height } = parseContentToBlocks(contentField, res.data.category);
     const post = {
       ...res.data,
-      preRenderedContent: parseLinksForPreRender(contentField, res.data.category),
-      estimatedContentHeight: estimatedHeight,
+      contentBlocks: blocks,
+      estimatedContentHeight: height,
     };
     dispatch({ type: FETCH_POST_SUCCESS, payload: post });
   } catch (error) {
