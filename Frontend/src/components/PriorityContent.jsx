@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useEffect } from 'react';
 
 const criticalCss = `
   * {
@@ -12,6 +12,11 @@ const criticalCss = `
     font-weight: 700;
     line-height: 1.2;
     min-height: 24px;
+    max-width: 100%;
+    contain-intrinsic-size: 100% 24px;
+    contain: layout;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .content-section {
     font-size: 0.875rem;
@@ -19,9 +24,30 @@ const criticalCss = `
     width: 100%;
     margin-bottom: 1rem;
     min-height: 150px;
+    contain-intrinsic-size: 100% 150px;
+    contain: layout;
   }
   .content-wrapper {
     width: 100%;
+    min-height: 150px;
+    contain-intrinsic-size: 100% 150px;
+    contain: layout;
+  }
+  .content-wrapper p, .content-wrapper img, .content-wrapper video {
+    min-height: 24px;
+    contain-intrinsic-size: 100% 24px;
+    max-width: 100%;
+    margin: 0.5rem 0;
+  }
+  .content-wrapper img {
+    aspect-ratio: 16 / 9;
+    min-height: 157.5px;
+    contain-intrinsic-size: 280px 157.5px;
+  }
+  .content-wrapper video {
+    aspect-ratio: 16 / 9;
+    min-height: 157.5px;
+    contain-intrinsic-size: 280px 157.5px;
   }
   .content-link {
     color: #0066cc;
@@ -35,7 +61,13 @@ const criticalCss = `
     max-width: 280px;
     margin: 1rem 0;
     aspect-ratio: 16 / 9;
-    height: 157.5px;
+    min-height: 157.5px;
+    contain-intrinsic-size: 280px 157.5px;
+    contain: layout;
+    background: #e0e0e0;
+  }
+  .image-container.image-loaded {
+    background: none;
   }
   .post-image {
     width: 100%;
@@ -44,6 +76,7 @@ const criticalCss = `
     object-fit: contain;
     border-radius: 0.25rem;
     border: 1px solid #e0e0e0;
+    display: block;
   }
   .meta-info {
     color: #666;
@@ -52,19 +85,47 @@ const criticalCss = `
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    height: 60px;
+    min-height: 60px;
+    contain-intrinsic-size: 100% 60px;
+    contain: layout;
+  }
+  .skeleton-placeholder {
+    background: #e0e0e0;
+    border-radius: 0.25rem;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
   }
   @media (min-width: 768px) {
     .post-header {
       font-size: 2rem;
       min-height: 32px;
+      contain-intrinsic-size: 100% 32px;
     }
     .content-section {
       font-size: 1rem;
+      min-height: 180px;
+      contain-intrinsic-size: 100% 180px;
+    }
+    .content-wrapper {
+      min-height: 180px;
+      contain-intrinsic-size: 100% 180px;
+    }
+    .content-wrapper img {
+      min-height: 337.5px;
+      contain-intrinsic-size: 600px 337.5px;
+    }
+    .content-wrapper video {
+      min-height: 337.5px;
+      contain-intrinsic-size: 600px 337.5px;
     }
     .image-container {
       max-width: 600px;
-      height: 337.5px;
+      min-height: 337.5px;
+      contain-intrinsic-size: 600px 337.5px;
     }
     .post-image {
       max-width: 600px;
@@ -72,30 +133,42 @@ const criticalCss = `
     }
     .meta-info {
       flex-direction: row;
-      height: 24px;
+      min-height: 24px;
+      contain-intrinsic-size: 100% 24px;
     }
   }
 `;
 
 const PriorityContent = memo(({ post, readTime }) => {
-  console.log('[PriorityContent] Rendering with post:', post);
+  useEffect(() => {
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (entry.hadRecentInput) continue;
+        console.log('Layout Shift:', entry.value, 'Sources:', entry.sources);
+      }
+    });
+    observer.observe({ type: 'layout-shift', buffered: true });
+    return () => observer.disconnect();
+  }, []);
 
   if (!post || !post.title) {
     return (
-      <article style={{ contain: 'layout' }}>
+      <article style={{ contain: 'layout', width: '100%', minHeight: '391.5px', containIntrinsicSize: '100% 391.5px' }}>
         <header>
           <div className="image-container" aria-hidden="true">
-            <div style={{ width: '100%', maxWidth: '280px', height: '157.5px', background: '#e0e0e0', borderRadius: '0.25rem' }} />
+            <div className="skeleton-placeholder" style={{ width: '100%', maxWidth: '280px', height: '157.5px' }} />
           </div>
-          <div style={{ width: '80%', height: '24px', background: '#e0e0e0', borderRadius: '0.25rem', margin: '0.5rem 0' }} aria-hidden="true" />
+          <div className="skeleton-placeholder" style={{ width: '80%', height: '24px', margin: '0.5rem 0' }} aria-hidden="true" />
           <div className="meta-info" aria-hidden="true">
-            <div style={{ width: '100px', height: '16px', background: '#e0e0e0', borderRadius: '0.25rem' }} />
-            <div style={{ width: '100px', height: '16px', background: '#e0e0e0', borderRadius: '0.25rem' }} />
-            <div style={{ width: '100px', height: '16px', background: '#e0e0e0', borderRadius: '0.25rem' }} />
+            <div className="skeleton-placeholder" style={{ width: '100px', height: '16px' }} />
+            <div className="skeleton-placeholder" style={{ width: '100px', height: '16px' }} />
+            <div className="skeleton-placeholder" style={{ width: '100px', height: '16px' }} />
           </div>
         </header>
         <section className="content-section" aria-hidden="true">
-          <div style={{ width: '100%', height: '150px', background: '#e0e0e0', borderRadius: '0.25rem' }} />
+          <div className="content-wrapper">
+            <div className="skeleton-placeholder" style={{ width: '100%', height: '150px' }} />
+          </div>
         </section>
         <style>{criticalCss}</style>
       </article>
@@ -112,13 +185,16 @@ const PriorityContent = memo(({ post, readTime }) => {
       : 'Unknown Date';
 
   return (
-    <article style={{ contain: 'layout' }}>
+    <article style={{ contain: 'layout', width: '100%', minHeight: '391.5px', containIntrinsicSize: '100% 391.5px' }}>
       <header>
         {post.titleImage && (
           <div className="image-container">
             <img
               src={`${post.titleImage}?w=280&format=avif&q=40`}
-              srcSet={`${post.titleImage}?w=280&format=avif&q=40 280w, ${post.titleImage}?w=600&format=avif&q=40 600w`}
+              srcSet={`
+                ${post.titleImage}?w=280&format=avif&q=40 280w,
+                ${post.titleImage}?w=600&format=avif&q=40 600w
+              `}
               sizes="(max-width: 767px) 280px, 600px"
               alt={post.title || 'Post image'}
               className="post-image"
@@ -127,9 +203,11 @@ const PriorityContent = memo(({ post, readTime }) => {
               decoding="async"
               loading="eager"
               fetchpriority="high"
+              onLoad={(e) => e.target.parentElement.classList.add('image-loaded')}
               onError={(e) => {
                 console.error('Image Failed:', post.titleImage);
                 e.target.style.display = 'none';
+                e.target.parentElement.classList.add('image-loaded');
               }}
             />
           </div>
@@ -142,11 +220,13 @@ const PriorityContent = memo(({ post, readTime }) => {
         </div>
       </header>
       <section className="content-section" role="region" aria-label="Post content">
-        {post.preRenderedContent ? (
-          <div className="content-wrapper" dangerouslySetInnerHTML={{ __html: post.preRenderedContent }} />
-        ) : (
-          <div style={{ width: '100%', height: '150px', background: '#e0e0e0', borderRadius: '0.25rem' }} />
-        )}
+        <div className="content-wrapper">
+          {post.preRenderedContent ? (
+            <div dangerouslySetInnerHTML={{ __html: post.preRenderedContent }} />
+          ) : (
+            <div className="skeleton-placeholder" style={{ width: '100%', height: '150px' }} />
+          )}
+        </div>
       </section>
       <style>{criticalCss}</style>
     </article>
