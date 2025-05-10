@@ -34,11 +34,10 @@ const parseLinksForPreRender = (text, category) => {
   if (!text) return '';
   const sanitizedText = sanitizeContent(text);
   const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+|\/[^\s)]+)\)/g;
-  // Limit processing to avoid excessive computation
   const maxLinks = 50;
   let linkCount = 0;
   return sanitizedText.replace(linkRegex, (match, linkText, url) => {
-    if (linkCount >= maxLinks) return match; // Skip excessive links
+    if (linkCount >= maxLinks) return match;
     linkCount++;
     const isInternal = url.startsWith('/');
     return isInternal
@@ -50,18 +49,26 @@ const parseLinksForPreRender = (text, category) => {
 export const fetchPostBySlug = (slug) => async (dispatch) => {
   console.log('[fetchPostBySlug] Fetching post:', slug);
   try {
-    dispatch({ type: CLEAR_POST }); // Clear stale post data
+    dispatch({ type: CLEAR_POST });
     const cacheBust = new Date().getTime();
-    const res = await axios.get(`${API_BASE_URL}/post/${slug}?cb=${cacheBust}`);
+    const res = await axios.get(`${API_BASE_URL}/post/${slug}?cb=${cacheBust}`, {
+      headers: {
+        'Accept-Encoding': 'gzip, deflate, br',
+      },
+    });
     const contentField = res.data.content || res.data.body || res.data.text || '';
     if (!contentField) {
       console.warn('[fetchPostBySlug] No content field:', res.data);
     }
+    // Estimate content height based on content length
+    const charCount = contentField.length;
+    const lines = Math.ceil(charCount / 80); // ~80 chars per line
+    const lineHeight = 24; // Assume desktop (24px) as default, adjust client-side if needed
+    const estimatedHeight = Math.max(150, Math.min(600, lines * lineHeight + 20));
     const post = {
       ...res.data,
       preRenderedContent: parseLinksForPreRender(contentField, res.data.category),
-      // Estimate content height server-side or via metadata if available
-      estimatedContentHeight: Math.max(150, Math.min(600, Math.ceil(contentField.length / 80) * (window.matchMedia('(min-width: 768px)').matches ? 24 : 21) + 20))
+      estimatedContentHeight: estimatedHeight,
     };
     dispatch({ type: FETCH_POST_SUCCESS, payload: post });
   } catch (error) {
