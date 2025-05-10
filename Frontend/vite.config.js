@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react';
 import { visualizer } from 'rollup-plugin-visualizer';
 import viteCompression from 'vite-plugin-compression';
 import { VitePWA } from 'vite-plugin-pwa';
-import critical from 'vite-plugin-critical';
 
 export default defineConfig({
   plugins: [
@@ -26,21 +25,6 @@ export default defineConfig({
       filename: 'dist/stats.html',
       gzipSize: true,
       brotliSize: true,
-    }),
-    critical({
-      criticalUrl: '/',
-      criticalBase: 'dist/',
-      criticalPages: [
-        {
-          uri: '/',
-          template: 'index',
-        },
-        {
-          uri: '/post/:slug',
-          template: 'post',
-        },
-      ],
-      criticalFont: false,
     }),
     VitePWA({
       registerType: 'autoUpdate',
@@ -68,11 +52,12 @@ export default defineConfig({
           },
           {
             urlPattern: /^https:\/\/se3fw2nzc2\.execute-api\.ap-south-1\.amazonaws\.com/,
-            handler: 'CacheFirst', // Changed to CacheFirst for faster content delivery
+            handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
               expiration: { maxEntries: 100, maxAgeSeconds: 24 * 60 * 60 },
               cacheableResponse: { statuses: [0, 200] },
+              networkTimeoutSeconds: 5,
             },
           },
           {
@@ -109,28 +94,31 @@ export default defineConfig({
     target: 'esnext',
     treeshake: 'recommended',
     modulePreload: {
-      polyfill: true,
+      polyfill: false, // Disable polyfill to reduce initial load
     },
     rollupOptions: {
       output: {
         experimentalMinChunkSize: 10000,
         manualChunks: {
-          critical: ['react', 'react-dom'], // Critical for initial render
-          redux: ['redux', 'react-redux'], // Defer Redux
-          uiLibs: ['framer-motion', 'react-toastify'], // Defer UI libraries
+          // Split vendor into smaller chunks
+          react: ['react', 'react-dom'],
+          redux: ['redux', 'react-redux'],
+          uiLibs: ['framer-motion'],
           utilities: ['react-helmet-async', 'dompurify', 'react-copy-to-clipboard'],
           syntax_highlighter: ['react-syntax-highlighter', 'highlight.js'],
           codemirror: ['@codemirror/view', '@codemirror/state'],
           parse5: ['parse5'],
           lodash: ['lodash'],
+          // Defer toast to separate chunk
+          toast: ['react-toastify'],
         },
-        // Add defer to non-critical chunks
-        entryFileNames: `assets/[name]-[hash].js`,
+        // Async chunk loading for non-critical modules
         chunkFileNames: (chunkInfo) => {
-          if (chunkInfo.name === 'critical') {
-            return `assets/[name]-[hash].js`;
+          if (chunkInfo.name === 'PriorityContent') return 'assets/priority-[hash].js';
+          if (['react', 'redux', 'uiLibs', 'utilities', 'syntax_highlighter', 'codemirror', 'parse5', 'lodash', 'toast'].includes(chunkInfo.name)) {
+            return 'assets/[name]-[hash].async.js';
           }
-          return `assets/[name]-[hash].defer.js`; // Defer non-critical chunks
+          return 'assets/[name]-[hash].js';
         },
       },
     },
@@ -141,22 +129,13 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['react', 'react-dom'],
-    exclude: [
-      'redux',
-      'react-redux',
-      'framer-motion',
-      'react-toastify',
-      'highlight.js',
-      '@codemirror/view',
-      '@codemirror/state',
-      'parse5',
-      'lodash',
-      'react-syntax-highlighter',
-    ],
+    exclude: ['react-toastify', 'redux', 'react-redux', 'axios', 'highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'react-syntax-highlighter'],
     force: true,
   },
   server: {
     fs: { allow: ['.'] },
     hmr: { overlay: true },
+    // Preload PriorityContent
+    preload: ['@components/PriorityContent'],
   },
 });
