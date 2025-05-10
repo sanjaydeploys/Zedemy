@@ -1,42 +1,112 @@
 import axios from 'axios';
 import { setAuthToken } from '../utils/setAuthToken';
+import { parseLinks } from '../components/utils';
 
 const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
-import { parseLinks } from '../components/utils';
 
 export const fetchPostBySlug = (slug) => async (dispatch) => {
   console.log('[fetchPostBySlug] Fetching post:', slug);
   try {
     dispatch({ type: 'CLEAR_POST' });
-    // Dispatch minimal placeholder for immediate render
-    dispatch({
-      type: 'FETCH_POST_SUCCESS',
-      payload: {
-        title: 'Loading...',
-        preRenderedContent: '',
-        estimatedContentHeight: 150,
-      },
-    });
 
-    const cacheBust = new Date().getTime();
-    const res = await axios.get(`${API_BASE_URL}/post/${slug}?cb=${cacheBust}`, {
-      headers: {
-        'Accept-Encoding': 'gzip, deflate, br',
-      },
-    });
-
-    const contentField = res.data.content || res.data.body || res.data.text || '';
-    if (!contentField) {
-      console.warn('[fetchPostBySlug] No content field:', res.data);
+    // Check local cache first
+    const cachedPost = await caches.match(`${API_BASE_URL}/post/${slug}`);
+    const cachedETag = localStorage.getItem(`etag-${slug}`);
+    if (cachedPost && cachedETag) {
+      const post = await cachedPost.json();
+      dispatch({
+        type: 'FETCH_POST_SUCCESS',
+        payload: {
+          ...post,
+          preRenderedContent: post.preRenderedContent || '',
+          estimatedContentHeight: 150,
+        },
+      });
+    } else {
+      // Dispatch minimal placeholder
+      dispatch({
+        type: 'FETCH_POST_SUCCESS',
+        payload: {
+          title: 'Loading...',
+          preRenderedContent: '',
+          estimatedContentHeight: 150,
+        },
+      });
     }
 
-    // Use parseLinks from utils.jsx for minimal processing
-    const preRenderedContent = parseLinks(contentField, res.data.category, true);
+    // Fetch partial and full data in parallel
+    const [partialResponse, fullResponse] = await Promise.all([
+      axios.get(`${API_BASE_URL}/post/${slug}/partial`, {
+        headers: {
+          'Accept-Encoding': 'gzip, deflate, br',
+          'If-None-Match': cachedETag || '',
+        },
+      }).catch((error) => ({ error, status: error.response?.status })),
+      axios.get(`${API_BASE_URL}/post/${slug}`, {
+        headers: {
+          'Accept-Encoding': 'gzip, deflate, br',
+          'If-None-Match': cachedETag || '',
+        },
+      }).catch((error) => ({ error, status: error.response?.status })),
+    ]);
+
+    // Handle partial response
+    if (partialResponse.status === 304) {
+      const cachedPost = await caches.match(`${API_BASE_URL}/post/${slug}`);
+      if (cachedPost) {
+        const post = await cachedPost.json();
+        dispatch({
+          type: 'FETCH_POST_SUCCESS',
+          payload: { ...post, preRenderedContent: post.preRenderedContent || '', estimatedContentHeight: 150 },
+        });
+        return;
+      }
+    } else if (!partialResponse.error) {
+      dispatch({
+        type: 'FETCH_POST_SUCCESS',
+        payload: {
+          ...partialResponse.data,
+          preRenderedContent: '',
+          estimatedContentHeight: 150,
+        },
+      });
+    }
+
+    // Handle full response
+    if (fullResponse.status === 304) {
+      const cachedPost = await caches.match(`${API_BASE_URL}/post/${slug}`);
+      if (cachedPost) {
+        const post = await cachedPost.json();
+        dispatch({
+          type: 'FETCH_POST_SUCCESS',
+          payload: { ...post, preRenderedContent: post.preRenderedContent || '', estimatedContentHeight: 150 },
+        });
+        return;
+      }
+    } else if (fullResponse.error) {
+      throw fullResponse.error;
+    }
+
+    const contentField = fullResponse.data.content || fullResponse.data.body || fullResponse.data.text || '';
+    if (!contentField) {
+      console.warn('[fetchPostBySlug] No content field:', fullResponse.data);
+    }
+
+    // Offload parseLinks to a non-blocking task
+    const preRenderedContent = await new Promise((resolve) => {
+      setTimeout(() => resolve(parseLinks(contentField, fullResponse.data.category, true)), 0);
+    });
+
     const post = {
-      ...res.data,
+      ...fullResponse.data,
       preRenderedContent,
-      estimatedContentHeight: 150, // Fixed height to avoid CLS
+      estimatedContentHeight: 150,
     };
+
+    // Cache the response
+    const cache = await caches.open('api-cache');
+    await cache.put(`${API_BASE_URL}/post/${slug}`, new Response(JSON.stringify(post)));
+    localStorage.setItem(`etag-${slug}`, fullResponse.headers.etag || '');
 
     dispatch({ type: 'FETCH_POST_SUCCESS', payload: post });
   } catch (error) {
@@ -186,7 +256,7 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
   try {
     setAuthToken(token);
     const res = await axios.put(`${API_BASE_URL}/complete/${postId}`, {}, {
-      headers: { 'x-auth-token': token },
+      headers: { 'x-th-token': token },
     });
     dispatch({ type: 'MARK_POST_COMPLETED_SUCCESS', payload: { postId } });
     if (res.data.certificateUrl) {
