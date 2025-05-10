@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { visualizer } from 'rollup-plugin-visualizer';
 import viteCompression from 'vite-plugin-compression';
 import { VitePWA } from 'vite-plugin-pwa';
+import path from 'path';
 
 export default defineConfig({
   plugins: [
@@ -82,9 +83,9 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@components': '/src/components',
-      '@pages': '/src/pages',
-      '@actions': '/src/actions',
+      '@components': path.resolve(__dirname, 'src/components'),
+      '@pages': path.resolve(__dirname, 'src/pages'),
+      '@actions': path.resolve(__dirname, 'src/actions'),
     },
     dedupe: ['popper.js'],
   },
@@ -94,7 +95,7 @@ export default defineConfig({
     target: 'esnext',
     treeshake: 'recommended',
     modulePreload: {
-      polyfill: true, // Enable for critical modules
+      polyfill: true,
     },
     rollupOptions: {
       output: {
@@ -111,10 +112,14 @@ export default defineConfig({
           lodash: ['lodash'],
           toast: ['react-toastify'],
           // Prioritize PostPage and PriorityContent
-          post: ['@components/PostPage', '@components/PriorityContent'],
+          post: [
+            path.resolve(__dirname, 'src/components/PostPage.jsx'),
+            path.resolve(__dirname, 'src/components/PriorityContent.jsx'),
+          ],
+          layout: [path.resolve(__dirname, 'src/components/Layout.jsx')],
         },
         chunkFileNames: (chunkInfo) => {
-          if (['post', 'PriorityContent', 'PostPage'].includes(chunkInfo.name)) {
+          if (['post', 'layout'].includes(chunkInfo.name)) {
             return 'assets/priority-[name]-[hash].js';
           }
           if (['react', 'redux', 'router', 'uiLibs', 'utilities', 'syntax_highlighter', 'codemirror', 'parse5', 'lodash', 'toast'].includes(chunkInfo.name)) {
@@ -126,17 +131,27 @@ export default defineConfig({
     },
     outDir: 'dist',
     assetsDir: 'assets',
-    assetsInlineLimit: 8192, // Increased to inline small PriorityContent JS
+    assetsInlineLimit: 8192,
     chunkSizeWarningLimit: 250,
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', '@components/PostPage', '@components/PriorityContent'],
+    include: [
+      'react',
+      'react-dom',
+      path.resolve(__dirname, 'src/components/PostPage.jsx'),
+      path.resolve(__dirname, 'src/components/PriorityContent.jsx'),
+      path.resolve(__dirname, 'src/components/Layout.jsx'),
+    ],
     exclude: ['react-toastify', 'redux', 'react-redux', 'axios', 'highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'react-syntax-highlighter'],
     force: true,
   },
   server: {
     fs: { allow: ['.'] },
     hmr: { overlay: true },
-    preload: ['@components/PriorityContent', '@components/PostPage'],
+    preload: [
+      path.resolve(__dirname, 'src/components/PriorityContent.jsx'),
+      path.resolve(__dirname, 'src/components/PostPage.jsx'),
+      path.resolve(__dirname, 'src/components/Layout.jsx'),
+    ],
   },
 });
