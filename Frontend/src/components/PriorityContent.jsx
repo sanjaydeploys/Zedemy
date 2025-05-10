@@ -1,4 +1,4 @@
-import React, { memo, Suspense, lazy } from 'react';
+import React, { memo } from 'react';
 
 const criticalCss = `
   * {
@@ -21,9 +21,6 @@ const criticalCss = `
   }
   .content-wrapper {
     width: 100%;
-  }
-  .content-block {
-    margin-bottom: 0.5rem;
   }
   .content-link {
     color: #0066cc;
@@ -56,30 +53,6 @@ const criticalCss = `
     gap: 0.5rem;
     min-height: 60px;
   }
-  .skeleton {
-    background: #e0e0e0;
-    border-radius: 0.25rem;
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-  .skeleton-image {
-    width: 100%;
-    max-width: 280px;
-    height: 157.5px;
-    margin: 1rem 0;
-  }
-  .skeleton-header {
-    width: 80%;
-    height: 24px;
-  }
-  .skeleton-content {
-    width: 100%;
-    margin-bottom: 1rem;
-  }
-  @keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
-  }
   @media (min-width: 768px) {
     .post-header {
       font-size: 2rem;
@@ -96,13 +69,6 @@ const criticalCss = `
       max-width: 600px;
       height: 337.5px;
     }
-    .skeleton-image {
-      max-width: 600px;
-      height: 337.5px;
-    }
-    .skeleton-header {
-      height: 32px;
-    }
     .meta-info {
       flex-direction: row;
       min-height: 24px;
@@ -110,86 +76,27 @@ const criticalCss = `
   }
 `;
 
-// Lazy-load non-critical content blocks
-const LazyContentBlocks = lazy(() =>
-  Promise.resolve({
-    default: ({ blocks, contentHeight }) => (
-      <div className="content-wrapper" style={{ minHeight: `${contentHeight}px` }}>
-        {blocks.map((block, index) => {
-          switch (block.type) {
-            case 'paragraph':
-              return (
-                <p key={index} className="content-block">
-                  {block.content}
-                </p>
-              );
-            case 'link':
-              return (
-                <a
-                  key={index}
-                  href={block.url}
-                  className="content-link"
-                  target={block.url.startsWith('/') ? '_self' : '_blank'}
-                  rel={block.url.startsWith('/') ? undefined : 'noopener'}
-                >
-                  {block.text}
-                </a>
-              );
-            default:
-              return null;
-          }
-        })}
-      </div>
-    ),
-  })
-);
-
-// Render initial content block for instant paint
-const renderInitialBlock = (blocks, contentHeight) => {
-  if (!blocks || !Array.isArray(blocks) || blocks.length === 0) {
-    return <div className="content-wrapper" style={{ minHeight: `${contentHeight}px` }} />;
-  }
-  const firstBlock = blocks[0];
-  return (
-    <div className="content-wrapper" style={{ minHeight: `${contentHeight}px` }}>
-      {firstBlock.type === 'paragraph' ? (
-        <p className="content-block">{firstBlock.content}</p>
-      ) : firstBlock.type === 'link' ? (
-        <a
-          href={firstBlock.url}
-          className="content-link"
-          target={firstBlock.url.startsWith('/') ? '_self' : '_blank'}
-          rel={firstBlock.url.startsWith('/') ? undefined : 'noopener'}
-        >
-          {firstBlock.text}
-        </a>
-      ) : null}
-    </div>
-  );
-};
-
 const PriorityContent = memo(({ post, readTime }) => {
   console.log('[PriorityContent] Rendering with post:', post);
 
   const contentHeight = post?.estimatedContentHeight || 150;
-  const skeletonHeight = contentHeight;
 
   if (!post || !post.title) {
     return (
       <article>
         <header>
           <div className="image-container" aria-hidden="true">
-            <div className="skeleton skeleton-image" />
+            <div style={{ width: '100%', maxWidth: '280px', height: '157.5px', background: '#e0e0e0', borderRadius: '0.25rem' }} />
           </div>
-          <div className="skeleton skeleton-header" aria-hidden="true" />
+          <div style={{ width: '80%', height: '24px', background: '#e0e0e0', borderRadius: '0.25rem' }} aria-hidden="true" />
           <div className="meta-info" aria-hidden="true">
-            <div className="skeleton skeleton-meta" />
-            <div className="skeleton skeleton-meta" />
-            <div className="skeleton skeleton-meta" />
+            <div style={{ width: '100px', height: '16px', background: '#e0e0e0', borderRadius: '0.25rem' }} />
+            <div style={{ width: '100px', height: '16px', background: '#e0e0e0', borderRadius: '0.25rem' }} />
+            <div style={{ width: '100px', height: '16px', background: '#e0e0e0', borderRadius: '0.25rem' }} />
           </div>
         </header>
-        <section className="content-section" aria-hidden="true">
-          <div className="skeleton skeleton-content" style={{ minHeight: `${skeletonHeight}px` }} />
+        <section className="content-section" aria-hidden="true" style={{ minHeight: `${contentHeight}px` }}>
+          <div style={{ width: '100%', minHeight: `${contentHeight}px`, background: '#e0e0e0', borderRadius: '0.25rem' }} />
         </section>
         <style>{criticalCss}</style>
       </article>
@@ -236,16 +143,15 @@ const PriorityContent = memo(({ post, readTime }) => {
         </div>
       </header>
       <section className="content-section" role="region" aria-label="Post content" style={{ minHeight: `${contentHeight}px` }}>
-        {renderInitialBlock(post.contentBlocks, contentHeight)}
-        {post.contentBlocks && post.contentBlocks.length > 1 && (
-          <Suspense fallback={<div className="skeleton skeleton-content" style={{ minHeight: `${contentHeight}px` }} />}>
-            <LazyContentBlocks blocks={post.contentBlocks.slice(1)} contentHeight={contentHeight} />
-          </Suspense>
-        )}
+        <div
+          className="content-wrapper"
+          style={{ minHeight: `${contentHeight}px` }}
+          dangerouslySetInnerHTML={{ __html: post.preRenderedContent || '' }}
+        />
       </section>
       <style>{criticalCss}</style>
     </article>
   );
 });
 
-export default PriorityContent; 
+export default PriorityContent;
