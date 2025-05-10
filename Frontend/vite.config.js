@@ -94,28 +94,30 @@ export default defineConfig({
     target: 'esnext',
     treeshake: 'recommended',
     modulePreload: {
-      polyfill: false, // Disable polyfill to reduce initial load
+      polyfill: true, // Enable for critical modules
     },
     rollupOptions: {
       output: {
         experimentalMinChunkSize: 10000,
         manualChunks: {
-          // Split vendor into smaller chunks
           react: ['react', 'react-dom'],
           redux: ['redux', 'react-redux'],
+          router: ['react-router-dom'],
           uiLibs: ['framer-motion'],
           utilities: ['react-helmet-async', 'dompurify', 'react-copy-to-clipboard'],
           syntax_highlighter: ['react-syntax-highlighter', 'highlight.js'],
           codemirror: ['@codemirror/view', '@codemirror/state'],
           parse5: ['parse5'],
           lodash: ['lodash'],
-          // Defer toast to separate chunk
           toast: ['react-toastify'],
+          // Prioritize PostPage and PriorityContent
+          post: ['@components/PostPage', '@components/PriorityContent'],
         },
-        // Async chunk loading for non-critical modules
         chunkFileNames: (chunkInfo) => {
-          if (chunkInfo.name === 'PriorityContent') return 'assets/priority-[hash].js';
-          if (['react', 'redux', 'uiLibs', 'utilities', 'syntax_highlighter', 'codemirror', 'parse5', 'lodash', 'toast'].includes(chunkInfo.name)) {
+          if (['post', 'PriorityContent', 'PostPage'].includes(chunkInfo.name)) {
+            return 'assets/priority-[name]-[hash].js';
+          }
+          if (['react', 'redux', 'router', 'uiLibs', 'utilities', 'syntax_highlighter', 'codemirror', 'parse5', 'lodash', 'toast'].includes(chunkInfo.name)) {
             return 'assets/[name]-[hash].async.js';
           }
           return 'assets/[name]-[hash].js';
@@ -124,18 +126,17 @@ export default defineConfig({
     },
     outDir: 'dist',
     assetsDir: 'assets',
-    assetsInlineLimit: 4096,
+    assetsInlineLimit: 8192, // Increased to inline small PriorityContent JS
     chunkSizeWarningLimit: 250,
   },
   optimizeDeps: {
-    include: ['react', 'react-dom'],
+    include: ['react', 'react-dom', '@components/PostPage', '@components/PriorityContent'],
     exclude: ['react-toastify', 'redux', 'react-redux', 'axios', 'highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'react-syntax-highlighter'],
     force: true,
   },
   server: {
     fs: { allow: ['.'] },
     hmr: { overlay: true },
-    // Preload PriorityContent
-    preload: ['@components/PriorityContent'],
+    preload: ['@components/PriorityContent', '@components/PostPage'],
   },
 });
