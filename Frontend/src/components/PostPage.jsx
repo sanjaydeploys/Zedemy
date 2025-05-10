@@ -1,4 +1,4 @@
-import React, { useState, useRef, memo, Suspense, useDeferredValue } from 'react';
+import React, { useState, useRef, memo, Suspense } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from 'reselect';
 import { fetchPostBySlug, fetchCompletedPosts, fetchPosts } from '../actions/postActions';
@@ -12,11 +12,17 @@ const Sidebar = React.lazy(() => import('./Sidebar'));
 const StructuredData = React.lazy(() => import('./StructuredData'));
 
 const criticalCss = `
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
   .container {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
     width: 100%;
+    contain: layout;
   }
   main {
     flex: 1;
@@ -26,12 +32,17 @@ const criticalCss = `
     display: flex;
     flex-direction: column;
     min-height: 600px;
+    contain-intrinsic-size: 100% 600px;
+    contain: layout;
   }
   .sidebar-wrapper {
     width: 250px;
     height: 100vh;
     position: sticky;
     top: 0;
+    min-height: 600px;
+    contain-intrinsic-size: 250px 600px;
+    contain: layout;
   }
   .error-message {
     color: #d32f2f;
@@ -42,6 +53,54 @@ const criticalCss = `
     border-radius: 0.25rem;
     margin: 0;
     min-height: 50px;
+    contain-intrinsic-size: 100% 50px;
+    contain: layout;
+  }
+  .skeleton {
+    background: #e0e0e0;
+    border-radius: 0.375rem;
+    width: 100%;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  .skeleton-section {
+    min-height: 200px;
+    margin: 1rem 0;
+    contain-intrinsic-size: 100% 200px;
+  }
+  .skeleton-summary {
+    min-height: 150px;
+    margin: 1rem 0;
+    contain-intrinsic-size: 100% 150px;
+  }
+  .skeleton-nav {
+    min-height: 44px;
+    margin: 1.5rem 0;
+    contain-intrinsic-size: 100% 44px;
+  }
+  .skeleton-related {
+    min-height: 450px;
+    margin: 1rem 0;
+    contain-intrinsic-size: 100% 450px;
+  }
+  .skeleton-references {
+    min-height: 150px;
+    margin: 1rem 0;
+    contain-intrinsic-size: 100% 150px;
+  }
+  .skeleton-sidebar {
+    min-height: 600px;
+    width: 100%;
+    contain-intrinsic-size: 250px 600px;
+  }
+  .skeleton-sidebar-item {
+    min-height: 48px;
+    margin: 0.5rem 0;
+    contain-intrinsic-size: 100% 48px;
+  }
+  @keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
   }
   @media (max-width: 767px) {
     .sidebar-wrapper {
@@ -51,9 +110,14 @@ const criticalCss = `
       right: -300px;
       height: calc(100vh - 0.5rem);
       z-index: 1000;
+      contain-intrinsic-size: 300px 600px;
     }
     .sidebar-wrapper.open {
       right: 0;
+    }
+    .skeleton-sidebar {
+      min-height: 600px;
+      contain-intrinsic-size: 300px 600px;
     }
   }
   @media (min-width: 768px) {
@@ -65,6 +129,11 @@ const criticalCss = `
     }
     main {
       min-height: 900px;
+      contain-intrinsic-size: 100% 900px;
+    }
+    .skeleton-sidebar {
+      min-height: 600px;
+      contain-intrinsic-size: 250px 600px;
     }
   }
 `;
@@ -88,7 +157,6 @@ const PostPage = memo(() => {
   const dispatch = useDispatch();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState(null);
-  const deferredActiveSection = useDeferredValue(activeSection);
   const subtitlesListRef = useRef(null);
 
   const post = useSelector(selectPost);
@@ -104,20 +172,16 @@ const PostPage = memo(() => {
 
   React.useEffect(() => {
     console.log('[PostPage] Fetching post for slug:', slug);
-    dispatch(fetchPostBySlug(slug)).catch((err) => {
-      console.error('Fetch post failed:', err);
-    });
-
-    if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(
-        () => {
-          Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]).catch((err) => {
-            console.error('Deferred fetches failed:', err);
-          });
-        },
-        { timeout: 500 }
-      );
-    }
+    const fetchData = async () => {
+      try {
+        await dispatch(fetchPostBySlug(slug));
+        await Promise.all([dispatch(fetchPosts()), dispatch(fetchCompletedPosts())]);
+      } catch (err) {
+        console.error('Fetch failed:', err);
+      }
+    };
+    fetchData();
+    return () => {};
   }, [dispatch, slug]);
 
   if (error) {
@@ -142,6 +206,26 @@ const PostPage = memo(() => {
       </HelmetProvider>
     );
   }
+
+  const skeletonLoader = (
+    <div style={{ width: '100%', minHeight: '1000px', containIntrinsicSize: '100% 1000px', contain: 'layout' }}>
+      <div className="skeleton-section skeleton" />
+      <div className="skeleton-section skeleton" />
+      <div className="skeleton-summary skeleton" />
+      <div className="skeleton-nav skeleton" />
+      <div className="skeleton-related skeleton" />
+      <div className="skeleton-references skeleton" />
+    </div>
+  );
+
+  const sidebarSkeleton = (
+    <div className="skeleton-sidebar skeleton">
+      <div className="skeleton" style={{ minHeight: '32px', margin: '1rem 0' }} />
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="skeleton-sidebar-item skeleton" />
+      ))}
+    </div>
+  );
 
   return (
     <HelmetProvider>
@@ -188,7 +272,7 @@ const PostPage = memo(() => {
       <div className="container">
         <main role="main" aria-label="Main content">
           <PriorityContent post={post} readTime={readTime} />
-          <Suspense fallback={<div style={{ minHeight: '300px', width: '100%' }} />}>
+          <Suspense fallback={skeletonLoader}>
             <PostContentNonCritical
               post={post}
               relatedPosts={relatedPosts}
@@ -196,19 +280,19 @@ const PostPage = memo(() => {
               dispatch={dispatch}
               isSidebarOpen={isSidebarOpen}
               setSidebarOpen={setSidebarOpen}
-              activeSection={deferredActiveSection}
+              activeSection={activeSection}
               setActiveSection={setActiveSection}
               subtitlesListRef={subtitlesListRef}
             />
           </Suspense>
         </main>
         <aside className={`sidebar-wrapper ${isSidebarOpen ? 'open' : ''}`}>
-          <Suspense fallback={<div style={{ minHeight: '200px', width: '100%' }} />}>
+          <Suspense fallback={sidebarSkeleton}>
             <Sidebar
               post={post}
               isSidebarOpen={isSidebarOpen}
               setSidebarOpen={setSidebarOpen}
-              activeSection={deferredActiveSection}
+              activeSection={activeSection}
               scrollToSection={(id) => {
                 const section = document.getElementById(id);
                 if (section) {
