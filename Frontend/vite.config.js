@@ -86,7 +86,7 @@ export default defineConfig({
       '@pages': '/src/pages',
       '@actions': '/src/actions',
     },
-    dedupe: ['popper.js'], // Prevent duplicate popper.js inclusions
+    dedupe: ['popper.js'],
   },
   build: {
     minify: 'esbuild',
@@ -94,34 +94,50 @@ export default defineConfig({
     target: 'esnext',
     treeshake: 'recommended',
     modulePreload: {
-      polyfill: true,
+      polyfill: false, // Disable polyfill to defer non-critical chunks
     },
     rollupOptions: {
       output: {
-        experimentalMinChunkSize: 10000, // Increased to merge smaller chunks
+        experimentalMinChunkSize: 10000,
         manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
-          uiLibs: ['framer-motion', 'react-toastify'],
-          utilities: ['react-helmet-async', 'dompurify', 'react-copy-to-clipboard'],
-          syntax_highlighter: ['react-syntax-highlighter', 'highlight.js'],
-          codemirror: ['@codemirror/view', '@codemirror/state'],
-          parse5: ['parse5'],
-          lodash: ['lodash'],
+          core: ['react', 'react-dom', 'react-router-dom'], // Critical dependencies
+          state: ['redux', 'react-redux'], // Defer state management
+          ui: ['framer-motion', 'react-toastify'], // Defer UI libraries
+          utils: ['react-helmet-async', 'dompurify', 'react-copy-to-clipboard'], // Defer utilities
+          syntax: ['react-syntax-highlighter', 'highlight.js'], // Defer syntax highlighting
+          codemirror: ['@codemirror/view', '@codemirror/state'], // Defer codemirror
+          parse5: ['parse5'], // Defer parse5
+          lodash: ['lodash'], // Defer lodash
         },
       },
     },
     outDir: 'dist',
     assetsDir: 'assets',
-    assetsInlineLimit: 4096,
+    assetsInlineLimit: 2048, // Reduce inlining to minimize HTML size
     chunkSizeWarningLimit: 250,
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'redux', 'react-redux'],
-    exclude: ['highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'react-syntax-highlighter'],
+    include: ['react', 'react-dom', 'react-router-dom'],
+    exclude: [
+      'redux',
+      'react-redux',
+      'framer-motion',
+      'react-toastify',
+      'highlight.js',
+      '@codemirror/view',
+      '@codemirror/state',
+      'parse5',
+      'lodash',
+      'react-syntax-highlighter',
+    ],
     force: true,
   },
   server: {
     fs: { allow: ['.'] },
     hmr: { overlay: true },
+    // Preconnect to API and CDN
+    warmup: {
+      clientFiles: ['/src/components/PriorityContent.jsx'],
+    },
   },
 });
