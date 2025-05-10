@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, Suspense, lazy } from 'react';
 
 const criticalCss = `
   * {
@@ -110,41 +110,60 @@ const criticalCss = `
   }
 `;
 
-// Render structured content blocks
-const renderContentBlocks = (blocks, contentHeight) => {
-  if (!blocks || !Array.isArray(blocks)) return null;
+// Lazy-load non-critical content blocks
+const LazyContentBlocks = lazy(() =>
+  Promise.resolve({
+    default: ({ blocks, contentHeight }) => (
+      <div className="content-wrapper" style={{ minHeight: `${contentHeight}px` }}>
+        {blocks.map((block, index) => {
+          switch (block.type) {
+            case 'paragraph':
+              return (
+                <p key={index} className="content-block">
+                  {block.content}
+                </p>
+              );
+            case 'link':
+              return (
+                <a
+                  key={index}
+                  href={block.url}
+                  className="content-link"
+                  target={block.url.startsWith('/') ? '_self' : '_blank'}
+                  rel={block.url.startsWith('/') ? undefined : 'noopener'}
+                >
+                  {block.text}
+                </a>
+              );
+            default:
+              return null;
+          }
+        })}
+      </div>
+    ),
+  })
+);
+
+// Render initial content block for instant paint
+const renderInitialBlock = (blocks, contentHeight) => {
+  if (!blocks || !Array.isArray(blocks) || blocks.length === 0) {
+    return <div className="content-wrapper" style={{ minHeight: `${contentHeight}px` }} />;
+  }
+  const firstBlock = blocks[0];
   return (
     <div className="content-wrapper" style={{ minHeight: `${contentHeight}px` }}>
-      {blocks.map((block, index) => {
-        switch (block.type) {
-          case 'paragraph':
-            return (
-              <p key={index} className="content-block">
-                {block.content}
-              </p>
-            );
-          case 'link':
-            return (
-              <a
-                key={index}
-                href={block.url}
-                className="content-link"
-                target={block.url.startsWith('/') ? '_self' : '_blank'}
-                rel={block.url.startsWith('/') ? undefined : 'noopener'}
-              >
-                {block.text}
-              </a>
-            );
-          case 'heading':
-            return (
-              <h2 key={index} className="content-block" style={{ fontSize: '1.2rem', fontWeight: 600 }}>
-                {block.content}
-              </h2>
-            );
-          default:
-            return null;
-        }
-      })}
+      {firstBlock.type === 'paragraph' ? (
+        <p className="content-block">{firstBlock.content}</p>
+      ) : firstBlock.type === 'link' ? (
+        <a
+          href={firstBlock.url}
+          className="content-link"
+          target={firstBlock.url.startsWith('/') ? '_self' : '_blank'}
+          rel={firstBlock.url.startsWith('/') ? undefined : 'noopener'}
+        >
+          {firstBlock.text}
+        </a>
+      ) : null}
     </div>
   );
 };
@@ -153,7 +172,6 @@ const PriorityContent = memo(({ post, readTime }) => {
   console.log('[PriorityContent] Rendering with post:', post);
 
   const contentHeight = post?.estimatedContentHeight || 150;
-  const isDesktop = window.matchMedia('(min-width: 768px)').matches;
   const skeletonHeight = contentHeight;
 
   if (!post || !post.title) {
@@ -218,11 +236,16 @@ const PriorityContent = memo(({ post, readTime }) => {
         </div>
       </header>
       <section className="content-section" role="region" aria-label="Post content" style={{ minHeight: `${contentHeight}px` }}>
-        {renderContentBlocks(post.contentBlocks, contentHeight)}
+        {renderInitialBlock(post.contentBlocks, contentHeight)}
+        {post.contentBlocks && post.contentBlocks.length > 1 && (
+          <Suspense fallback={<div className="skeleton skeleton-content" style={{ minHeight: `${contentHeight}px` }} />}>
+            <LazyContentBlocks blocks={post.contentBlocks.slice(1)} contentHeight={contentHeight} />
+          </Suspense>
+        )}
       </section>
       <style>{criticalCss}</style>
     </article>
   );
 });
 
-export default PriorityContent;
+export default PriorityContent; 
