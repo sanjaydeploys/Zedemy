@@ -34,7 +34,12 @@ const parseLinksForPreRender = (text, category) => {
   if (!text) return '';
   const sanitizedText = sanitizeContent(text);
   const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+|\/[^\s)]+)\)/g;
+  // Limit processing to avoid excessive computation
+  const maxLinks = 50;
+  let linkCount = 0;
   return sanitizedText.replace(linkRegex, (match, linkText, url) => {
+    if (linkCount >= maxLinks) return match; // Skip excessive links
+    linkCount++;
     const isInternal = url.startsWith('/');
     return isInternal
       ? `<a href="${url}" class="text-blue-600 hover:text-blue-800" aria-label="Navigate to ${linkText}">${linkText}</a>`
@@ -54,7 +59,9 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
     }
     const post = {
       ...res.data,
-      preRenderedContent: parseLinksForPreRender(contentField, res.data.category)
+      preRenderedContent: parseLinksForPreRender(contentField, res.data.category),
+      // Estimate content height server-side or via metadata if available
+      estimatedContentHeight: Math.max(150, Math.min(600, Math.ceil(contentField.length / 80) * (window.matchMedia('(min-width: 768px)').matches ? 24 : 21) + 20))
     };
     dispatch({ type: FETCH_POST_SUCCESS, payload: post });
   } catch (error) {
