@@ -1,6 +1,5 @@
-import React, { memo } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 
-// Move critical CSS to a static file (e.g., critical.css) and import or use Vite to inline
 const criticalCss = `
   * {
     box-sizing: border-box;
@@ -80,6 +79,28 @@ const criticalCss = `
 
 const PriorityContent = memo(({ post, readTime }) => {
   console.log('[PriorityContent] Rendering with post:', post);
+  const [content, setContent] = useState(null);
+
+  useEffect(() => {
+    if (post?.preRenderedContent) {
+      // Render first paragraph initially
+      const paragraphs = post.preRenderedContent.split('\n').filter(line => line.trim());
+      setContent(paragraphs.slice(0, 1).map((line, index) => (
+        <p key={index} className="content-wrapper">
+          <span dangerouslySetInnerHTML={{ __html: line }} />
+        </p>
+      )));
+
+      // Lazily load remaining content
+      setTimeout(() => {
+        setContent(paragraphs.map((line, index) => (
+          <p key={index} className="content-wrapper">
+            <span dangerouslySetInnerHTML={{ __html: line }} />
+          </p>
+        )));
+      }, 100);
+    }
+  }, [post?.preRenderedContent]);
 
   if (!post || !post.title) {
     return (
@@ -112,16 +133,6 @@ const PriorityContent = memo(({ post, readTime }) => {
         })
       : 'Unknown Date';
 
-  // Split preRenderedContent into paragraphs and links
-  const renderContent = () => {
-    if (!post.preRenderedContent) return null;
-    return post.preRenderedContent.split('\n').map((line, index) => (
-      <p key={index} className="content-wrapper">
-        <span dangerouslySetInnerHTML={{ __html: line }} />
-      </p>
-    ));
-  };
-
   return (
     <article style={{ contain: 'layout' }}>
       <header>
@@ -153,7 +164,9 @@ const PriorityContent = memo(({ post, readTime }) => {
         </div>
       </header>
       <section className="content-section" role="region" aria-label="Post content">
-        {renderContent()}
+        {content || (
+          <div style={{ width: '100%', height: '150px', background: '#e0e0e0', borderRadius: '0.25rem' }} />
+        )}
       </section>
       <style>{criticalCss}</style>
     </article>
