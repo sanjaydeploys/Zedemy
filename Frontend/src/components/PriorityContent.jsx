@@ -1,4 +1,4 @@
-import React, { memo, useState, useEffect, useRef } from 'react';
+import React, { memo } from 'react';
 
 const criticalCss = `
   * {
@@ -58,12 +58,12 @@ const criticalCss = `
   .meta-info {
     color: #666;
     font-size: 0.75rem;
-    margin: 0.5rem 0;
+    margin: 0.75rem 0;
     display: flex;
+    flex-direction: column;
     gap: 0.5rem;
-    flex-wrap: wrap;
-    min-height: 48px;
-    contain-intrinsic-size: 100% 48px;
+    min-height: 60px;
+    contain-intrinsic-size: 100% 60px;
     will-change: contents;
   }
   .skeleton {
@@ -87,6 +87,8 @@ const criticalCss = `
   .skeleton-content {
     width: 100%;
     margin: 0 0 1rem 0;
+    min-height: 150px;
+    contain-intrinsic-size: 100% 150px;
   }
   .skeleton-paragraph {
     width: 100%;
@@ -102,6 +104,8 @@ const criticalCss = `
     display: flex;
     flex-direction: column;
     gap: 10px;
+    min-height: 130px;
+    contain-intrinsic-size: 100% 130px;
   }
   .skeleton-meta {
     width: 100px;
@@ -149,17 +153,26 @@ const criticalCss = `
       contain-intrinsic-size: 80% 32px;
     }
     .skeleton-content {
+      min-height: 200px;
+      contain-intrinsic-size: 100% 200px;
     }
     .skeleton-paragraph {
       height: 80px;
       contain-intrinsic-size: 100% 80px;
     }
     .skeleton-content-container {
+      min-height: 170px;
+      contain-intrinsic-size: 100% 170px;
     }
     .skeleton-meta {
       width: 120px;
       height: 18px;
       contain-intrinsic-size: 120px 18px;
+    }
+    .meta-info {
+      flex-direction: row;
+      min-height: 48px;
+      contain-intrinsic-size: 100% 48px;
     }
   }
 `;
@@ -167,39 +180,22 @@ const criticalCss = `
 const PriorityContent = memo(({ post, readTime }) => {
   console.log('[PriorityContent] Rendering with post:', post);
 
-  const [contentHeight, setContentHeight] = useState(150); // Default height for mobile
-  const contentRef = useRef(null);
-  const isDesktop = window.matchMedia('(min-width: 768px)').matches;
-
-  // Estimate number of skeleton paragraphs based on content length
-  const estimateParagraphCount = (content) => {
-    if (!content) return 3;
+  // Estimate content height based on content length
+  const estimateContentHeight = (content) => {
+    if (!content) return 150; // Default for mobile
     const charCount = content.length;
-    // Rough estimate: ~500 chars per paragraph, minimum 3, maximum 6
-    return Math.max(3, Math.min(6, Math.ceil(charCount / 500)));
+    const lines = Math.ceil(charCount / 80); // Rough estimate: 80 chars per line
+    const lineHeight = window.matchMedia('(min-width: 768px)').matches ? 24 : 21; // 1.5 * font-size (16px mobile, 24px desktop)
+    const estimatedHeight = lines * lineHeight + 20; // Add padding/margin
+    return Math.max(150, Math.min(600, estimatedHeight)); // Clamp between 150px and 600px
   };
 
-  // ResizeObserver to measure content height after rendering
-  useEffect(() => {
-    if (!post || !contentRef.current) return;
-
-    const observer = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const height = entry.contentRect.height;
-        setContentHeight(height);
-      }
-    });
-
-    observer.observe(contentRef.current);
-
-    return () => observer.disconnect();
-  }, [post]);
+  const contentHeight = post ? estimateContentHeight(post.preRenderedContent || post.content) : 150;
+  const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+  const skeletonParagraphCount = post ? Math.max(2, Math.min(4, Math.ceil((post.preRenderedContent || post.content || '').length / 500))) : 2;
 
   if (!post || !post.title) {
-    const skeletonParagraphCount = 3; // Default for skeleton
-    const skeletonHeight = isDesktop
-      ? skeletonParagraphCount * (80 + 10) + 10 // 80px per paragraph + 10px gap
-      : skeletonParagraphCount * (60 + 10) + 10; // 60px per paragraph + 10px gap
+    const skeletonHeight = isDesktop ? skeletonParagraphCount * (80 + 10) + 10 : skeletonParagraphCount * (60 + 10) + 10;
 
     return (
       <article>
@@ -256,11 +252,6 @@ const PriorityContent = memo(({ post, readTime }) => {
         })
       : 'Unknown Date';
 
-  const paragraphCount = estimateParagraphCount(post.preRenderedContent || post.content);
-  const skeletonHeight = isDesktop
-    ? paragraphCount * (80 + 10) + 10 // 80px per paragraph + 10px gap
-    : paragraphCount * (60 + 10) + 10; // 60px per paragraph + 10px gap
-
   return (
     <article>
       <header>
@@ -301,7 +292,6 @@ const PriorityContent = memo(({ post, readTime }) => {
         }}
       >
         <div
-          ref={contentRef}
           className="content-wrapper"
           style={{
             minHeight: `${contentHeight}px`,
