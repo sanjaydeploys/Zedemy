@@ -1,118 +1,110 @@
 import axios from 'axios';
 import { setAuthToken } from '../utils/setAuthToken';
 
-const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
-
-const sanitizeContent = (content) => {
-  if (!content) return '';
-  return content
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
-    .replace(/<table\b[^>]*>/gi, '<table style="max-width: 100%; overflow-x: auto;">');
-};
-
-// Pre-render content as a single HTML string
-const preRenderContent = (text, category) => {
-  if (!text) return { content: '', height: 150 };
-  const sanitizedText = sanitizeContent(text);
-  let content = '';
-  let estimatedHeight = 0;
-  const lineHeight = 24;
-  const blockSpacing = 8;
-
-  // Add category heading
-  if (category) {
-    content += `<h2 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem;">Category: ${category}</h2>`;
-    estimatedHeight += lineHeight * 1.5 + blockSpacing;
-  }
-
-  // Split content into paragraphs and links
-  const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+|\/[^\s)]+)\)/g;
-  let lastIndex = 0;
-
-  sanitizedText.replace(linkRegex, (match, linkText, url, index) => {
-    // Add text before the link as a paragraph
-    if (index > lastIndex) {
-      const paragraph = sanitizedText.slice(lastIndex, index).trim();
-      if (paragraph) {
-        content += `<p style="margin-bottom: 0.5rem;">${paragraph}</p>`;
-        estimatedHeight += lineHeight * 4 + blockSpacing; // Assume 4 lines per paragraph
-      }
-    }
-    // Add the link
-    const isInternal = url.startsWith('/');
-    content += `<a href="${url}" class="content-link" ${isInternal ? '' : 'target="_blank" rel="noopener"'}>${linkText}</a>`;
-    estimatedHeight += lineHeight + blockSpacing;
-    lastIndex = index + match.length;
-    return match;
-  });
-
-  // Add remaining text as a paragraph
-  if (lastIndex < sanitizedText.length) {
-    const paragraph = sanitizedText.slice(lastIndex).trim();
-    if (paragraph) {
-      content += `<p style="margin-bottom: 0.5rem;">${paragraph}</p>`;
-      estimatedHeight += lineHeight * 4 + blockSpacing;
-    }
-  }
-
-  return {
-    content,
-    height: Math.max(150, Math.min(600, estimatedHeight)),
+// Web Worker for content processing
+const contentWorker = new Worker(URL.createObjectURL(new Blob([`
+  const sanitizeContent = (content) => {
+    if (!content) return '';
+    return content
+      .replace(/<script\\b[^<]*(?:(?!<\\/script>)<[^<]*)*<\\/script>/gi, '')
+      .replace(/<iframe\\b[^<]*(?:(?!<\\/iframe>)<[^<]*)*<\\/iframe>/gi, '')
+      .replace(/<table\\b[^>]*>/gi, '<table style="max-width: 100%; overflow-x: auto;">');
   };
-};
+
+  const preRenderContent = (text, category) => {
+    if (!text) return { content: '', height: 150 };
+    const sanitizedText = sanitizeContent(text);
+    let content = '';
+    let estimatedHeight = 0;
+    const lineHeight = 24;
+    const blockSpacing = 8;
+
+    if (category) {
+      content += \`<h2 style="font-size: 1.2rem; font-weight: 600; margin-bottom: 0.5rem;">Category: \${category}</h2>\`;
+      estimatedHeight += lineHeight * 1.5 + blockSpacing;
+    }
+
+    const paragraphs = sanitizedText.split('\\n\\n').filter(p => p.trim());
+    paragraphs.forEach(paragraph => {
+      const linkRegex = /\\[([^\\]]+)\\]\\((https?:\\/\\/[^\\s)]+|vscode:\\/\\/[^\\s)]+|\\/[^\\s)]+)\\)/g;
+      let paragraphContent = paragraph.replace(linkRegex, (match, linkText, url) => {
+        const isInternal = url.startsWith('/');
+        return \`<a href="\${url}" class="content-link" \${isInternal ? '' : 'target="_blank" rel="noopener"'}\>\${linkText}</a>\`;
+      });
+      content += \`<p style="margin-bottom: 0.5rem;">\${paragraphContent}</p>\`;
+      estimatedHeight += lineHeight * Math.ceil(paragraph.length / 80) + blockSpacing;
+    });
+
+    return {
+      content,
+      height: Math.max(150, Math.min(600, estimatedHeight)),
+    };
+  };
+
+  self.onmessage = (e) => {
+    const { text, category } = e.data;
+    const result = preRenderContent(text, category);
+    self.postMessage(result);
+  };
+`], { type: 'text/javascript' })));
+
+// Cache for worker results
+const contentCache = new Map();
+
+const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
 
 export const fetchPostBySlug = (slug) => async (dispatch) => {
   console.log('[fetchPostBySlug] Fetching post:', slug);
   try {
     dispatch({ type: 'CLEAR_POST' });
-    const cacheBust = new Date().getTime();
-    const res = await axios.get(`${API_BASE_URL}/post/${slug}?cb=${cacheBust}`, {
+    const cacheKey = `post_${slug}`;
+    const cachedPost = contentCache.get(cacheKey);
+    if (cachedPost) {
+      dispatch({ type: 'FETCH_POST_SUCCESS', payload: cachedPost });
+      return;
+    }
+
+    const res = await axios.get(`${API_BASE_URL}/post/${slug}`, {
       headers: {
         'Accept-Encoding': 'gzip, deflate, br',
+        'Cache-Control': 'max-age=300',
       },
     });
     const contentField = res.data.content || res.data.body || res.data.text || '';
     if (!contentField) {
       console.warn('[fetchPostBySlug] No content field:', res.data);
     }
-    const { content, height } = preRenderContent(contentField, res.data.category);
+
+    // Offload content processing to Web Worker
+    const contentPromise = new Promise((resolve) => {
+      contentWorker.onmessage = (e) => {
+        resolve(e.data);
+      };
+      contentWorker.postMessage({ text: contentField, category: res.data.category });
+    });
+
+    const { content, height } = await contentPromise;
     const post = {
       ...res.data,
       preRenderedContent: content,
       estimatedContentHeight: height,
     };
+
+    contentCache.set(cacheKey, post);
     dispatch({ type: 'FETCH_POST_SUCCESS', payload: post });
   } catch (error) {
     console.error('[fetchPostBySlug] Error:', {
       message: error.message,
-      response: error.response ? error.response.data : 'No response'
+      response: error.response ? error.response.data : 'No response',
     });
     dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
-    // Defer toast to avoid blocking render
     import('react-toastify').then(({ toast }) => {
       toast.error('Failed to fetch post.', { position: 'top-right', autoClose: 2000 });
     });
   }
 };
 
-// Defer other actions to avoid blocking initial render
-export const searchPosts = (slug) => async (dispatch) => {
-  const { toast } = await import('react-toastify');
-  console.log('[searchPosts] Searching posts:', slug);
-  try {
-    const res = await axios.get(`${API_BASE_URL}/search?query=${encodeURIComponent(slug)}`);
-    dispatch({ type: 'SEARCH_POSTS_SUCCESS', payload: res.data });
-  } catch (error) {
-    console.error('[searchPosts] Error:', {
-      message: error.message,
-      response: error.response ? error.response.data : 'No response'
-    });
-    dispatch({ type: 'SEARCH_POSTS_FAILURE', payload: error.response?.data?.message || 'Failed to search posts' });
-    toast.error('Failed to search posts.', { position: 'top-right', autoClose: 2000 });
-  }
-};
-
+// Defer non-critical actions
 export const fetchPosts = () => async (dispatch) => {
   const { toast } = await import('react-toastify');
   console.log('[fetchPosts] Fetching all posts...');
@@ -126,10 +118,27 @@ export const fetchPosts = () => async (dispatch) => {
   } catch (error) {
     console.error('[fetchPosts] Error:', {
       message: error.message,
-      response: error.response ? error.response.data : 'No response'
+      response: error.response ? error.response.data : 'No response',
     });
     dispatch({ type: 'FETCH_POSTS_FAILURE', payload: error.message });
     toast.error('Failed to fetch posts.', { position: 'top-right', autoClose: 2000 });
+  }
+};
+
+// Other actions remain unchanged for brevity
+export const searchPosts = (slug) => async (dispatch) => {
+  const { toast } = await import('react-toastify');
+  console.log('[searchPosts] Searching posts:', slug);
+  try {
+    const res = await axios.get(`${API_BASE_URL}/search?query=${encodeURIComponent(slug)}`);
+    dispatch({ type: 'SEARCH_POSTS_SUCCESS', payload: res.data });
+  } catch (error) {
+    console.error('[searchPosts] Error:', {
+      message: error.message,
+      response: error.response ? error.response.data : 'No response',
+    });
+    dispatch({ type: 'SEARCH_POSTS_FAILURE', payload: error.response?.data?.message || 'Failed to search posts' });
+    toast.error('Failed to search posts.', { position: 'top-right', autoClose: 2000 });
   }
 };
 
@@ -202,7 +211,7 @@ export const addPost = (
   } catch (error) {
     console.error('[addPost] Error:', {
       message: error.message,
-      response: error.response ? error.response.data : 'No response'
+      response: error.response ? error.response.data : 'No response',
     });
     toast.error('Failed to add post.', { position: 'top-right', autoClose: 2000 });
   }
@@ -248,7 +257,7 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
   } catch (error) {
     console.error('[markPostAsCompleted] Error:', {
       message: error.message,
-      response: error.response ? error.response.data : 'No response'
+      response: error.response ? error.response.data : 'No response',
     });
     toast.error(error.response?.data?.msg || 'Failed to mark post.', { position: 'top-right', autoClose: 2000 });
   }
@@ -271,7 +280,7 @@ export const fetchCompletedPosts = () => async (dispatch) => {
   } catch (error) {
     console.error('[fetchCompletedPosts] Error:', {
       message: error.message,
-      response: error.response ? error.response.data : 'No response'
+      response: error.response ? error.response.data : 'No response',
     });
     dispatch({ type: 'FETCH_COMPLETED_POSTS_FAILURE' });
     toast.error('Failed to fetch completed posts.', { position: 'top-right', autoClose: 2000 });
