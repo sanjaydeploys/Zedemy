@@ -1,6 +1,9 @@
-import React, { memo } from 'react';
+import React, { memo, useState, useEffect, useRef } from 'react';
 
 const criticalCss = `
+  * {
+    box-sizing: border-box;
+  }
   .post-header {
     font-size: 1.25rem;
     color: #011020;
@@ -9,7 +12,9 @@ const criticalCss = `
     font-weight: 700;
     line-height: 1.2;
     min-height: 24px;
+    height: 24px;
     contain-intrinsic-size: 100% 24px;
+    will-change: contents;
   }
   .content-section {
     font-size: 0.875rem;
@@ -19,11 +24,13 @@ const criticalCss = `
     padding: 0;
     min-height: 150px;
     contain-intrinsic-size: 100% 150px;
+    will-change: contents;
   }
   .content-wrapper {
     width: 100%;
     min-height: 150px;
     contain-intrinsic-size: 100% 150px;
+    will-change: contents;
   }
   .image-container {
     width: 100%;
@@ -33,6 +40,7 @@ const criticalCss = `
     position: relative;
     min-height: 157.5px;
     contain-intrinsic-size: 280px 157.5px;
+    will-change: contents;
   }
   .post-image {
     width: 100%;
@@ -56,6 +64,7 @@ const criticalCss = `
     flex-wrap: wrap;
     min-height: 48px;
     contain-intrinsic-size: 100% 48px;
+    will-change: contents;
   }
   .skeleton {
     background: #e0e0e0;
@@ -77,9 +86,7 @@ const criticalCss = `
   }
   .skeleton-content {
     width: 100%;
-    min-height: 150px;
     margin: 0 0 1rem 0;
-    contain-intrinsic-size: 100% 150px;
   }
   .skeleton-paragraph {
     width: 100%;
@@ -92,11 +99,9 @@ const criticalCss = `
   }
   .skeleton-content-container {
     width: 100%;
-    min-height: 130px;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    contain-intrinsic-size: 100% 130px;
   }
   .skeleton-meta {
     width: 100px;
@@ -113,16 +118,17 @@ const criticalCss = `
     .post-header {
       font-size: 2rem;
       min-height: 32px;
+      height: 32px;
       contain-intrinsic-size: 100% 32px;
     }
     .content-section {
       font-size: 1rem;
-      min-height: 220px;
-      contain-intrinsic-size: 100% 220px;
+      min-height: 200px;
+      contain-intrinsic-size: 100% 200px;
     }
     .content-wrapper {
-      min-height: 220px;
-      contain-intrinsic-size: 100% 220px;
+      min-height: 200px;
+      contain-intrinsic-size: 100% 200px;
     }
     .image-container {
       max-width: 600px;
@@ -143,16 +149,12 @@ const criticalCss = `
       contain-intrinsic-size: 80% 32px;
     }
     .skeleton-content {
-      min-height: 220px;
-      contain-intrinsic-size: 100% 220px;
     }
     .skeleton-paragraph {
-      height: 100px;
-      contain-intrinsic-size: 100% 100px;
+      height: 80px;
+      contain-intrinsic-size: 100% 80px;
     }
     .skeleton-content-container {
-      min-height: 210px;
-      contain-intrinsic-size: 100% 210px;
     }
     .skeleton-meta {
       width: 120px;
@@ -165,7 +167,40 @@ const criticalCss = `
 const PriorityContent = memo(({ post, readTime }) => {
   console.log('[PriorityContent] Rendering with post:', post);
 
+  const [contentHeight, setContentHeight] = useState(150); // Default height for mobile
+  const contentRef = useRef(null);
+  const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+
+  // Estimate number of skeleton paragraphs based on content length
+  const estimateParagraphCount = (content) => {
+    if (!content) return 3;
+    const charCount = content.length;
+    // Rough estimate: ~500 chars per paragraph, minimum 3, maximum 6
+    return Math.max(3, Math.min(6, Math.ceil(charCount / 500)));
+  };
+
+  // ResizeObserver to measure content height after rendering
+  useEffect(() => {
+    if (!post || !contentRef.current) return;
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const height = entry.contentRect.height;
+        setContentHeight(height);
+      }
+    });
+
+    observer.observe(contentRef.current);
+
+    return () => observer.disconnect();
+  }, [post]);
+
   if (!post || !post.title) {
+    const skeletonParagraphCount = 3; // Default for skeleton
+    const skeletonHeight = isDesktop
+      ? skeletonParagraphCount * (80 + 10) + 10 // 80px per paragraph + 10px gap
+      : skeletonParagraphCount * (60 + 10) + 10; // 60px per paragraph + 10px gap
+
     return (
       <article>
         <header>
@@ -179,11 +214,31 @@ const PriorityContent = memo(({ post, readTime }) => {
             <div className="skeleton skeleton-meta" />
           </div>
         </header>
-        <section className="content-section" aria-hidden="true">
-          <div className="skeleton skeleton-content">
-            <div className="skeleton-content-container">
-              <div className="skeleton-paragraph" />
-              <div className="skeleton-paragraph" />
+        <section
+          className="content-section"
+          aria-hidden="true"
+          style={{
+            minHeight: `${skeletonHeight}px`,
+            containIntrinsicSize: `100% ${skeletonHeight}px`,
+          }}
+        >
+          <div
+            className="skeleton skeleton-content"
+            style={{
+              minHeight: `${skeletonHeight}px`,
+              containIntrinsicSize: `100% ${skeletonHeight}px`,
+            }}
+          >
+            <div
+              className="skeleton-content-container"
+              style={{
+                minHeight: `${skeletonHeight - 20}px`,
+                containIntrinsicSize: `100% ${skeletonHeight - 20}px`,
+              }}
+            >
+              {Array.from({ length: skeletonParagraphCount }).map((_, i) => (
+                <div key={i} className="skeleton-paragraph" />
+              ))}
             </div>
           </div>
         </section>
@@ -200,6 +255,11 @@ const PriorityContent = memo(({ post, readTime }) => {
           day: 'numeric',
         })
       : 'Unknown Date';
+
+  const paragraphCount = estimateParagraphCount(post.preRenderedContent || post.content);
+  const skeletonHeight = isDesktop
+    ? paragraphCount * (80 + 10) + 10 // 80px per paragraph + 10px gap
+    : paragraphCount * (60 + 10) + 10; // 60px per paragraph + 10px gap
 
   return (
     <article>
@@ -231,9 +291,22 @@ const PriorityContent = memo(({ post, readTime }) => {
           <span> | Read time: <span id="read-time">{readTime || '0'}</span> min</span>
         </div>
       </header>
-      <section className="content-section" role="region" aria-label="Post content">
+      <section
+        className="content-section"
+        role="region"
+        aria-label="Post content"
+        style={{
+          minHeight: `${contentHeight}px`,
+          containIntrinsicSize: `100% ${contentHeight}px`,
+        }}
+      >
         <div
+          ref={contentRef}
           className="content-wrapper"
+          style={{
+            minHeight: `${contentHeight}px`,
+            containIntrinsicSize: `100% ${contentHeight}px`,
+          }}
           dangerouslySetInnerHTML={{ __html: post.preRenderedContent || post.content || '' }}
         />
       </section>
