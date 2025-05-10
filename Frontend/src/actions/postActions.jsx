@@ -1,35 +1,14 @@
 import { setAuthToken } from '../utils/setAuthToken';
+import { parseLinks } from '../components/utils';
 
 const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
 
-const createParseLinksWorker = () => {
-  const blob = new Blob([`
-    self.onmessage = function(e) {
-      const { content, category } = e.data;
-      const parsedContent = content
-        .replace(/\\n\\n/g, '</p><p style="min-height: 24px; contain-intrinsic-size: 100% 24px;">')
-        .replace(/\\n/g, '<br>')
-        .replace(/(https?:\\/\\/[^\\s]+)/g, url => {
-          const isImage = url.match(/\\.(jpg|jpeg|png|gif|webp)$/i);
-          const isVideo = url.match(/\\.(mp4|webm|ogg)$/i);
-          if (isImage) {
-            return \`<img src="\${url}" alt="Embedded image" style="width:100%;max-width:280px;aspect-ratio:16/9;min-height:157.5px;contain-intrinsic-size:280px 157.5px;border-radius:0.25rem;" loading="lazy" />\`;
-          } else if (isVideo) {
-            return \`<video src="\${url}" controls style="width:100%;max-width:280px;aspect-ratio:16/9;min-height:157.5px;contain-intrinsic-size:280px 157.5px;border-radius:0.25rem;" preload="none"></video>\`;
-          } else {
-            return \`<a href="\${url}" target="_blank" class="content-link">\${url}</a>\`;
-          }
-        });
-      self.postMessage(\`<p style="min-height: 24px; contain-intrinsic-size: 100% 24px;">\${parsedContent}</p>\`);
-    };
-  `], { type: 'text/javascript' });
-  return new Worker(URL.createObjectURL(blob));
-};
-
 export const fetchPostBySlug = (slug) => async (dispatch) => {
+  console.log('[fetchPostBySlug] Fetching post:', slug);
   try {
     dispatch({ type: 'CLEAR_POST' });
 
+    // Check local cache first
     const cachedPost = await caches.match(`${API_BASE_URL}/post/${slug}`);
     if (cachedPost) {
       const post = await cachedPost.json();
@@ -44,15 +23,17 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
       return;
     }
 
+    // Dispatch minimal placeholder
     dispatch({
       type: 'FETCH_POST_SUCCESS',
       payload: {
         title: 'Loading...',
-        preRenderedContent: '<p style="min-height: 150px; contain-intrinsic-size: 100% 150px;"></p>',
+        preRenderedContent: '',
         estimatedContentHeight: 150,
       },
     });
 
+    // Fetch post data
     const response = await fetch(`${API_BASE_URL}/post/${slug}`, {
       headers: {
         'Accept': 'application/json',
@@ -67,13 +48,8 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
       console.warn('[fetchPostBySlug] No content field:', data);
     }
 
-    const worker = createParseLinksWorker();
-    const preRenderedContent = await new Promise((resolve, reject) => {
-      worker.onmessage = (e) => resolve(e.data);
-      worker.onerror = (e) => reject(e);
-      worker.postMessage({ content: contentField, category: data.category });
-    });
-    worker.terminate();
+    // Parse content synchronously
+    const preRenderedContent = parseLinks(contentField, data.category || '', true);
 
     const post = {
       ...data,
@@ -81,14 +57,13 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
       estimatedContentHeight: 150,
     };
 
+    // Cache the response
     const cache = await caches.open('api-cache');
     await cache.put(`${API_BASE_URL}/post/${slug}`, new Response(JSON.stringify(post)));
 
     dispatch({ type: 'FETCH_POST_SUCCESS', payload: post });
   } catch (error) {
-    console.error('[fetchPostBySlug] Error:', {
-      message: error.message,
-    });
+    console.error('[fetchPostBySlug] Error:', { message: error.message });
     dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
     import('react-toastify').then(({ toast }) => {
       toast.error('Failed to fetch post.', { position: 'top-right', autoClose: 2000 });
@@ -98,6 +73,7 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
 
 export const searchPosts = (slug) => async (dispatch) => {
   const { toast } = await import('react-toastify');
+  console.log('[searchPosts] Searching posts:', slug);
   try {
     const res = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(slug)}`, {
       headers: {
@@ -109,9 +85,7 @@ export const searchPosts = (slug) => async (dispatch) => {
     const data = await res.json();
     dispatch({ type: 'SEARCH_POSTS_SUCCESS', payload: data });
   } catch (error) {
-    console.error('[searchPosts] Error:', {
-      message: error.message,
-    });
+    console.error('[searchPosts] Error:', { message: error.message });
     dispatch({ type: 'SEARCH_POSTS_FAILURE', payload: error.message || 'Failed to search posts' });
     toast.error('Failed to search posts.', { position: 'top-right', autoClose: 2000 });
   }
@@ -119,6 +93,7 @@ export const searchPosts = (slug) => async (dispatch) => {
 
 export const fetchPosts = () => async (dispatch) => {
   const { toast } = await import('react-toastify');
+  console.log('[fetchPosts] Fetching all posts...');
   const token = localStorage.getItem('token');
   try {
     const headers = {
@@ -134,9 +109,7 @@ export const fetchPosts = () => async (dispatch) => {
     const data = await res.json();
     dispatch({ type: 'FETCH_POSTS_SUCCESS', payload: data });
   } catch (error) {
-    console.error('[fetchPosts] Error:', {
-      message: error.message,
-    });
+    console.error('[fetchPosts] Error:', { message: error.message });
     dispatch({ type: 'FETCH_POSTS_FAILURE', payload: error.message });
     toast.error('Failed to fetch posts.', { position: 'top-right', autoClose: 2000 });
   }
@@ -145,6 +118,7 @@ export const fetchPosts = () => async (dispatch) => {
 export const fetchUserPosts = () => async (dispatch) => {
   const token = localStorage.getItem('token');
   if (!token) {
+    console.log('[fetchUserPosts] No token found');
     return;
   }
   dispatch({ type: 'FETCH_USER_POSTS_REQUEST' });
@@ -180,12 +154,15 @@ export const addPost = (
 ) => async (dispatch, getState) => {
   const { toast } = await import('react-toastify');
   const token = localStorage.getItem('token');
+  console.log('[addPost] Starting add post...');
   if (!token) {
+    console.error('[addPost] No auth token found');
     toast.error('Please log in to add a post.', { position: 'top-right', autoClose: 2000 });
     return;
   }
   const { user } = getState().auth || JSON.parse(localStorage.getItem('user') || '{}');
   if (!user) {
+    console.error('[addPost] User not found');
     return;
   }
   const postData = {
@@ -225,26 +202,28 @@ export const addPost = (
       },
     });
   } catch (error) {
-    console.error('[addPost] Error:', {
-      message: error.message,
-    });
+    console.error('[addPost] Error:', { message: error.message });
     toast.error('Failed to add post.', { position: 'top-right', autoClose: 2000 });
   }
 };
 
 export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
   const { toast } = await import('react-toastify');
+  console.log('[markPostAsCompleted] Starting with postId:', postId);
   if (!postId) {
+    console.error('[markPostAsCompleted] Invalid postId');
     toast.error('Invalid post ID.', { position: 'top-right', autoClose: 2000 });
     return;
   }
   const token = localStorage.getItem('token');
   if (!token) {
+    console.error('[markPostAsCompleted] No auth token');
     toast.error('Please log in to mark posts.', { position: 'top-right', autoClose: 2000 });
     return;
   }
   const { completedPosts = [] } = getState().postReducer || {};
   if (completedPosts.some((post) => post.postId === postId)) {
+    console.log('[markPostAsCompleted] Post already completed:', postId);
     toast.info('This post is already completed.', { position: 'top-right', autoClose: 2000 });
     return;
   }
@@ -274,9 +253,7 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
     }
     dispatch({ type: 'FETCH_COMPLETED_POSTS' });
   } catch (error) {
-    console.error('[markPostAsCompleted] Error:', {
-      message: error.message,
-    });
+    console.error('[markPostAsCompleted] Error:', { message: error.message });
     toast.error(error.message || 'Failed to mark post.', { position: 'top-right', autoClose: 2000 });
   }
 };
@@ -284,7 +261,9 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
 export const fetchCompletedPosts = () => async (dispatch) => {
   const { toast } = await import('react-toastify');
   const token = localStorage.getItem('token');
+  console.log('[fetchCompletedPosts] Starting fetch...');
   if (!token) {
+    console.log('[fetchCompletedPosts] No token found');
     return;
   }
   setAuthToken(token);
@@ -300,9 +279,7 @@ export const fetchCompletedPosts = () => async (dispatch) => {
     const data = await res.json();
     dispatch({ type: 'FETCH_COMPLETED_POSTS_SUCCESS', payload: data });
   } catch (error) {
-    console.error('[fetchCompletedPosts] Error:', {
-      message: error.message,
-    });
+    console.error('[fetchCompletedPosts] Error:', { message: error.message });
     dispatch({ type: 'FETCH_COMPLETED_POSTS_FAILURE' });
     toast.error('Failed to fetch completed posts.', { position: 'top-right', autoClose: 2000 });
   }
