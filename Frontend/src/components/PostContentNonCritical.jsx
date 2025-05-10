@@ -25,6 +25,7 @@ const SubtitleHeader = styled.h2`
   padding-left: 0.5rem;
   width: 100%;
   line-height: 32px;
+  min-height: 32px;
   contain-intrinsic-size: 100% 32px;
   box-sizing: border-box;
 `;
@@ -42,9 +43,10 @@ const CompleteButton = styled.button`
   font-size: 0.875rem;
   font-weight: 500;
   min-width: 48px;
+  min-height: 36px;
+  contain-intrinsic-size: 48px 36px;
   transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   z-index: 1000;
-  contain-intrinsic-size: 48px 36px;
   &:hover:not(:disabled) {
     background: #34495e;
     transform: translateY(-2px);
@@ -61,12 +63,15 @@ const CompleteButton = styled.button`
   @media (min-width: 768px) {
     padding: 0.75rem 1.5rem;
     font-size: 1rem;
+    min-width: 64px;
+    min-height: 44px;
     contain-intrinsic-size: 64px 44px;
   }
   @media (max-width: 480px) {
     padding: 0.5rem 0.75rem;
     font-size: 0.75rem;
     min-width: 44px;
+    min-height: 32px;
     contain-intrinsic-size: 44px 32px;
   }
 `;
@@ -76,6 +81,7 @@ const ImageContainer = styled.figure`
   max-width: 280px;
   margin: 1rem 0;
   aspect-ratio: 16 / 9;
+  min-height: 157.5px;
   contain-intrinsic-size: 280px 157.5px;
   background: #e0e0e0;
   box-sizing: border-box;
@@ -84,14 +90,17 @@ const ImageContainer = styled.figure`
   }
   @media (min-width: 769px) {
     max-width: 480px;
+    min-height: 270px;
     contain-intrinsic-size: 480px 270px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
+    min-height: 135px;
     contain-intrinsic-size: 240px 135px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
+    min-height: 112.5px;
     contain-intrinsic-size: 200px 112.5px;
   }
 `;
@@ -120,18 +129,22 @@ const VideoContainer = styled.figure`
   max-width: 280px;
   margin: 1rem 0;
   aspect-ratio: 16 / 9;
+  min-height: 157.5px;
   contain-intrinsic-size: 280px 157.5px;
   box-sizing: border-box;
   @media (min-width: 769px) {
     max-width: 480px;
+    min-height: 270px;
     contain-intrinsic-size: 480px 270px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
+    min-height: 135px;
     contain-intrinsic-size: 240px 135px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
+    min-height: 112.5px;
     contain-intrinsic-size: 200px 112.5px;
   }
 `;
@@ -158,6 +171,7 @@ const Placeholder = styled.div`
   width: 100%;
   max-width: ${({ maxWidth }) => maxWidth || '280px'};
   aspect-ratio: 16 / 9;
+  min-height: ${({ minHeight }) => minHeight || '157.5px'};
   background: #e0e0e0;
   display: flex;
   align-items: center;
@@ -165,26 +179,29 @@ const Placeholder = styled.div`
   color: #666;
   border-radius: 0.375rem;
   font-size: 0.875rem;
-  contain-intrinsic-size: ${({ maxWidth }) => `${maxWidth || '280px'} 157.5px`};
+  contain-intrinsic-size: ${({ maxWidth, minHeight }) => `${maxWidth || '280px'} ${minHeight || '157.5px'}`};
   animation: ${pulse} 1.5s ease-in-out infinite;
   box-sizing: border-box;
   @media (min-width: 769px) {
     max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '480px' : maxWidth || '480px')};
-    contain-intrinsic-size: ${({ maxWidth }) => `${maxWidth === '280px' ? '480px' : maxWidth || '480px'} 270px`};
+    min-height: ${({ minHeight }) => (minHeight === '157.5px' ? '270px' : minHeight || '270px')};
+    contain-intrinsic-size: ${({ maxWidth, minHeight }) => `${maxWidth === '280px' ? '480px' : maxWidth || '480px'} ${minHeight === '157.5px' ? '270px' : minHeight || '270px'}`};
   }
   @media (max-width: 480px) {
     max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '240px' : maxWidth || '240px')};
-    contain-intrinsic-size: ${({ maxWidth }) => `${maxWidth === '280px' ? '240px' : maxWidth || '240px'} 135px`};
+    min-height: ${({ minHeight }) => (minHeight === '157.5px' ? '135px' : minHeight || '135px')};
+    contain-intrinsic-size: ${({ maxWidth, minHeight }) => `${maxWidth === '280px' ? '240px' : maxWidth || '240px'} ${minHeight === '157.5px' ? '135px' : minHeight || '135px'}`};
   }
   @media (max-width: 320px) {
     max-width: ${({ maxWidth }) => (maxWidth === '280px' ? '200px' : maxWidth || '200px')};
-    contain-intrinsic-size: ${({ maxWidth }) => `${maxWidth === '280px' ? '200px' : maxWidth || '200px'} 112.5px`};
+    min-height: ${({ minHeight }) => (minHeight === '157.5px' ? '112.5px' : minHeight || '112.5px')};
+    contain-intrinsic-size: ${({ maxWidth, minHeight }) => `${maxWidth === '280px' ? '200px' : maxWidth || '200px'} ${minHeight === '157.5px' ? '112.5px' : minHeight || '112.5px'}`};
   }
 `;
 
 const SectionPlaceholder = styled.div`
   width: 100%;
-  height: 100px;
+  min-height: ${({ minHeight }) => minHeight || '100px'};
   background: #e0e0e0;
   display: flex;
   align-items: center;
@@ -193,7 +210,7 @@ const SectionPlaceholder = styled.div`
   border-radius: 0.375rem;
   font-size: 0.875rem;
   animation: ${pulse} 1.5s ease-in-out infinite;
-  contain-intrinsic-size: 100% 100px;
+  contain-intrinsic-size: 100% ${({ minHeight }) => minHeight || '100px'};
   box-sizing: border-box;
 `;
 
@@ -216,6 +233,7 @@ const ReferenceLink = styled.a`
   padding: 0.25rem 0;
   font-size: 0.875rem;
   line-height: 1.5;
+  min-height: 24px;
   contain-intrinsic-size: 100% 24px;
   box-sizing: border-box;
   &:hover {
@@ -223,6 +241,7 @@ const ReferenceLink = styled.a`
   }
   @media (max-width: 480px) {
     font-size: 0.75rem;
+    min-height: 20px;
     contain-intrinsic-size: 100% 20px;
   }
 `;
@@ -241,6 +260,7 @@ const NavigationLinks = styled.nav`
     display: inline-flex;
     align-items: center;
     padding: 0.5rem;
+    min-height: 24px;
     contain-intrinsic-size: 60px 24px;
   }
 `;
@@ -260,18 +280,22 @@ const SkeletonRelatedPost = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-height: 260px;
   contain-intrinsic-size: 280px 260px;
   box-sizing: border-box;
   @media (min-width: 769px) {
     max-width: 480px;
+    min-height: 380px;
     contain-intrinsic-size: 480px 380px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
+    min-height: 230px;
     contain-intrinsic-size: 240px 230px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
+    min-height: 200px;
     contain-intrinsic-size: 200px 200px;
   }
 `;
@@ -280,6 +304,7 @@ const SkeletonImage = styled.div`
   width: 100%;
   max-width: 280px;
   aspect-ratio: 16 / 9;
+  min-height: 157.5px;
   background: #e0e0e0;
   border-radius: 0.375rem;
   animation: ${pulse} 1.5s ease-in-out infinite;
@@ -287,14 +312,17 @@ const SkeletonImage = styled.div`
   box-sizing: border-box;
   @media (min-width: 769px) {
     max-width: 480px;
+    min-height: 270px;
     contain-intrinsic-size: 480px 270px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
+    min-height: 135px;
     contain-intrinsic-size: 240px 135px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
+    min-height: 112.5px;
     contain-intrinsic-size: 200px 112.5px;
   }
 `;
@@ -361,6 +389,82 @@ const SkeletonSubtitleSection = styled.div`
   box-sizing: border-box;
 `;
 
+const SkeletonSummary = styled.div`
+  width: 100%;
+  min-height: 150px;
+  contain-intrinsic-size: 100% 150px;
+  box-sizing: border-box;
+  & > div:first-child {
+    width: 100%;
+    height: 32px;
+    background: #e0e0e0;
+    border-radius: 0.25rem;
+    animation: ${pulse} 1.5s ease-in-out infinite;
+    contain-intrinsic-size: 100% 32px;
+    margin-bottom: 0.75rem;
+  }
+  & > div:last-child {
+    width: 100%;
+    height: 90px;
+    background: #e0e0e0;
+    border-radius: 0.25rem;
+    animation: ${pulse} 1.5s ease-in-out infinite;
+    contain-intrinsic-size: 100% 90px;
+  }
+`;
+
+const SkeletonNavigationLinks = styled.div`
+  width: 100%;
+  min-height: 40px;
+  contain-intrinsic-size: 100% 40px;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  box-sizing: border-box;
+  & > div {
+    width: 60px;
+    height: 24px;
+    background: #e0e0e0;
+    border-radius: 0.25rem;
+    animation: ${pulse} 1.5s ease-in-out infinite;
+    contain-intrinsic-size: 60px 24px;
+  }
+`;
+
+const SkeletonReferences = styled.div`
+  width: 100%;
+  min-height: 120px;
+  contain-intrinsic-size: 100% 120px;
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 0.375rem;
+  box-sizing: border-box;
+  & > div:first-child {
+    width: 100%;
+    height: 32px;
+    background: #e0e0e0;
+    border-radius: 0.25rem;
+    animation: ${pulse} 1.5s ease-in-out infinite;
+    contain-intrinsic-size: 100% 32px;
+    margin-bottom: 0.75rem;
+  }
+  & > div:not(:first-child) {
+    width: 100%;
+    height: 24px;
+    background: #e0e0e0;
+    border-radius: 0.25rem;
+    animation: ${pulse} 1.5s ease-in-out infinite;
+    contain-intrinsic-size: 100% 24px;
+    margin: 0.25rem 0;
+  }
+  @media (max-width: 480px) {
+    & > div:not(:first-child) {
+      height: 20px;
+      contain-intrinsic-size: 100% 20px;
+    }
+  }
+`;
+
 const SkeletonRelatedPosts = () => (
   <SkeletonRelatedPostsContainer aria-hidden="true">
     {Array.from({ length: 3 }).map((_, i) => (
@@ -373,73 +477,35 @@ const SkeletonRelatedPosts = () => (
   </SkeletonRelatedPostsContainer>
 );
 
-const debounce = (func, wait) => {
-  let timeout;
-  return (...args) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
-  };
-};
-
-const parseInWorker = (text, category) => {
-  return new Promise((resolve) => {
-    const workerCode = `
-      self.onmessage = function(e) {
-        const { text, category } = e.data;
-        const parseLinks = (text, category) => {
-          if (!text) return [text];
-          const linkRegex = /\\[([^\\]]+)\\]\\((https?:\\/\\/[^\\s)]+|vscode:\\/\\/[^\\s)]+|\\/[^\\s)]+)\\)/g;
-          const elements = [];
-          let lastIndex = 0;
-          let match;
-          while ((match = linkRegex.exec(text)) !== null) {
-            const [fullMatch, linkText, url] = match;
-            if (match.index > lastIndex) {
-              elements.push(text.slice(lastIndex, match.index));
-            }
-            elements.push({ linkText, url, isInternal: url.startsWith('/') });
-            lastIndex = match.index + fullMatch.length;
-          }
-          if (lastIndex < text.length) {
-            elements.push(text.slice(lastIndex));
-          }
-          return elements.length ? elements : [text || ''];
-        };
-        self.postMessage(parseLinks(text, category));
-      };
-    `;
-    const blob = new Blob([workerCode], { type: 'application/javascript' });
-    const worker = new Worker(URL.createObjectURL(blob));
-    worker.onmessage = (e) => {
-      resolve(e.data);
-      worker.terminate();
-    };
-    worker.onerror = (err) => {
-      console.error('Worker error:', err);
-      resolve([text]);
-      worker.terminate();
-    };
-    worker.postMessage({ text, category });
-  });
+const parseLinks = (text, category) => {
+  if (!text) return [text];
+  const linkRegex = /\[([^\]]+)\]\((https?:\/\/[^\s)]+|vscode:\/\/[^\s)]+|\/[^\s)]+)\)/g;
+  const elements = [];
+  let lastIndex = 0;
+  let match;
+  while ((match = linkRegex.exec(text)) !== null) {
+    const [fullMatch, linkText, url] = match;
+    if (match.index > lastIndex) {
+      elements.push(text.slice(lastIndex, match.index));
+    }
+    elements.push({ linkText, url, isInternal: url.startsWith('/') });
+    lastIndex = match.index + fullMatch.length;
+  }
+  if (lastIndex < text.length) {
+    elements.push(text.slice(lastIndex));
+  }
+  return elements.length ? elements : [text || ''];
 };
 
 const SubtitleSection = memo(({ subtitle, index, category }) => {
-  const [parsedTitle, setParsedTitle] = useState(subtitle.title || '');
-  const [parsedBulletPoints, setParsedBulletPoints] = useState(subtitle.bulletPoints || []);
+  const parsedTitle = React.useMemo(() => parseLinks(subtitle.title || '', category), [subtitle.title, category]);
+  const parsedBulletPoints = React.useMemo(() =>
+    (subtitle.bulletPoints || []).map(point => ({
+      ...point,
+      text: parseLinks(point.text || '', category),
+    })), [subtitle.bulletPoints, category]);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [isPointImageLoaded, setIsPointImageLoaded] = useState({});
-
-  useEffect(() => {
-    parseInWorker(subtitle.title || '', category).then(setParsedTitle);
-    Promise.all(
-      (subtitle.bulletPoints || []).map(point =>
-        parseInWorker(point.text || '', category).then(parsedText => ({
-          ...point,
-          text: parsedText,
-        }))
-      )
-    ).then(setParsedBulletPoints);
-  }, [subtitle, category]);
 
   if (!subtitle) return null;
 
@@ -447,7 +513,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
     <section
       id={`subtitle-${index}`}
       aria-labelledby={`subtitle-${index}-heading`}
-      style={{ boxSizing: 'border-box', minHeight: '200px', containIntrinsicSize: '100% 200px' }}
+      style={{ boxSizing: 'border-box', minHeight: '200px', containIntrinsicSize: '100% 200px', contain: 'layout' }}
     >
       <SubtitleHeader id={`subtitle-${index}-heading`}>
         {Array.isArray(parsedTitle) ? parsedTitle.map((elem, i) => (
@@ -518,7 +584,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
       )}
       <ul style={{ paddingLeft: '1.25rem', fontSize: '1.1rem', lineHeight: '1.7', boxSizing: 'border-box', minHeight: '90px', containIntrinsicSize: '100% 90px' }}>
         {parsedBulletPoints.map((point, j) => (
-          <li key={j} style={{ marginBottom: '0.5rem', containIntrinsicSize: '100% 30px', boxSizing: 'border-box' }}>
+          <li key={j} style={{ marginBottom: '0.5rem', minHeight: '30px', containIntrinsicSize: '100% 30px', boxSizing: 'border-box' }}>
             <span>
               {Array.isArray(point.text) ? point.text.map((elem, k) => (
                 <React.Fragment key={k}>
@@ -587,7 +653,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
               </VideoContainer>
             )}
             {point.codeSnippet && (
-              <Suspense fallback={<Placeholder>Loading code...</Placeholder>}>
+              <Suspense fallback={<Placeholder minHeight="100px">Loading code...</Placeholder>}>
                 <CodeHighlighter
                   code={point.codeSnippet}
                   language={point.language || 'javascript'}
@@ -632,7 +698,7 @@ const LazySubtitleSection = memo(({ subtitle, index, category }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '400px', threshold: 0.2 }
+      { rootMargin: '600px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
@@ -643,7 +709,7 @@ const LazySubtitleSection = memo(({ subtitle, index, category }) => {
       {isVisible ? (
         <SubtitleSection subtitle={subtitle} index={index} category={category} />
       ) : (
-        <SectionPlaceholder>Loading section...</SectionPlaceholder>
+        <SectionPlaceholder minHeight="200px">Loading section...</SectionPlaceholder>
       )}
     </div>
   );
@@ -661,7 +727,7 @@ const LazyRelatedPostsSection = memo(({ relatedPosts }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '400px', threshold: 0.2 }
+      { rootMargin: '600px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
@@ -695,7 +761,7 @@ const LazyReferencesSection = memo(({ post }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '400px', threshold: 0.2 }
+      { rootMargin: '600px', threshold: 0.1 }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
@@ -734,7 +800,11 @@ const LazyReferencesSection = memo(({ post }) => {
           )}
         </ReferencesSection>
       ) : (
-        <SectionPlaceholder>Loading references...</SectionPlaceholder>
+        <SkeletonReferences>
+          <div />
+          <div />
+          <div />
+        </SkeletonReferences>
       )}
     </div>
   );
@@ -742,33 +812,9 @@ const LazyReferencesSection = memo(({ post }) => {
 
 const PostContentNonCritical = memo(
   ({ post, relatedPosts, completedPosts, dispatch, isSidebarOpen, setSidebarOpen, activeSection, setActiveSection, subtitlesListRef }) => {
-    const [parsedSummary, setParsedSummary] = useState(post.summary || '');
     const completedPostsSelector = useSelector(state => state.postReducer.completedPosts || []);
     const isCompleted = completedPostsSelector.some(cp => cp.postId === post.postId);
-
-    const debouncedObserve = React.useMemo(
-      () =>
-        debounce(entries => {
-          let highestSection = null;
-          let maxRatio = 0;
-          entries.forEach(entry => {
-            if (entry.isIntersecting && entry.intersectionRatio > maxRatio) {
-              highestSection = entry.target.id;
-              maxRatio = entry.intersectionRatio;
-            }
-          });
-          if (highestSection) {
-            startTransition(() => {
-              setActiveSection(highestSection);
-              const sidebarItem = subtitlesListRef.current?.querySelector(`[data-section="${highestSection}"]`);
-              if (sidebarItem) {
-                sidebarItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-              }
-            });
-          }
-        }, 80),
-      [setActiveSection, subtitlesListRef]
-    );
+    const parsedSummary = React.useMemo(() => parseLinks(post.summary || '', post.category || ''), [post.summary, post.category]);
 
     const subtitleSlugs = React.useMemo(() => {
       if (!post?.subtitles) return {};
@@ -790,23 +836,6 @@ const PostContentNonCritical = memo(
       }
     }, [subtitleSlugs]);
 
-    useEffect(() => {
-      if (!post?.summary) return;
-      parseInWorker(post.summary || '', post.category || '').then(setParsedSummary);
-    }, [post]);
-
-    useEffect(() => {
-      if (!post) return;
-      const observer = new IntersectionObserver(debouncedObserve, {
-        root: null,
-        rootMargin: '0px',
-        threshold: [0.1, 0.3, 0.5],
-      });
-      document.querySelectorAll('[id^="subtitle-"], #summary').forEach(section => observer.observe(section));
-      return () => observer.disconnect();
-    }, [post, debouncedObserve]);
-
-    // Optional: CLS Debugging (remove in production)
     useEffect(() => {
       let lastLayoutShift = 0;
       const observer = new PerformanceObserver((list) => {
@@ -842,7 +871,7 @@ const PostContentNonCritical = memo(
     );
 
     return (
-      <div style={{ width: '100%', boxSizing: 'border-box', contain: 'layout' }}>
+      <div style={{ width: '100%', minHeight: '1000px', containIntrinsicSize: '100% 1000px', boxSizing: 'border-box', contain: 'layout' }}>
         {(post.subtitles || []).map((subtitle, i) => (
           i === 0 ? (
             <Suspense key={i} fallback={<FirstSubtitleSkeleton bulletCount={subtitle.bulletPoints?.length || 3} />}>
@@ -862,43 +891,47 @@ const PostContentNonCritical = memo(
         )}
 
         {post.summary && (
-          <section id="summary" aria-labelledby="summary-heading" style={{ boxSizing: 'border-box', minHeight: '150px', containIntrinsicSize: '100% 150px' }}>
-            <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
-            <p style={{ fontSize: '1.1rem', lineHeight: '1.7', boxSizing: 'border-box', minHeight: '90px', containIntrinsicSize: '100% 90px' }}>
-              {Array.isArray(parsedSummary) ? parsedSummary.map((elem, i) => (
-                <React.Fragment key={i}>
-                  {typeof elem === 'string' ? elem : (
-                    elem.isInternal ? (
-                      <a href={elem.url} className="text-blue-600 hover:text-blue-800" aria-label={`Navigate to ${elem.linkText}`}>
-                        {elem.linkText}
-                      </a>
-                    ) : (
-                      <a
-                        href={elem.url}
-                        target={elem.url.startsWith('vscode://') ? '_self' : '_blank'}
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800"
-                        aria-label={`Visit ${elem.linkText}`}
-                      >
-                        {elem.linkText}
-                      </a>
-                    )
-                  )}
-                </React.Fragment>
-              )) : parsedSummary}
-            </p>
-          </section>
+          <Suspense fallback={<SkeletonSummary />}>
+            <section id="summary" aria-labelledby="summary-heading" style={{ boxSizing: 'border-box', minHeight: '150px', containIntrinsicSize: '100% 150px', contain: 'layout' }}>
+              <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
+              <p style={{ fontSize: '1.1rem', lineHeight: '1.7', boxSizing: 'border-box', minHeight: '90px', containIntrinsicSize: '100% 90px' }}>
+                {Array.isArray(parsedSummary) ? parsedSummary.map((elem, i) => (
+                  <React.Fragment key={i}>
+                    {typeof elem === 'string' ? elem : (
+                      elem.isInternal ? (
+                        <a href={elem.url} className="text-blue-600 hover:text-blue-800" aria-label={`Navigate to ${elem.linkText}`}>
+                          {elem.linkText}
+                        </a>
+                      ) : (
+                        <a
+                          href={elem.url}
+                          target={elem.url.startsWith('vscode://') ? '_self' : '_blank'}
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800"
+                          aria-label={`Visit ${elem.linkText}`}
+                        >
+                          {elem.linkText}
+                        </a>
+                      )
+                    )}
+                  </React.Fragment>
+                )) : parsedSummary}
+              </p>
+            </section>
+          </Suspense>
         )}
 
-        <NavigationLinks aria-label="Page navigation">
-          <Link to="/explore" aria-label="Back to blog">Blog</Link>
-          {post.category && (
-            <Link to={`/category/${post.category.toLowerCase()}`} aria-label={`Explore ${post.category}`}>
-              {post.category}
-            </Link>
-          )}
-          <Link to="/" aria-label="Home">Home</Link>
-        </NavigationLinks>
+        <Suspense fallback={<SkeletonNavigationLinks><div /><div /><div /></SkeletonNavigationLinks>}>
+          <NavigationLinks aria-label="Page navigation">
+            <Link to="/explore" aria-label="Back to blog">Blog</Link>
+            {post.category && (
+              <Link to={`/category/${post.category.toLowerCase()}`} aria-label={`Explore ${post.category}`}>
+                {post.category}
+              </Link>
+            )}
+            <Link to="/" aria-label="Home">Home</Link>
+          </NavigationLinks>
+        </Suspense>
 
         <CompleteButton
           isCompleted={isCompleted}
