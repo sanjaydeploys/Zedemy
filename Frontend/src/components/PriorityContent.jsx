@@ -28,6 +28,7 @@ const criticalCss = `
   .content-section p, .content-section ul, .content-section li, .content-section div {
     margin-bottom: 0.5rem;
     overflow-wrap: break-word;
+    contain: layout;
   }
   .content-section a {
     color: #0066cc;
@@ -74,8 +75,9 @@ const criticalCss = `
   .skeleton {
     background: #e0e0e0;
     border-radius: 0.25rem;
+    contain: layout;
   }
-  @media (min-width: 768px) {
+  @media (min-width: 769px) {
     .content-section {
       font-size: 1rem;
     }
@@ -100,17 +102,17 @@ const PriorityContent = memo(({ post, readTime }) => {
         ? 164.5
         : window.innerWidth <= 480
         ? 187
-        : window.innerWidth <= 767
+        : window.innerWidth <= 768
         ? 209.5
         : 322
       : 0;
     const imageMargin = post?.titleImage ? 40 : 0; // margin: 1rem 0 1.5rem
     const titleHeight = post?.title
-      ? Math.ceil((post.title.length / 40) * (window.innerWidth <= 480 ? 24 : window.innerWidth <= 767 ? 30 : 48))
+      ? Math.ceil((post.title.length / 40) * (window.innerWidth <= 480 ? 24 : window.innerWidth <= 768 ? 30 : 48))
       : window.innerWidth <= 480
       ? 24
       : 32;
-    const metaHeight = window.innerWidth <= 767
+    const metaHeight = window.innerWidth <= 768
       ? Math.max(
           60,
           (3 * 16) + (2 * 8) +
@@ -131,11 +133,13 @@ const PriorityContent = memo(({ post, readTime }) => {
           div.innerHTML = post.preRenderedContent;
           const paragraphs = div.querySelectorAll('p').length || 1;
           const lists = div.querySelectorAll('ul, ol').length;
-          const headings = div.querySelectorAll('h1, h2, h3').length;
+          const listItems = div.querySelectorAll('li').length;
+          const headings = div.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
           const images = div.querySelectorAll('img').length;
           const divs = div.querySelectorAll('div').length;
-          const baseHeight = paragraphs * 50 + lists * 100 + headings * 40 + images * 200 + divs * 50;
-          return Math.max(150, Math.min(1000, baseHeight));
+          const textLength = div.textContent.length || 0;
+          const baseHeight = paragraphs * 50 + lists * 100 + listItems * 30 + headings * 40 + images * 200 + divs * 50 + Math.ceil(textLength / 100) * 20;
+          return Math.max(150, Math.min(2000, baseHeight));
         })()
       : 150;
     const contentMargin = 16; // margin-bottom: 1rem
@@ -159,7 +163,7 @@ const PriorityContent = memo(({ post, readTime }) => {
       {post?.titleImage && !isLoading && (
         <link
           rel="preload"
-          href={`${post.titleImage}?w=${window.innerWidth <= 767 ? 280 : 480}&format=avif&q=15`}
+          href={`${post.titleImage}?w=${window.innerWidth <= 768 ? 260 : 480}&format=avif&q=15`}
           as="image"
           fetchpriority="high"
         />
@@ -238,21 +242,21 @@ const PriorityContent = memo(({ post, readTime }) => {
                 }}
               >
                 <img
-                  src={`${post.titleImage}?w=${window.innerWidth <= 767 ? 280 : 480}&format=avif&q=15`}
+                  src={`${post.titleImage}?w=${window.innerWidth <= 768 ? 260 : 480}&format=avif&q=15`}
                   srcSet={`
-                    ${post.titleImage}?w=200&format=avif&q=15 200w,
-                    ${post.titleImage}?w=240&format=avif&q=15 240w,
-                    ${post.titleImage}?w=280&format=avif&q=15 280w,
-                    ${post.titleImage}?w=320&format=avif&q=15 320w,
+                    ${post.titleImage}?w=180&format=avif&q=15 180w,
+                    ${post.titleImage}?w=220&format=avif&q=15 220w,
+                    ${post.titleImage}?w=260&format=avif&q=15 260w,
+                    ${post.titleImage}?w=300&format=avif&q=15 300w,
                     ${post.titleImage}?w=360&format=avif&q=15 360w,
                     ${post.titleImage}?w=400&format=avif&q=15 400w,
-                    ${post.titleImage}?w=440&format=avif&q=15 440w,
+                    ${post.titleImage}?w=420&format=avif&q=15 420w,
                     ${post.titleImage}?w=480&format=avif&q=15 480w
                   `}
-                  sizes="(max-width: 320px) 200px, (max-width: 360px) 240px, (max-width: 480px) 280px, (max-width: 767px) 320px, 480px"
+                  sizes="(max-width: 320px) 180px, (max-width: 360px) 220px, (max-width: 480px) 260px, (max-width: 768px) 300px, 480px"
                   alt={post.title || 'Post image'}
                   className="post-image"
-                  width={window.innerWidth <= 767 ? 280 : 480}
+                  width={window.innerWidth <= 768 ? 260 : 480}
                   height={calculateHeights.imageHeight}
                   decoding="sync"
                   loading="eager"
@@ -312,11 +316,22 @@ const PriorityContent = memo(({ post, readTime }) => {
           {isLoading ? (
             <div
               className="skeleton"
-              style={{ width: '100%', minHeight: `${calculateHeights.contentHeight}px` }}
+              style={{
+                width: '100%',
+                minHeight: `${calculateHeights.contentHeight}px`,
+                containIntrinsicSize: `100% ${calculateHeights.contentHeight}px`,
+              }}
               aria-hidden="true"
             />
           ) : (
-            <div dangerouslySetInnerHTML={{ __html: post.preRenderedContent || '' }} />
+            <div
+              style={{
+                contain: 'layout',
+                minHeight: `${calculateHeights.contentHeight}px`,
+                containIntrinsicSize: `100% ${calculateHeights.contentHeight}px`,
+              }}
+              dangerouslySetInnerHTML={{ __html: post.preRenderedContent || '' }}
+            />
           )}
         </section>
         <style>{criticalCss}</style>
