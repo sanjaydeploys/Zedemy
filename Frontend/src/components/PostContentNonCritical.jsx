@@ -3,18 +3,12 @@ import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { slugify, parseLinks } from './utils';
 import { markPostAsCompleted } from '../actions/postActions';
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components';
 
 const RelatedPosts = React.lazy(() => import('./RelatedPosts'));
 const AccessibleZoom = React.lazy(() => import('./AccessibleZoom'));
 const ComparisonTable = React.lazy(() => import('./ComparisonTable'));
 const CodeHighlighter = React.lazy(() => import('./CodeHighlighter'));
-
-const pulse = keyframes`
-  0% { opacity: 1; }
-  50% { opacity: 0.5; }
-  100% { opacity: 1; }
-`;
 
 const SubtitleHeader = styled.h2`
   font-size: clamp(1.25rem, 3vw, 1.5rem);
@@ -69,7 +63,7 @@ const CompleteButton = styled.button`
 const ImageContainer = styled.figure`
   width: 100%;
   max-width: 280px;
-  margin: 1rem 0 1rem;
+  margin: 1rem 0 1.5rem;
   aspect-ratio: 16 / 9;
   min-height: 209.5px;
   contain-intrinsic-size: 280px 209.5px;
@@ -118,7 +112,7 @@ const PostImage = styled.img`
 const VideoContainer = styled.figure`
   width: 100%;
   max-width: 280px;
-  margin: 1rem 0 1rem;
+  margin: 1rem 0 1.5rem;
   aspect-ratio: 16 / 9;
   min-height: 209.5px;
   contain-intrinsic-size: 280px 209.5px;
@@ -178,7 +172,7 @@ const Placeholder = styled.div`
   contain-intrinsic-size: 280px 209.5px;
   box-sizing: border-box;
   contain: layout;
-  margin: 1rem 0 1rem;
+  margin: 1rem 0 1.5rem;
   @media (min-width: 769px) {
     max-width: 480px;
     min-height: 322px;
@@ -312,7 +306,7 @@ const SkeletonImage = styled.div`
   contain-intrinsic-size: 280px 209.5px;
   box-sizing: border-box;
   contain: layout;
-  margin: 1rem 0 1rem;
+  margin: 1rem 0 1.5rem;
   @media (min-width: 769px) {
     max-width: 480px;
     min-height: 322px;
@@ -519,7 +513,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
         ? 209.5
         : 322
       : 0;
-    const mediaMargin = subtitle.image || subtitle.video ? 32 : 0; // margin: 1rem 0 1rem
+    const mediaMargin = subtitle.image || subtitle.video ? 40 : 0; // margin: 1rem 0 1.5rem
     const pointMediaHeight = parsedBulletPoints.reduce((acc, point) => {
       return acc + (point.image || point.video
         ? window.innerWidth <= 320
@@ -532,7 +526,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
         : 0);
     }, 0);
     const pointMediaMargin = parsedBulletPoints.reduce((acc, point) => {
-      return acc + (point.image || point.video ? 32 : 0);
+      return acc + (point.image || point.video ? 40 : 0);
     }, 0);
     const codeSnippetHeight = parsedBulletPoints.reduce((acc, point) => {
       return acc + (point.codeSnippet ? 100 : 0);
@@ -545,7 +539,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
       {(index === 0 && (subtitle.image || subtitle.video)) && (
         <link
           rel="preload"
-          href={`${subtitle.image || subtitle.videoPoster}?w=${window.innerWidth <= 768 ? 280 : 480}&format=avif&q=20`}
+          href={`${subtitle.image || subtitle.videoPoster}?w=${window.innerWidth <= 768 ? 280 : 480}&format=avif&q=15`}
           as="image"
           fetchpriority="high"
         />
@@ -565,18 +559,20 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
           <ImageContainer>
             <AccessibleZoom caption={subtitle.title || ''}>
               <PostImage
-                src={`${subtitle.image}?w=${window.innerWidth <= 768 ? 280 : 480}&format=avif&q=20`}
+                src={`${subtitle.image}?w=${window.innerWidth <= 768 ? 280 : 480}&format=avif&q=15`}
                 srcSet={`
-                  ${subtitle.image}?w=100&format=avif&q=20 100w,
-                  ${subtitle.image}?w=150&format=avif&q=20 150w,
-                  ${subtitle.image}?w=200&format=avif&q=20 200w,
-                  ${subtitle.image}?w=240&format=avif&q=20 240w,
-                  ${subtitle.image}?w=280&format=avif&q=20 280w,
-                  ${subtitle.image}?w=320&format=avif&q=20 320w,
-                  ${subtitle.image}?w=360&format=avif&q=20 360w,
-                  ${subtitle.image}?w=480&format=avif&q=20 480w
+                  ${subtitle.image}?w=100&format=avif&q=15 100w,
+                  ${subtitle.image}?w=150&format=avif&q=15 150w,
+                  ${subtitle.image}?w=200&format=avif&q=15 200w,
+                  ${subtitle.image}?w=240&format=avif&q=15 240w,
+                  ${subtitle.image}?w=280&format=avif&q=15 280w,
+                  ${subtitle.image}?w=320&format=avif&q=15 320w,
+                  ${subtitle.image}?w=360&format=avif&q=15 360w,
+                  ${subtitle.image}?w=400&format=avif&q=15 400w,
+                  ${subtitle.image}?w=440&format=avif&q=15 440w,
+                  ${subtitle.image}?w=480&format=avif&q=15 480w
                 `}
-                sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
+                sizes="(max-width: 320px) 200px, (max-width: 360px) 240px, (max-width: 480px) 280px, (max-width: 768px) 320px, 480px"
                 alt={`Illustration for ${subtitle.title || 'section'}`}
                 loading={index === 0 ? 'eager' : 'lazy'}
                 decoding="async"
@@ -607,8 +603,8 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
             fontSize: '1.1rem',
             lineHeight: '1.7',
             boxSizing: 'border-box',
-            minHeight: `${parsedBulletPoints.length * 38 + parsedBulletPoints.reduce((acc, point) => acc + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 32 : point.codeSnippet ? 100 : 0), 0)}px`,
-            containIntrinsicSize: `100% ${parsedBulletPoints.length * 38 + parsedBulletPoints.reduce((acc, point) => acc + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 32 : point.codeSnippet ? 100 : 0), 0)}px`,
+            minHeight: `${parsedBulletPoints.length * 38 + parsedBulletPoints.reduce((acc, point) => acc + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 40 : point.codeSnippet ? 100 : 0), 0)}px`,
+            containIntrinsicSize: `100% ${parsedBulletPoints.length * 38 + parsedBulletPoints.reduce((acc, point) => acc + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 40 : point.codeSnippet ? 100 : 0), 0)}px`,
             contain: 'layout',
           }}
         >
@@ -617,8 +613,8 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
               key={j}
               style={{
                 marginBottom: '0.5rem',
-                minHeight: `${30 + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 32 : point.codeSnippet ? 100 : 0)}px`,
-                containIntrinsicSize: `100% ${30 + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 32 : point.codeSnippet ? 100 : 0)}px`,
+                minHeight: `${30 + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 40 : point.codeSnippet ? 100 : 0)}px`,
+                containIntrinsicSize: `100% ${30 + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 40 : point.codeSnippet ? 100 : 0)}px`,
                 boxSizing: 'border-box',
               }}
             >
@@ -628,18 +624,20 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                   <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
                     <AccessibleZoom caption={`Example for ${point.text || ''}`}>
                       <PostImage
-                        src={`${point.image}?w=${window.innerWidth <= 768 ? 280 : 480}&format=avif&q=20`}
+                        src={`${point.image}?w=${window.innerWidth <= 768 ? 280 : 480}&format=avif&q=15`}
                         srcSet={`
-                          ${point.image}?w=100&format=avif&q=20 100w,
-                          ${point.image}?w=150&format=avif&q=20 150w,
-                          ${point.image}?w=200&format=avif&q=20 200w,
-                          ${point.image}?w=240&format=avif&q=20 240w,
-                          ${point.image}?w=280&format=avif&q=20 280w,
-                          ${point.image}?w=320&format=avif&q=20 320w,
-                          ${point.image}?w=360&format=avif&q=20 360w,
-                          ${point.image}?w=480&format=avif&q=20 480w
+                          ${point.image}?w=100&format=avif&q=15 100w,
+                          ${point.image}?w=150&format=avif&q=15 150w,
+                          ${point.image}?w=200&format=avif&q=15 200w,
+                          ${point.image}?w=240&format=avif&q=15 240w,
+                          ${point.image}?w=280&format=avif&q=15 280w,
+                          ${point.image}?w=320&format=avif&q=15 320w,
+                          ${point.image}?w=360&format=avif&q=15 360w,
+                          ${point.image}?w=400&format=avif&q=15 400w,
+                          ${point.image}?w=440&format=avif&q=15 440w,
+                          ${point.image}?w=480&format=avif&q=15 480w
                         `}
-                        sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
+                        sizes="(max-width: 320px) 200px, (max-width: 360px) 240px, (max-width: 480px) 280px, (max-width: 768px) 320px, 480px"
                         alt={`Illustration for ${point.text || 'example point'}`}
                         loading="lazy"
                         decoding="async"
@@ -823,12 +821,6 @@ const PostContentNonCritical = memo(
     }, [subtitleSlugs, scrollToSection]);
 
     const calculateWrapperHeight = () => {
-      const subtitleCount = (post.subtitles || []).length;
-      const hasSummary = post.summary ? 150 : 0;
-      const hasSuperTitles = post.superTitles?.length > 0 ? 200 : 0;
-      const navigationHeight = 44;
-      const relatedPostsHeight = 450;
-      const referencesHeight = 150;
       const subtitleHeight = (post.subtitles || []).reduce((acc, subtitle) => {
         const headerHeight = 32;
         const margin = 16;
@@ -843,7 +835,7 @@ const PostContentNonCritical = memo(
             ? 209.5
             : 322
           : 0;
-        const mediaMargin = subtitle.image || subtitle.video ? 32 : 0;
+        const mediaMargin = subtitle.image || subtitle.video ? 40 : 0;
         const pointMediaHeight = (subtitle.bulletPoints || []).reduce((acc, point) => {
           return acc + (point.image || point.video
             ? window.innerWidth <= 320
@@ -856,13 +848,18 @@ const PostContentNonCritical = memo(
             : 0);
         }, 0);
         const pointMediaMargin = (subtitle.bulletPoints || []).reduce((acc, point) => {
-          return acc + (point.image || point.video ? 32 : 0);
+          return acc + (point.image || point.video ? 40 : 0);
         }, 0);
         const codeSnippetHeight = (subtitle.bulletPoints || []).reduce((acc, point) => {
           return acc + (point.codeSnippet ? 100 : 0);
         }, 0);
         return acc + (headerHeight + margin + listPadding + bulletHeight + mediaHeight + mediaMargin + pointMediaHeight + pointMediaMargin + codeSnippetHeight);
       }, 0);
+      const hasSummary = post.summary ? 150 : 0;
+      const hasSuperTitles = post.superTitles?.length > 0 ? 200 : 0;
+      const navigationHeight = 44;
+      const relatedPostsHeight = 450;
+      const referencesHeight = 150;
       return subtitleHeight + hasSummary + hasSuperTitles + navigationHeight + relatedPostsHeight + referencesHeight;
     };
 
@@ -889,11 +886,11 @@ const PostContentNonCritical = memo(
               style={{
                 width: '100%',
                 minHeight: `${calculateWrapperHeight() - ((post.subtitles || []).length > 0 ? (post.subtitles[0].bulletPoints || []).reduce((acc, point) => {
-                  return acc + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 32 : point.codeSnippet ? 100 : 0);
-                }, (post.subtitles[0].image || post.subtitles[0].video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 32 : 0) + (post.subtitles[0].bulletPoints || []).length * 38 + 32 + 20 + 16) : 0)}px`,
+                  return acc + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 40 : point.codeSnippet ? 100 : 0);
+                }, (post.subtitles[0].image || post.subtitles[0].video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 40 : 0) + (post.subtitles[0].bulletPoints || []).length * 38 + 32 + 20 + 16) : 0)}px`,
                 containIntrinsicSize: `100% ${calculateWrapperHeight() - ((post.subtitles || []).length > 0 ? (post.subtitles[0].bulletPoints || []).reduce((acc, point) => {
-                  return acc + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 32 : point.codeSnippet ? 100 : 0);
-                }, (post.subtitles[0].image || post.subtitles[0].video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 32 : 0) + (post.subtitles[0].bulletPoints || []).length * 38 + 32 + 20 + 16) : 0)}px`,
+                  return acc + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 40 : point.codeSnippet ? 100 : 0);
+                }, (post.subtitles[0].image || post.subtitles[0].video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 40 : 0) + (post.subtitles[0].bulletPoints || []).length * 38 + 32 + 20 + 16) : 0)}px`,
                 boxSizing: 'border-box',
                 contain: 'layout',
               }}
@@ -1024,7 +1021,7 @@ const PostContentNonCritical = memo(
           {isCompleted ? 'Completed' : 'Mark as Completed'}
         </CompleteButton>
       </div>
-  
+    
   );
 });
 
