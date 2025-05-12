@@ -86,13 +86,15 @@ const PriorityContent = memo(({ post, readTime }) => {
 
   const calculateHeights = useMemo(() => {
     const imageHeight = post?.titleImage
-      ? window.innerWidth <= 480
+      ? window.innerWidth <= 320
+        ? 112.5
+        : window.innerWidth <= 480
         ? 135
         : window.innerWidth <= 767
         ? 157.5
-        : 337.5
+        : 270
       : 0;
-    const imageMargin = post?.titleImage ? 32 : 0;
+    const imageMargin = post?.titleImage ? 32 : 0; // margin: 1rem 0
     const titleHeight = post?.title
       ? Math.ceil((post.title.length / 40) * (window.innerWidth <= 480 ? 24 : window.innerWidth <= 767 ? 30 : 48))
       : window.innerWidth <= 480
@@ -113,9 +115,17 @@ const PriorityContent = memo(({ post, readTime }) => {
     const contentHeight = post?.estimatedContentHeight
       ? post.estimatedContentHeight
       : post?.preRenderedContent
-      ? Math.max(150, Math.min(500, (post.preRenderedContent.length / 200) * 50))
+      ? (() => {
+          const div = document.createElement('div');
+          div.innerHTML = post.preRenderedContent;
+          const paragraphs = div.querySelectorAll('p').length || 1;
+          const lists = div.querySelectorAll('ul, ol').length;
+          const headings = div.querySelectorAll('h1, h2, h3').length;
+          const baseHeight = paragraphs * 50 + lists * 100 + headings * 40;
+          return Math.max(150, Math.min(500, baseHeight));
+        })()
       : 150;
-    const contentMargin = 16;
+    const contentMargin = 16; // margin-bottom: 1rem
     const totalHeight = imageHeight + imageMargin + titleHeight + metaHeight + contentHeight + contentMargin;
 
     return {
@@ -136,7 +146,7 @@ const PriorityContent = memo(({ post, readTime }) => {
       {post?.titleImage && !isLoading && (
         <link
           rel="preload"
-          href={`${post.titleImage}?w=${window.innerWidth <= 767 ? 280 : 600}&format=avif&q=30`}
+          href={`${post.titleImage}?w=${window.innerWidth <= 767 ? 280 : 480}&format=avif&q=20`}
           as="image"
           fetchpriority="high"
         />
@@ -215,19 +225,19 @@ const PriorityContent = memo(({ post, readTime }) => {
                 }}
               >
                 <img
-                  src={`${post.titleImage}?w=${window.innerWidth <= 767 ? 280 : 600}&format=avif&q=30`}
+                  src={`${post.titleImage}?w=${window.innerWidth <= 767 ? 280 : 480}&format=avif&q=20`}
                   srcSet={`
-                    ${post.titleImage}?w=200&format=avif&q=30 200w,
-                    ${post.titleImage}?w=240&format=avif&q=30 240w,
-                    ${post.titleImage}?w=280&format=avif&q=30 280w,
-                    ${post.titleImage}?w=320&format=avif&q=30 320w,
-                    ${post.titleImage}?w=480&format=avif&q=30 480w,
-                    ${post.titleImage}?w=600&format=avif&q=30 600w
+                    ${post.titleImage}?w=200&format=avif&q=20 200w,
+                    ${post.titleImage}?w=240&format=avif&q=20 240w,
+                    ${post.titleImage}?w=280&format=avif&q=20 280w,
+                    ${post.titleImage}?w=320&format=avif&q=20 320w,
+                    ${post.titleImage}?w=360&format=avif&q=20 360w,
+                    ${post.titleImage}?w=480&format=avif&q=20 480w
                   `}
-                  sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 767px) 280px, 600px"
+                  sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 767px) 280px, 480px"
                   alt={post.title || 'Post image'}
                   className="post-image"
-                  width={window.innerWidth <= 767 ? 280 : 600}
+                  width={window.innerWidth <= 767 ? 280 : 480}
                   height={calculateHeights.imageHeight}
                   decoding="sync"
                   loading="eager"
