@@ -26,7 +26,6 @@ const criticalCss = `
     width: 100%;
     margin-bottom: 1rem;
     contain: layout;
-    contain-intrinsic-size: 100% 150px;
   }
   .content-section p, .content-section ul, .content-section li, .content-section div {
     margin-bottom: 0.5rem;
@@ -52,8 +51,8 @@ const criticalCss = `
     margin: 1rem 0 1.5rem;
     aspect-ratio: 16 / 9;
     contain: layout;
-    min-height: 164.5px;
-    contain-intrinsic-size: 100% 164.5px;
+    min-height: 112.5px;
+    contain-intrinsic-size: 100% 112.5px;
   }
   .post-image {
     width: 100%;
@@ -95,8 +94,8 @@ const criticalCss = `
       contain-intrinsic-size: 100% 24px;
     }
     .image-container {
-      min-height: 322px;
-      contain-intrinsic-size: 100% 322px;
+      min-height: 270px;
+      contain-intrinsic-size: 100% 270px;
     }
   }
   @media (max-width: 480px) {
@@ -104,14 +103,14 @@ const criticalCss = `
       font-size: clamp(1.25rem, 3vw, 1.5rem);
     }
     .image-container {
-      min-height: 187px;
-      contain-intrinsic-size: 100% 187px;
+      min-height: 112.5px;
+      contain-intrinsic-size: 100% 112.5px;
     }
   }
   @media (max-width: 320px) {
     .image-container {
-      min-height: 164.5px;
-      contain-intrinsic-size: 100% 164.5px;
+      min-height: 112.5px;
+      contain-intrinsic-size: 100% 112.5px;
     }
   }
 `;
@@ -121,12 +120,16 @@ const PriorityContent = memo(({ post, readTime }) => {
 
   const isLoading = !post || post.title === 'Loading...';
 
+  const contentHeight = post?.preRenderedContent && !isLoading
+    ? post.estimatedContentHeight || Math.max(150, Math.ceil(post.preRenderedContent.length / 100) * 20)
+    : 150;
+
   return (
     <>
       {post?.titleImage && !isLoading && (
         <link
           rel="preload"
-          href={`${post.titleImage}?w=${window.innerWidth <= 768 ? 200 : 480}&format=avif&q=10`}
+          href={`${post.titleImage}?w=${window.innerWidth <= 768 ? 120 : 480}&format=avif&q=5`}
           as="image"
           fetchpriority="high"
         />
@@ -142,31 +145,15 @@ const PriorityContent = memo(({ post, readTime }) => {
       >
         {isLoading ? (
           <header style={{ width: '100%', maxWidth: '800px' }}>
-            <div
-              className="image-container"
-              aria-hidden="true"
-            >
-              <div
-                className="skeleton"
-                style={{
-                  width: '100%',
-                  aspectRatio: '16 / 9',
-                }}
-              />
+            <div className="image-container" aria-hidden="true">
+              <div className="skeleton" style={{ width: '100%', aspectRatio: '16 / 9' }} />
             </div>
             <div
               className="skeleton"
-              style={{
-                width: '80%',
-                minHeight: '32px',
-                margin: '0.5rem 0',
-              }}
+              style={{ width: '80%', minHeight: '32px', margin: '0.5rem 0' }}
               aria-hidden="true"
             />
-            <div
-              className="meta-info"
-              aria-hidden="true"
-            >
+            <div className="meta-info" aria-hidden="true">
               <div className="skeleton" style={{ width: '100px', minHeight: '16px' }} />
               <div className="skeleton" style={{ width: '100px', minHeight: '16px' }} />
               <div className="skeleton" style={{ width: '100px', minHeight: '16px' }} />
@@ -177,21 +164,21 @@ const PriorityContent = memo(({ post, readTime }) => {
             {post.titleImage && (
               <div className="image-container">
                 <img
-                  src={`${post.titleImage}?w=${window.innerWidth <= 768 ? 200 : 480}&format=avif&q=10`}
+                  src={`${post.titleImage}?w=${window.innerWidth <= 768 ? 120 : 480}&format=avif&q=5`}
                   srcSet={`
-                    ${post.titleImage}?w=120&format=avif&q=10 120w,
-                    ${post.titleImage}?w=160&format=avif&q=10 160w,
-                    ${post.titleImage}?w=200&format=avif&q=10 200w,
-                    ${post.titleImage}?w=240&format=avif&q=10 240w,
-                    ${post.titleImage}?w=280&format=avif&q=10 280w,
-                    ${post.titleImage}?w=320&format=avif&q=10 320w,
-                    ${post.titleImage}?w=480&format=avif&q=10 480w
+                    ${post.titleImage}?w=80&format=avif&q=5 80w,
+                    ${post.titleImage}?w=100&format=avif&q=5 100w,
+                    ${post.titleImage}?w=120&format=avif&q=5 120w,
+                    ${post.titleImage}?w=160&format=avif&q=5 160w,
+                    ${post.titleImage}?w=200&format=avif&q=5 200w,
+                    ${post.titleImage}?w=240&format=avif&q=5 240w,
+                    ${post.titleImage}?w=480&format=avif&q=5 480w
                   `}
-                  sizes="(max-width: 320px) 120px, (max-width: 360px) 160px, (max-width: 480px) 200px, (max-width: 768px) 240px, 480px"
+                  sizes="(max-width: 320px) 80px, (max-width: 360px) 100px, (max-width: 480px) 120px, (max-width: 768px) 160px, 480px"
                   alt={post.title || 'Post image'}
                   className="post-image"
-                  width={window.innerWidth <= 768 ? 200 : 480}
-                  height={window.innerWidth <= 768 ? 112.5 : 270}
+                  width={window.innerWidth <= 768 ? 120 : 480}
+                  height={window.innerWidth <= 768 ? 67.5 : 270}
                   decoding="sync"
                   loading="eager"
                   fetchpriority="high"
@@ -229,6 +216,8 @@ const PriorityContent = memo(({ post, readTime }) => {
           style={{
             width: '100%',
             maxWidth: '800px',
+            minHeight: `${contentHeight}px`,
+            containIntrinsicSize: `100% ${contentHeight}px`,
           }}
         >
           {isLoading ? (
@@ -236,8 +225,7 @@ const PriorityContent = memo(({ post, readTime }) => {
               className="skeleton"
               style={{
                 width: '100%',
-                minHeight: '150px',
-                aspectRatio: '16 / 9',
+                minHeight: `${contentHeight}px`,
               }}
               aria-hidden="true"
             />
@@ -246,6 +234,8 @@ const PriorityContent = memo(({ post, readTime }) => {
               style={{
                 contain: 'layout',
                 width: '100%',
+                minHeight: `${contentHeight}px`,
+                containIntrinsicSize: `100% ${contentHeight}px`,
               }}
               dangerouslySetInnerHTML={{ __html: post.preRenderedContent || '' }}
             />
