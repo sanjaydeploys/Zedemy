@@ -21,6 +21,7 @@ const SubtitleHeader = styled.h2`
   min-height: 32px;
   contain-intrinsic-size: 100% 32px;
   box-sizing: border-box;
+  font-display: swap;
   contain: layout;
 `;
 
@@ -40,6 +41,7 @@ const CompleteButton = styled.button`
   min-height: 36px;
   contain-intrinsic-size: 48px 36px;
   z-index: 1000;
+  font-display: swap;
   &:disabled {
     background: #95a5a6;
     cursor: not-allowed;
@@ -61,26 +63,27 @@ const CompleteButton = styled.button`
 `;
 
 const ImageContainer = styled.figure`
-  width: 100%;
-  max-width: 280px;
+  width: clamp(200px, 90vw, 280px);
+  max-width: 100%;
   margin: 1rem 0 1.5rem;
   aspect-ratio: 16 / 9;
   min-height: 209.5px;
   contain-intrinsic-size: 280px 209.5px;
   box-sizing: border-box;
+  padding: 0.5rem;
   contain: layout;
   @media (min-width: 769px) {
-    max-width: 480px;
+    width: clamp(320px, 60vw, 480px);
     min-height: 322px;
     contain-intrinsic-size: 480px 322px;
   }
   @media (max-width: 480px) {
-    max-width: 240px;
+    width: clamp(180px, 90vw, 240px);
     min-height: 187px;
     contain-intrinsic-size: 240px 187px;
   }
   @media (max-width: 320px) {
-    max-width: 200px;
+    width: clamp(160px, 90vw, 200px);
     min-height: 164.5px;
     contain-intrinsic-size: 200px 164.5px;
   }
@@ -88,48 +91,36 @@ const ImageContainer = styled.figure`
 
 const PostImage = styled.img`
   width: 100%;
-  max-width: 280px;
-  height: 157.5px;
+  height: auto;
   aspect-ratio: 16 / 9;
   object-fit: contain;
   border-radius: 0.375rem;
   box-sizing: border-box;
   contain: layout;
-  @media (min-width: 769px) {
-    max-width: 480px;
-    height: 270px;
-  }
-  @media (max-width: 480px) {
-    max-width: 240px;
-    height: 135px;
-  }
-  @media (max-width: 320px) {
-    max-width: 200px;
-    height: 112.5px;
-  }
 `;
 
 const VideoContainer = styled.figure`
-  width: 100%;
-  max-width: 280px;
+  width: clamp(200px, 90vw, 280px);
+  max-width: 100%;
   margin: 1rem 0 1.5rem;
   aspect-ratio: 16 / 9;
   min-height: 209.5px;
   contain-intrinsic-size: 280px 209.5px;
   box-sizing: border-box;
+  padding: 0.5rem;
   contain: layout;
   @media (min-width: 769px) {
-    max-width: 480px;
+    width: clamp(320px, 60vw, 480px);
     min-height: 322px;
     contain-intrinsic-size: 480px 322px;
   }
   @media (max-width: 480px) {
-    max-width: 240px;
+    width: clamp(180px, 90vw, 240px);
     min-height: 187px;
     contain-intrinsic-size: 240px 187px;
   }
   @media (max-width: 320px) {
-    max-width: 200px;
+    width: clamp(160px, 90vw, 200px);
     min-height: 164.5px;
     contain-intrinsic-size: 200px 164.5px;
   }
@@ -137,54 +128,37 @@ const VideoContainer = styled.figure`
 
 const PostVideo = styled.video`
   width: 100%;
-  max-width: 280px;
-  height: 157.5px;
+  height: auto;
   aspect-ratio: 16 / 9;
   border-radius: 0.375rem;
   box-sizing: border-box;
   contain: layout;
-  @media (min-width: 769px) {
-    max-width: 480px;
-    height: 270px;
-  }
-  @media (max-width: 480px) {
-    max-width: 240px;
-    height: 135px;
-  }
-  @media (max-width: 320px) {
-    max-width: 200px;
-    height: 112.5px;
-  }
 `;
 
 const Placeholder = styled.div`
-  width: 100%;
-  max-width: 280px;
+  width: clamp(200px, 90vw, 280px);
+  max-width: 100%;
   aspect-ratio: 16 / 9;
   min-height: 209.5px;
   background: #e0e0e0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
   border-radius: 0.375rem;
-  font-size: 0.875rem;
   contain-intrinsic-size: 280px 209.5px;
   box-sizing: border-box;
+  padding: 0.5rem;
   contain: layout;
   margin: 1rem 0 1.5rem;
   @media (min-width: 769px) {
-    max-width: 480px;
+    width: clamp(320px, 60vw, 480px);
     min-height: 322px;
     contain-intrinsic-size: 480px 322px;
   }
   @media (max-width: 480px) {
-    max-width: 240px;
+    width: clamp(180px, 90vw, 240px);
     min-height: 187px;
     contain-intrinsic-size: 240px 187px;
   }
   @media (max-width: 320px) {
-    max-width: 200px;
+    width: clamp(160px, 90vw, 200px);
     min-height: 164.5px;
     contain-intrinsic-size: 200px 164.5px;
   }
@@ -194,12 +168,7 @@ const SectionPlaceholder = styled.div`
   width: 100%;
   min-height: 200px;
   background: #e0e0e0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
   border-radius: 0.375rem;
-  font-size: 0.875rem;
   contain-intrinsic-size: 100% 200px;
   box-sizing: border-box;
   contain: layout;
@@ -214,6 +183,7 @@ const ReferencesSection = styled.section`
   min-height: 150px;
   contain-intrinsic-size: 100% 150px;
   box-sizing: border-box;
+  font-display: swap;
   contain: layout;
 `;
 
@@ -228,6 +198,7 @@ const ReferenceLink = styled.a`
   min-height: 24px;
   contain-intrinsic-size: 100% 24px;
   box-sizing: border-box;
+  font-display: swap;
   contain: layout;
   &:hover {
     text-decoration: underline;
@@ -249,6 +220,7 @@ const NavigationLinks = styled.nav`
   min-height: 44px;
   contain-intrinsic-size: 100% 44px;
   box-sizing: border-box;
+  font-display: swap;
   contain: layout;
   & a {
     display: inline-flex;
@@ -269,8 +241,8 @@ const RelatedPostsSection = styled.section`
 `;
 
 const SkeletonRelatedPost = styled.div`
-  width: 100%;
-  max-width: 280px;
+  width: clamp(200px, 90vw, 280px);
+  max-width: 100%;
   margin: 0.5rem 0;
   display: flex;
   flex-direction: column;
@@ -280,45 +252,46 @@ const SkeletonRelatedPost = styled.div`
   box-sizing: border-box;
   contain: layout;
   @media (min-width: 769px) {
-    max-width: 480px;
+    width: clamp(320px, 60vw, 480px);
     min-height: 380px;
     contain-intrinsic-size: 480px 380px;
   }
   @media (max-width: 480px) {
-    max-width: 240px;
+    width: clamp(180px, 90vw, 240px);
     min-height: 230px;
     contain-intrinsic-size: 240px 230px;
   }
   @media (max-width: 320px) {
-    max-width: 200px;
+    width: clamp(160px, 90vw, 200px);
     min-height: 200px;
     contain-intrinsic-size: 200px 200px;
   }
 `;
 
 const SkeletonImage = styled.div`
-  width: 100%;
-  max-width: 280px;
+  width: clamp(200px, 90vw, 280px);
+  max-width: 100%;
   aspect-ratio: 16 / 9;
   min-height: 209.5px;
   background: #e0e0e0;
   border-radius: 0.375rem;
   contain-intrinsic-size: 280px 209.5px;
   box-sizing: border-box;
+  padding: 0.5rem;
   contain: layout;
   margin: 1rem 0 1.5rem;
   @media (min-width: 769px) {
-    max-width: 480px;
+    width: clamp(320px, 60vw, 480px);
     min-height: 322px;
     contain-intrinsic-size: 480px 322px;
   }
   @media (max-width: 480px) {
-    max-width: 240px;
+    width: clamp(180px, 90vw, 240px);
     min-height: 187px;
     contain-intrinsic-size: 240px 187px;
   }
   @media (max-width: 320px) {
-    max-width: 200px;
+    width: clamp(160px, 90vw, 200px);
     min-height: 164.5px;
     contain-intrinsic-size: 200px 164.5px;
   }
@@ -382,22 +355,10 @@ const SkeletonBulletPoint = styled.div`
 
 const SkeletonSubtitleSection = styled.div`
   width: 100%;
-  min-height: 347.5px;
-  contain-intrinsic-size: 100% 347.5px;
+  min-height: ${(props) => props.minHeight || '347.5px'};
+  contain-intrinsic-size: 100% ${(props) => props.minHeight || '347.5px'};
   box-sizing: border-box;
   contain: layout;
-  @media (min-width: 769px) {
-    min-height: 460px;
-    contain-intrinsic-size: 100% 460px;
-  }
-  @media (max-width: 480px) {
-    min-height: 305px;
-    contain-intrinsic-size: 100% 305px;
-  }
-  @media (max-width: 320px) {
-    min-height: 282.5px;
-    contain-intrinsic-size: 100% 282.5px;
-  }
 `;
 
 const SkeletonSummary = styled.div`
@@ -486,7 +447,7 @@ const SkeletonRelatedPosts = () => (
   </SkeletonRelatedPostsContainer>
 );
 
-const SubtitleSection = memo(({ subtitle, index, category }) => {
+const SubtitleSection = memo(({ subtitle, index, category, bulletCount }) => {
   const parsedTitle = React.useMemo(() => parseLinks(subtitle.title || '', category, false), [subtitle.title, category]);
   const parsedBulletPoints = React.useMemo(
     () =>
@@ -501,7 +462,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
 
   const calculateSubtitleHeight = () => {
     const headerHeight = 32; // SubtitleHeader
-    const margin = 16; // margin-bottom: 0.75rem
+    const margin = 24; // margin: 1.5rem 0 0.75rem
     const listPadding = 20; // padding-left: 1.25rem
     const bulletHeight = parsedBulletPoints.length * (30 + 8); // 30px per bullet + 8px margin-bottom
     const mediaHeight = subtitle.image || subtitle.video
@@ -605,6 +566,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
             boxSizing: 'border-box',
             minHeight: `${parsedBulletPoints.length * 38 + parsedBulletPoints.reduce((acc, point) => acc + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 40 : point.codeSnippet ? 100 : 0), 0)}px`,
             containIntrinsicSize: `100% ${parsedBulletPoints.length * 38 + parsedBulletPoints.reduce((acc, point) => acc + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 40 : point.codeSnippet ? 100 : 0), 0)}px`,
+            fontDisplay: 'swap',
             contain: 'layout',
           }}
         >
@@ -616,13 +578,14 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                 minHeight: `${30 + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 40 : point.codeSnippet ? 100 : 0)}px`,
                 containIntrinsicSize: `100% ${30 + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 40 : point.codeSnippet ? 100 : 0)}px`,
                 boxSizing: 'border-box',
+                fontDisplay: 'swap',
               }}
             >
               <span>{point.text}</span>
               {point.image && (
                 <ImageContainer>
-                  <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
-                    <AccessibleZoom caption={`Example for ${point.text || ''}`}>
+                  <Suspense fallback={<Placeholder />}>
+                    <AccessibleZoom >
                       <PostImage
                         src={`${point.image}?w=${window.innerWidth <= 768 ? 280 : 480}&format=avif&q=15`}
                         srcSet={`
@@ -664,7 +627,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                 </VideoContainer>
               )}
               {point.codeSnippet && (
-                <Suspense fallback={<Placeholder minHeight="100px">Loading code...</Placeholder>}>
+                <Suspense fallback={<Placeholder minHeight="100px" />}>
                   <CodeHighlighter
                     code={point.codeSnippet}
                     language={point.language || 'javascript'}
@@ -687,8 +650,8 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
   );
 });
 
-const FirstSubtitleSkeleton = ({ bulletCount = 3 }) => (
-  <SkeletonSubtitleSection aria-hidden="true">
+const FirstSubtitleSkeleton = ({ bulletCount = 3, hasMedia = false }) => (
+  <SkeletonSubtitleSection minHeight={`${32 + 24 + (hasMedia ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 40 : 0) + 20 + bulletCount * 38}px`} aria-hidden="true">
     <div
       style={{
         width: '100%',
@@ -699,7 +662,7 @@ const FirstSubtitleSkeleton = ({ bulletCount = 3 }) => (
         marginBottom: '0.75rem',
       }}
     />
-    <Placeholder />
+    {hasMedia && <Placeholder />}
     <ul
       style={{
         paddingLeft: '1.25rem',
@@ -716,9 +679,40 @@ const FirstSubtitleSkeleton = ({ bulletCount = 3 }) => (
   </SkeletonSubtitleSection>
 );
 
-const LazySubtitleSection = memo(({ subtitle, index, category }) => (
-  <Suspense fallback={<SkeletonSubtitleSection>Loading section...</SkeletonSubtitleSection>}>
-    <SubtitleSection subtitle={subtitle} index={index} category={category} />
+const LazySubtitleSection = memo(({ subtitle, index, category, bulletCount, hasMedia }) => (
+  <Suspense
+    fallback={
+      <SkeletonSubtitleSection
+        minHeight={`${32 + 24 + (hasMedia ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 40 : 0) + 20 + bulletCount * 38}px`}
+      >
+        <div
+          style={{
+            width: '100%',
+            minHeight: '32px',
+            background: '#e0e0e0',
+            borderRadius: '0.25rem',
+            containIntrinsicSize: '100% 32px',
+            marginBottom: '0.75rem',
+          }}
+        />
+        {hasMedia && <Placeholder />}
+        <ul
+          style={{
+            paddingLeft: '1.25rem',
+            boxSizing: 'border-box',
+            minHeight: `${bulletCount * 38}px`,
+            containIntrinsicSize: `100% ${bulletCount * 38}px`,
+            contain: 'layout',
+          }}
+        >
+          {Array.from({ length: bulletCount }).map((_, j) => (
+            <SkeletonBulletPoint key={j} />
+          ))}
+        </ul>
+      </SkeletonSubtitleSection>
+    }
+  >
+    <SubtitleSection subtitle={subtitle} index={index} category={category} bulletCount={bulletCount} />
   </Suspense>
 ));
 
@@ -823,7 +817,7 @@ const PostContentNonCritical = memo(
     const calculateWrapperHeight = () => {
       const subtitleHeight = (post.subtitles || []).reduce((acc, subtitle) => {
         const headerHeight = 32;
-        const margin = 16;
+        const margin = 24;
         const listPadding = 20;
         const bulletHeight = (subtitle.bulletPoints || []).length * (30 + 8);
         const mediaHeight = subtitle.image || subtitle.video
@@ -863,6 +857,44 @@ const PostContentNonCritical = memo(
       return subtitleHeight + hasSummary + hasSuperTitles + navigationHeight + relatedPostsHeight + referencesHeight;
     };
 
+    const firstSubtitleHeight = (post.subtitles || []).length > 0
+      ? (() => {
+          const subtitle = post.subtitles[0];
+          const headerHeight = 32;
+          const margin = 24;
+          const listPadding = 20;
+          const bulletHeight = (subtitle.bulletPoints || []).length * (30 + 8);
+          const mediaHeight = subtitle.image || subtitle.video
+            ? window.innerWidth <= 320
+              ? 164.5
+              : window.innerWidth <= 480
+              ? 187
+              : window.innerWidth <= 768
+              ? 209.5
+              : 322
+            : 0;
+          const mediaMargin = subtitle.image || subtitle.video ? 40 : 0;
+          const pointMediaHeight = (subtitle.bulletPoints || []).reduce((acc, point) => {
+            return acc + (point.image || point.video
+              ? window.innerWidth <= 320
+                ? 164.5
+                : window.innerWidth <= 480
+                ? 187
+                : window.innerWidth <= 768
+                ? 209.5
+                : 322
+              : 0);
+          }, 0);
+          const pointMediaMargin = (subtitle.bulletPoints || []).reduce((acc, point) => {
+            return acc + (point.image || point.video ? 40 : 0);
+          }, 0);
+          const codeSnippetHeight = (subtitle.bulletPoints || []).reduce((acc, point) => {
+            return acc + (point.codeSnippet ? 100 : 0);
+          }, 0);
+          return headerHeight + margin + listPadding + bulletHeight + mediaHeight + mediaMargin + pointMediaHeight + pointMediaMargin + codeSnippetHeight;
+        })()
+      : 0;
+
     return (
       <div
         style={{
@@ -878,6 +910,7 @@ const PostContentNonCritical = memo(
             subtitle={post.subtitles[0]}
             index={0}
             category={post.category || ''}
+            bulletCount={(post.subtitles[0].bulletPoints || []).length}
           />
         )}
         <Suspense
@@ -885,48 +918,24 @@ const PostContentNonCritical = memo(
             <div
               style={{
                 width: '100%',
-                minHeight: `${calculateWrapperHeight() - ((post.subtitles || []).length > 0 ? (post.subtitles[0].bulletPoints || []).reduce((acc, point) => {
-                  return acc + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 40 : point.codeSnippet ? 100 : 0);
-                }, (post.subtitles[0].image || post.subtitles[0].video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 40 : 0) + (post.subtitles[0].bulletPoints || []).length * 38 + 32 + 20 + 16) : 0)}px`,
-                containIntrinsicSize: `100% ${calculateWrapperHeight() - ((post.subtitles || []).length > 0 ? (post.subtitles[0].bulletPoints || []).reduce((acc, point) => {
-                  return acc + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 40 : point.codeSnippet ? 100 : 0);
-                }, (post.subtitles[0].image || post.subtitles[0].video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 40 : 0) + (post.subtitles[0].bulletPoints || []).length * 38 + 32 + 20 + 16) : 0)}px`,
+                minHeight: `${calculateWrapperHeight() - firstSubtitleHeight}px`,
+                containIntrinsicSize: `100% ${calculateWrapperHeight() - firstSubtitleHeight}px`,
                 boxSizing: 'border-box',
                 contain: 'layout',
               }}
             >
               {(post.subtitles || []).slice(1).map((subtitle, i) => (
-                <SkeletonSubtitleSection key={i}>
-                  <div
-                    style={{
-                      width: '100%',
-                      minHeight: '32px',
-                      background: '#e0e0e0',
-                      borderRadius: '0.25rem',
-                      containIntrinsicSize: '100% 32px',
-                      marginBottom: '0.75rem',
-                    }}
-                  />
-                  {(subtitle.image || subtitle.video) && <Placeholder />}
-                  <ul
-                    style={{
-                      paddingLeft: '1.25rem',
-                      boxSizing: 'border-box',
-                      minHeight: `${(subtitle.bulletPoints || []).length * 38}px`,
-                      containIntrinsicSize: `100% ${(subtitle.bulletPoints || []).length * 38}px`,
-                      contain: 'layout',
-                    }}
-                  >
-                    {(subtitle.bulletPoints || []).map((_, j) => (
-                      <SkeletonBulletPoint key={j} />
-                    ))}
-                  </ul>
-                </SkeletonSubtitleSection>
+                <LazySubtitleSection
+                  key={i + 1}
+                  subtitle={subtitle}
+                  index={i + 1}
+                  category={post.category || ''}
+                  bulletCount={(subtitle.bulletPoints || []).length}
+                  hasMedia={!!(subtitle.image || subtitle.video)}
+                />
               ))}
               {post.superTitles?.length > 0 && (
-                <SectionPlaceholder minHeight="200px">
-                  Loading comparison...
-                </SectionPlaceholder>
+                <SectionPlaceholder minHeight="200px" />
               )}
               {post.summary && <SkeletonSummary />}
               <SkeletonNavigationLinks>
@@ -949,6 +958,8 @@ const PostContentNonCritical = memo(
               subtitle={subtitle}
               index={i + 1}
               category={post.category || ''}
+              bulletCount={(subtitle.bulletPoints || []).length}
+              hasMedia={!!(subtitle.image || subtitle.video)}
             />
           ))}
           {post.superTitles?.length > 0 && (
@@ -986,6 +997,7 @@ const PostContentNonCritical = memo(
                   boxSizing: 'border-box',
                   minHeight: '90px',
                   containIntrinsicSize: '100% 90px',
+                  fontDisplay: 'swap',
                   contain: 'layout',
                 }}
               >
