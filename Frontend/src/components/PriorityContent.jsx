@@ -1,4 +1,4 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo } from 'react';
 
 const criticalCss = `
   * {
@@ -17,6 +17,8 @@ const criticalCss = `
     line-height: 1.2;
     text-rendering: optimizeSpeed;
     contain: layout;
+    min-height: 32px;
+    contain-intrinsic-size: 100% 32px;
   }
   .content-section {
     font-size: 0.875rem;
@@ -24,6 +26,7 @@ const criticalCss = `
     width: 100%;
     margin-bottom: 1rem;
     contain: layout;
+    contain-intrinsic-size: 100% 150px;
   }
   .content-section p, .content-section ul, .content-section li, .content-section div {
     margin-bottom: 0.5rem;
@@ -49,6 +52,8 @@ const criticalCss = `
     margin: 1rem 0 1.5rem;
     aspect-ratio: 16 / 9;
     contain: layout;
+    min-height: 164.5px;
+    contain-intrinsic-size: 100% 164.5px;
   }
   .post-image {
     width: 100%;
@@ -67,6 +72,8 @@ const criticalCss = `
     flex-direction: column;
     gap: 0.5rem;
     contain: layout;
+    min-height: 60px;
+    contain-intrinsic-size: 100% 60px;
   }
   .meta-info span {
     min-height: 16px;
@@ -84,77 +91,33 @@ const criticalCss = `
     .meta-info {
       flex-direction: row;
       gap: 1rem;
+      min-height: 24px;
+      contain-intrinsic-size: 100% 24px;
+    }
+    .image-container {
+      min-height: 322px;
+      contain-intrinsic-size: 100% 322px;
     }
   }
   @media (max-width: 480px) {
     .post-header {
       font-size: clamp(1.25rem, 3vw, 1.5rem);
     }
+    .image-container {
+      min-height: 187px;
+      contain-intrinsic-size: 100% 187px;
+    }
+  }
+  @media (max-width: 320px) {
+    .image-container {
+      min-height: 164.5px;
+      contain-intrinsic-size: 100% 164.5px;
+    }
   }
 `;
 
 const PriorityContent = memo(({ post, readTime }) => {
   console.log('[PriorityContent] Rendering with post:', post);
-
-  const calculateHeights = useMemo(() => {
-    const imageHeight = post?.titleImage
-      ? window.innerWidth <= 320
-        ? 164.5
-        : window.innerWidth <= 480
-        ? 187
-        : window.innerWidth <= 768
-        ? 209.5
-        : 322
-      : 0;
-    const imageMargin = post?.titleImage ? 40 : 0; // margin: 1rem 0 1.5rem
-    const titleHeight = post?.title
-      ? Math.ceil((post.title.length / 40) * (window.innerWidth <= 480 ? 24 : window.innerWidth <= 768 ? 30 : 48))
-      : window.innerWidth <= 480
-      ? 24
-      : 32;
-    const metaHeight = window.innerWidth <= 768
-      ? Math.max(
-          60,
-          (3 * 16) + (2 * 8) +
-          (post?.author && post.author.length > 30 ? 16 : 0) +
-          (post?.date && post.date.length > 20 ? 16 : 0)
-        )
-      : Math.max(
-          24,
-          (post?.author && post.author.length > 30 ? 16 : 0) +
-          (post?.date && post.date.length > 20 ? 16 : 0)
-        );
-    const contentHeight = post?.preRenderedContent
-      ? (() => {
-          if (post.estimatedContentHeight && post.estimatedContentHeight >= 150) {
-            return post.estimatedContentHeight;
-          }
-          const div = document.createElement('div');
-          div.innerHTML = post.preRenderedContent;
-          const paragraphs = div.querySelectorAll('p').length || 1;
-          const lists = div.querySelectorAll('ul, ol').length;
-          const listItems = div.querySelectorAll('li').length;
-          const headings = div.querySelectorAll('h1, h2, h3, h4, h5, h6').length;
-          const images = div.querySelectorAll('img').length;
-          const divs = div.querySelectorAll('div').length;
-          const textLength = div.textContent.length || 0;
-          const baseHeight = paragraphs * 50 + lists * 100 + listItems * 30 + headings * 40 + images * 200 + divs * 50 + Math.ceil(textLength / 100) * 20;
-          return Math.max(150, Math.min(2000, baseHeight));
-        })()
-      : 150;
-    const contentMargin = 16; // margin-bottom: 1rem
-    const totalHeight = imageHeight + imageMargin + titleHeight + metaHeight + contentHeight + contentMargin;
-
-    return {
-      imageHeight,
-      imageMargin,
-      titleHeight,
-      metaHeight,
-      contentHeight,
-      contentMargin,
-      totalHeight,
-    };
-  }, [post]);
 
   const isLoading = !post || post.title === 'Loading...';
 
@@ -163,7 +126,7 @@ const PriorityContent = memo(({ post, readTime }) => {
       {post?.titleImage && !isLoading && (
         <link
           rel="preload"
-          href={`${post.titleImage}?w=${window.innerWidth <= 768 ? 260 : 480}&format=avif&q=15`}
+          href={`${post.titleImage}?w=${window.innerWidth <= 768 ? 200 : 480}&format=avif&q=10`}
           as="image"
           fetchpriority="high"
         />
@@ -172,8 +135,6 @@ const PriorityContent = memo(({ post, readTime }) => {
         style={{
           contain: 'layout',
           width: '100%',
-          minHeight: `${calculateHeights.totalHeight}px`,
-          containIntrinsicSize: `100% ${calculateHeights.totalHeight}px`,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -183,17 +144,13 @@ const PriorityContent = memo(({ post, readTime }) => {
           <header style={{ width: '100%', maxWidth: '800px' }}>
             <div
               className="image-container"
-              style={{
-                minHeight: `${calculateHeights.imageHeight}px`,
-                containIntrinsicSize: `100% ${calculateHeights.imageHeight}px`,
-              }}
               aria-hidden="true"
             >
               <div
                 className="skeleton"
                 style={{
                   width: '100%',
-                  minHeight: `${calculateHeights.imageHeight}px`,
+                  aspectRatio: '16 / 9',
                 }}
               />
             </div>
@@ -201,63 +158,40 @@ const PriorityContent = memo(({ post, readTime }) => {
               className="skeleton"
               style={{
                 width: '80%',
-                minHeight: `${calculateHeights.titleHeight}px`,
+                minHeight: '32px',
                 margin: '0.5rem 0',
               }}
               aria-hidden="true"
             />
             <div
               className="meta-info"
-              style={{
-                minHeight: `${calculateHeights.metaHeight}px`,
-                containIntrinsicSize: `100% ${calculateHeights.metaHeight}px`,
-              }}
               aria-hidden="true"
             >
-              <div
-                className="skeleton"
-                style={{
-                  width: `${Math.max(100, (post?.author?.length || 10) * 5)}px`,
-                  minHeight: '16px',
-                }}
-              />
-              <div
-                className="skeleton"
-                style={{
-                  width: `${Math.max(100, (post?.date?.length || 15) * 5)}px`,
-                  minHeight: '16px',
-                }}
-              />
+              <div className="skeleton" style={{ width: '100px', minHeight: '16px' }} />
+              <div className="skeleton" style={{ width: '100px', minHeight: '16px' }} />
               <div className="skeleton" style={{ width: '100px', minHeight: '16px' }} />
             </div>
           </header>
         ) : (
           <header style={{ width: '100%', maxWidth: '800px' }}>
             {post.titleImage && (
-              <div
-                className="image-container"
-                style={{
-                  minHeight: `${calculateHeights.imageHeight}px`,
-                  containIntrinsicSize: `100% ${calculateHeights.imageHeight}px`,
-                }}
-              >
+              <div className="image-container">
                 <img
-                  src={`${post.titleImage}?w=${window.innerWidth <= 768 ? 260 : 480}&format=avif&q=15`}
+                  src={`${post.titleImage}?w=${window.innerWidth <= 768 ? 200 : 480}&format=avif&q=10`}
                   srcSet={`
-                    ${post.titleImage}?w=180&format=avif&q=15 180w,
-                    ${post.titleImage}?w=220&format=avif&q=15 220w,
-                    ${post.titleImage}?w=260&format=avif&q=15 260w,
-                    ${post.titleImage}?w=300&format=avif&q=15 300w,
-                    ${post.titleImage}?w=360&format=avif&q=15 360w,
-                    ${post.titleImage}?w=400&format=avif&q=15 400w,
-                    ${post.titleImage}?w=420&format=avif&q=15 420w,
-                    ${post.titleImage}?w=480&format=avif&q=15 480w
+                    ${post.titleImage}?w=120&format=avif&q=10 120w,
+                    ${post.titleImage}?w=160&format=avif&q=10 160w,
+                    ${post.titleImage}?w=200&format=avif&q=10 200w,
+                    ${post.titleImage}?w=240&format=avif&q=10 240w,
+                    ${post.titleImage}?w=280&format=avif&q=10 280w,
+                    ${post.titleImage}?w=320&format=avif&q=10 320w,
+                    ${post.titleImage}?w=480&format=avif&q=10 480w
                   `}
-                  sizes="(max-width: 320px) 180px, (max-width: 360px) 220px, (max-width: 480px) 260px, (max-width: 768px) 300px, 480px"
+                  sizes="(max-width: 320px) 120px, (max-width: 360px) 160px, (max-width: 480px) 200px, (max-width: 768px) 240px, 480px"
                   alt={post.title || 'Post image'}
                   className="post-image"
-                  width={window.innerWidth <= 768 ? 260 : 480}
-                  height={calculateHeights.imageHeight}
+                  width={window.innerWidth <= 768 ? 200 : 480}
+                  height={window.innerWidth <= 768 ? 112.5 : 270}
                   decoding="sync"
                   loading="eager"
                   fetchpriority="high"
@@ -268,22 +202,8 @@ const PriorityContent = memo(({ post, readTime }) => {
                 />
               </div>
             )}
-            <h1
-              className="post-header"
-              style={{
-                minHeight: `${calculateHeights.titleHeight}px`,
-                containIntrinsicSize: `100% ${calculateHeights.titleHeight}px`,
-              }}
-            >
-              {post.title}
-            </h1>
-            <div
-              className="meta-info"
-              style={{
-                minHeight: `${calculateHeights.metaHeight}px`,
-                containIntrinsicSize: `100% ${calculateHeights.metaHeight}px`,
-              }}
-            >
+            <h1 className="post-header">{post.title}</h1>
+            <div className="meta-info">
               <span>By {post.author || 'Unknown'}</span>
               <span>
                 {' | '}
@@ -307,8 +227,6 @@ const PriorityContent = memo(({ post, readTime }) => {
           role="region"
           aria-label="Post content"
           style={{
-            minHeight: `${calculateHeights.contentHeight}px`,
-            containIntrinsicSize: `100% ${calculateHeights.contentHeight}px`,
             width: '100%',
             maxWidth: '800px',
           }}
@@ -318,8 +236,8 @@ const PriorityContent = memo(({ post, readTime }) => {
               className="skeleton"
               style={{
                 width: '100%',
-                minHeight: `${calculateHeights.contentHeight}px`,
-                containIntrinsicSize: `100% ${calculateHeights.contentHeight}px`,
+                minHeight: '150px',
+                aspectRatio: '16 / 9',
               }}
               aria-hidden="true"
             />
@@ -327,8 +245,7 @@ const PriorityContent = memo(({ post, readTime }) => {
             <div
               style={{
                 contain: 'layout',
-                minHeight: `${calculateHeights.contentHeight}px`,
-                containIntrinsicSize: `100% ${calculateHeights.contentHeight}px`,
+                width: '100%',
               }}
               dangerouslySetInnerHTML={{ __html: post.preRenderedContent || '' }}
             />
