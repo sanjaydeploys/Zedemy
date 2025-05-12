@@ -73,12 +73,8 @@ const ImageContainer = styled.figure`
   aspect-ratio: 16 / 9;
   min-height: 157.5px;
   contain-intrinsic-size: 280px 157.5px;
-  background: #e0e0e0;
   box-sizing: border-box;
   contain: layout;
-  &.image-loaded {
-    background: none;
-  }
   @media (min-width: 769px) {
     max-width: 480px;
     min-height: 270px;
@@ -99,7 +95,7 @@ const ImageContainer = styled.figure`
 const PostImage = styled.img`
   width: 100%;
   max-width: 280px;
-  height: auto;
+  height: 157.5px;
   aspect-ratio: 16 / 9;
   object-fit: contain;
   border-radius: 0.375rem;
@@ -107,12 +103,15 @@ const PostImage = styled.img`
   contain: layout;
   @media (min-width: 769px) {
     max-width: 480px;
+    height: 270px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
+    height: 135px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
+    height: 112.5px;
   }
 `;
 
@@ -145,19 +144,22 @@ const VideoContainer = styled.figure`
 const PostVideo = styled.video`
   width: 100%;
   max-width: 280px;
-  height: auto;
+  height: 157.5px;
   aspect-ratio: 16 / 9;
   border-radius: 0.375rem;
   box-sizing: border-box;
   contain: layout;
   @media (min-width: 769px) {
     max-width: 480px;
+    height: 270px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
+    height: 135px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
+    height: 112.5px;
   }
 `;
 
@@ -390,10 +392,22 @@ const SkeletonBulletPoint = styled.div`
 
 const SkeletonSubtitleSection = styled.div`
   width: 100%;
-  min-height: 200px;
-  contain-intrinsic-size: 100% 200px;
+  min-height: 347.5px;
+  contain-intrinsic-size: 100% 347.5px;
   box-sizing: border-box;
   contain: layout;
+  @media (min-width: 769px) {
+    min-height: 460px;
+    contain-intrinsic-size: 100% 460px;
+  }
+  @media (max-width: 480px) {
+    min-height: 305px;
+    contain-intrinsic-size: 100% 305px;
+  }
+  @media (max-width: 320px) {
+    min-height: 282.5px;
+    contain-intrinsic-size: 100% 282.5px;
+  }
 `;
 
 const SkeletonSummary = styled.div`
@@ -489,50 +503,69 @@ const SkeletonRelatedPosts = () => (
 
 const SubtitleSection = memo(({ subtitle, index, category }) => {
   const parsedTitle = React.useMemo(() => parseLinks(subtitle.title || '', category, false), [subtitle.title, category]);
-  const parsedBulletPoints = React.useMemo(() =>
-    (subtitle.bulletPoints || []).map(point => ({
-      ...point,
-      text: parseLinks(point.text || '', category, false),
-    })), [subtitle.bulletPoints, category]);
-  const [isImageLoaded, setIsImageLoaded] = React.useState(false);
-  const [isPointImageLoaded, setIsPointImageLoaded] = React.useState({});
+  const parsedBulletPoints = React.useMemo(
+    () =>
+      (subtitle.bulletPoints || []).map((point) => ({
+        ...point,
+        text: parseLinks(point.text || '', category, false),
+      })),
+    [subtitle.bulletPoints, category]
+  );
 
   if (!subtitle) return null;
+
+  const calculateSubtitleHeight = () => {
+    const headerHeight = 32; // SubtitleHeader
+    const margin = 16; // margin-bottom: 0.75rem
+    const listPadding = 20; // padding-left: 1.25rem
+    const bulletHeight = parsedBulletPoints.length * (30 + 8); // 30px per bullet + 8px margin-bottom
+    const mediaHeight =
+      subtitle.image || subtitle.video
+        ? window.innerWidth <= 320
+          ? 112.5
+          : window.innerWidth <= 480
+          ? 135
+          : window.innerWidth <= 768
+          ? 157.5
+          : 270
+        : 0;
+    const mediaMargin = subtitle.image || subtitle.video ? 16 : 0; // margin: 1rem
+    return headerHeight + margin + listPadding + bulletHeight + mediaHeight + mediaMargin;
+  };
 
   return (
     <section
       id={`subtitle-${index}`}
       aria-labelledby={`subtitle-${index}-heading`}
-      style={{ boxSizing: 'border-box', minHeight: '200px', containIntrinsicSize: '100% 200px', contain: 'layout' }}
+      style={{
+        boxSizing: 'border-box',
+        minHeight: `${calculateSubtitleHeight()}px`,
+        containIntrinsicSize: `100% ${calculateSubtitleHeight()}px`,
+        contain: 'layout',
+      }}
     >
       <SubtitleHeader id={`subtitle-${index}-heading`}>{parsedTitle}</SubtitleHeader>
       {subtitle.image && (
-        <ImageContainer className={isImageLoaded ? 'image-loaded' : ''}>
-          <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
-            <AccessibleZoom caption={subtitle.title || ''}>
-              <PostImage
-                src={`${subtitle.image}?w=100&format=avif&q=1`}
-                srcSet={`
-                  ${subtitle.image}?w=100&format=avif&q=1 100w,
-                  ${subtitle.image}?w=150&format=avif&q=1 150w,
-                  ${subtitle.image}?w=200&format=avif&q=1 200w,
-                  ${subtitle.image}?w=240&format=avif&q=1 240w,
-                  ${subtitle.image}?w=280&format=avif&q=1 280w,
-                  ${subtitle.image}?w=480&format=avif&q=1 480w
-                `}
-                sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
-                alt={`Illustration for ${subtitle.title || 'section'}`}
-                loading={index === 0 ? 'eager' : 'lazy'}
-                decoding="async"
-                fetchpriority={index === 0 ? 'high' : 'low'}
-                onLoad={() => setIsImageLoaded(true)}
-                onError={() => {
-                  console.error('Subtitle Image Failed:', subtitle.image);
-                  setIsImageLoaded(true);
-                }}
-              />
-            </AccessibleZoom>
-          </Suspense>
+        <ImageContainer>
+          <AccessibleZoom caption={subtitle.title || ''}>
+            <PostImage
+              src={`${subtitle.image}?w=100&format=avif&q=1`}
+              srcSet={`
+                ${subtitle.image}?w=100&format=avif&q=1 100w,
+                ${subtitle.image}?w=150&format=avif&q=1 150w,
+                ${subtitle.image}?w=200&format=avif&q=1 200w,
+                ${subtitle.image}?w=240&format=avif&q=1 240w,
+                ${subtitle.image}?w=280&format=avif&q=1 280w,
+                ${subtitle.image}?w=480&format=avif&q=1 480w
+              `}
+              sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
+              alt={`Illustration for ${subtitle.title || 'section'}`}
+              loading={index === 0 ? 'eager' : 'lazy'}
+              decoding="async"
+              fetchpriority={index === 0 ? 'high' : 'low'}
+              onError={() => console.error('Subtitle Image Failed:', subtitle.image)}
+            />
+          </AccessibleZoom>
         </ImageContainer>
       )}
       {subtitle.video && (
@@ -550,12 +583,30 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
           </PostVideo>
         </VideoContainer>
       )}
-      <ul style={{ paddingLeft: '1.25rem', fontSize: '1.1rem', lineHeight: '1.7', boxSizing: 'border-box', minHeight: '90px', containIntrinsicSize: '100% 90px', contain: 'layout' }}>
+      <ul
+        style={{
+          paddingLeft: '1.25rem',
+          fontSize: '1.1rem',
+          lineHeight: '1.7',
+          boxSizing: 'border-box',
+          minHeight: `${parsedBulletPoints.length * 38}px`,
+          containIntrinsicSize: `100% ${parsedBulletPoints.length * 38}px`,
+          contain: 'layout',
+        }}
+      >
         {parsedBulletPoints.map((point, j) => (
-          <li key={j} style={{ marginBottom: '0.5rem', minHeight: '30px', containIntrinsicSize: '100% 30px', boxSizing: 'border-box' }}>
+          <li
+            key={j}
+            style={{
+              marginBottom: '0.5rem',
+              minHeight: '30px',
+              containIntrinsicSize: '100% 30px',
+              boxSizing: 'border-box',
+            }}
+          >
             <span>{point.text}</span>
             {point.image && (
-              <ImageContainer className={isPointImageLoaded[j] ? 'image-loaded' : ''}>
+              <ImageContainer>
                 <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
                   <AccessibleZoom caption={`Example for ${point.text || ''}`}>
                     <PostImage
@@ -573,11 +624,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                       loading="lazy"
                       decoding="async"
                       fetchpriority="low"
-                      onLoad={() => setIsPointImageLoaded(prev => ({ ...prev, [j]: true }))}
-                      onError={() => {
-                        console.error('Point Image Failed:', point.image);
-                        setIsPointImageLoaded(prev => ({ ...prev, [j]: true }));
-                      }}
+                      onError={() => console.error('Point Image Failed:', point.image)}
                     />
                   </AccessibleZoom>
                 </Suspense>
@@ -623,8 +670,27 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
 
 const FirstSubtitleSkeleton = ({ bulletCount = 3 }) => (
   <SkeletonSubtitleSection aria-hidden="true">
-    <SubtitleHeader />
-    <ul style={{ paddingLeft: '1.25rem', boxSizing: 'border-box', minHeight: '90px', containIntrinsicSize: '100% 90px', contain: 'layout' }}>
+    <div
+      style={{
+        width: '100%',
+        minHeight: '32px',
+        background: '#e0e0e0',
+        borderRadius: '0.25rem',
+        animation: 'pulse 1.5s ease-in-out infinite',
+        containIntrinsicSize: '100% 32px',
+        marginBottom: '0.75rem',
+      }}
+    />
+    <Placeholder />
+    <ul
+      style={{
+        paddingLeft: '1.25rem',
+        boxSizing: 'border-box',
+        minHeight: `${bulletCount * 38}px`,
+        containIntrinsicSize: `100% ${bulletCount * 38}px`,
+        contain: 'layout',
+      }}
+    >
       {Array.from({ length: bulletCount }).map((_, i) => (
         <SkeletonBulletPoint key={i} />
       ))}
@@ -633,7 +699,7 @@ const FirstSubtitleSkeleton = ({ bulletCount = 3 }) => (
 );
 
 const LazySubtitleSection = memo(({ subtitle, index, category }) => (
-  <Suspense fallback={<SectionPlaceholder>Loading section...</SectionPlaceholder>}>
+  <Suspense fallback={<SkeletonSubtitleSection>Loading section...</SkeletonSubtitleSection>}>
     <SubtitleSection subtitle={subtitle} index={index} category={category} />
   </Suspense>
 ));
@@ -653,7 +719,13 @@ const LazyReferencesSection = memo(({ post }) => (
       <SubtitleHeader id="references-heading">Further Reading</SubtitleHeader>
       {post.references?.length > 0 ? (
         post.references.map((ref, i) => (
-          <ReferenceLink key={i} href={ref.url} target="_blank" rel="noopener noreferrer" aria-label={`Visit ${ref.title}`}>
+          <ReferenceLink
+            key={i}
+            href={ref.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Visit ${ref.title}`}
+          >
             {ref.title}
           </ReferenceLink>
         ))
@@ -683,9 +755,12 @@ const LazyReferencesSection = memo(({ post }) => (
 
 const PostContentNonCritical = memo(
   ({ post, relatedPosts, completedPosts, dispatch, isSidebarOpen, setSidebarOpen, activeSection, setActiveSection, subtitlesListRef }) => {
-    const completedPostsSelector = useSelector(state => state.postReducer.completedPosts || []);
-    const isCompleted = completedPostsSelector.some(cp => cp.postId === post.postId);
-    const parsedSummary = React.useMemo(() => parseLinks(post.summary || '', post.category || '', false), [post.summary, post.category]);
+    const completedPostsSelector = useSelector((state) => state.postReducer.completedPosts || []);
+    const isCompleted = completedPostsSelector.some((cp) => cp.postId === post.postId);
+    const parsedSummary = React.useMemo(
+      () => parseLinks(post.summary || '', post.category || '', false),
+      [post.summary, post.category]
+    );
     const subtitleSlugs = React.useMemo(() => {
       if (!post?.subtitles) return {};
       const slugs = {};
@@ -720,50 +795,158 @@ const PostContentNonCritical = memo(
     React.useEffect(() => {
       const hash = window.location.hash.slice(1);
       if (hash) {
-        const sectionId = Object.keys(subtitleSlugs).find(id => subtitleSlugs[id] === hash);
+        const sectionId = Object.keys(subtitleSlugs).find((id) => subtitleSlugs[id] === hash);
         if (sectionId) {
           setTimeout(() => scrollToSection(sectionId, false), 0);
         }
       }
     }, [subtitleSlugs, scrollToSection]);
 
+    const calculateWrapperHeight = () => {
+      const subtitleCount = (post.subtitles || []).length;
+      const hasSummary = post.summary ? 150 : 0;
+      const hasSuperTitles = post.superTitles?.length > 0 ? 200 : 0;
+      const navigationHeight = 44;
+      const relatedPostsHeight = 450;
+      const referencesHeight = 150;
+      const subtitleHeight =
+        window.innerWidth <= 320
+          ? 282.5
+          : window.innerWidth <= 480
+          ? 305
+          : window.innerWidth <= 768
+          ? 347.5
+          : 460;
+      return (
+        subtitleCount * subtitleHeight +
+        hasSummary +
+        hasSuperTitles +
+        navigationHeight +
+        relatedPostsHeight +
+        referencesHeight
+      );
+    };
+
     return (
-      <div style={{ width: '100%', minHeight: '1000px', containIntrinsicSize: '100% 1000px', boxSizing: 'border-box', contain: 'layout' }}>
-        {(post.subtitles || []).map((subtitle, i) => (
-          <LazySubtitleSection key={i} subtitle={subtitle} index={i} category={post.category || ''} />
-        ))}
-
-        {post.superTitles?.length > 0 && (
-          <Suspense fallback={<Placeholder maxWidth="100%" minHeight="200px">Loading comparison...</Placeholder>}>
-            <div style={{ width: '100%', minHeight: '200px', containIntrinsicSize: '100% 200px', boxSizing: 'border-box', contain: 'layout' }}>
-              <ComparisonTable superTitles={post.superTitles} category={post.category || ''} />
-            </div>
-          </Suspense>
+      <div
+        style={{
+          width: '100%',
+          minHeight: `${calculateWrapperHeight()}px`,
+          containIntrinsicSize: `100% ${calculateWrapperHeight()}px`,
+          boxSizing: 'border-box',
+          contain: 'layout',
+        }}
+      >
+        {(post.subtitles || []).length > 0 && (
+          <SubtitleSection
+            subtitle={post.subtitles[0]}
+            index={0}
+            category={post.category || ''}
+          />
         )}
-
-        {post.summary && (
-          <Suspense fallback={<SkeletonSummary />}>
-            <section id="summary" aria-labelledby="summary-heading" style={{ boxSizing: 'border-box', minHeight: '150px', containIntrinsicSize: '100% 150px', contain: 'layout' }}>
+        <Suspense
+          fallback={
+            <div
+              style={{
+                width: '100%',
+                minHeight: `${calculateWrapperHeight() - ((post.subtitles || []).length > 0 ? (window.innerWidth <= 320 ? 282.5 : window.innerWidth <= 480 ? 305 : window.innerWidth <= 768 ? 347.5 : 460) : 0)}px`,
+                containIntrinsicSize: `100% ${calculateWrapperHeight() - ((post.subtitles || []).length > 0 ? (window.innerWidth <= 320 ? 282.5 : window.innerWidth <= 480 ? 305 : window.innerWidth <= 768 ? 347.5 : 460) : 0)}px`,
+                boxSizing: 'border-box',
+                contain: 'layout',
+              }}
+            >
+              {(post.subtitles || []).slice(1).map((_, i) => (
+                <SkeletonSubtitleSection key={i} />
+              ))}
+              {post.superTitles?.length > 0 && (
+                <Placeholder maxWidth="100%" minHeight="200px">
+                  Loading comparison...
+                </Placeholder>
+              )}
+              {post.summary && <SkeletonSummary />}
+              <SkeletonNavigationLinks>
+                <div />
+                <div />
+                <div />
+              </SkeletonNavigationLinks>
+              <SkeletonRelatedPosts />
+              <SkeletonReferences>
+                <div />
+                <div />
+                <div />
+              </SkeletonReferences>
+            </div>
+          }
+        >
+          {(post.subtitles || []).slice(1).map((subtitle, i) => (
+            <LazySubtitleSection
+              key={i + 1}
+              subtitle={subtitle}
+              index={i + 1}
+              category={post.category || ''}
+            />
+          ))}
+          {post.superTitles?.length > 0 && (
+            <div
+              style={{
+                width: '100%',
+                minHeight: '200px',
+                containIntrinsicSize: '100% 200px',
+                boxSizing: 'border-box',
+                contain: 'layout',
+              }}
+            >
+              <ComparisonTable
+                superTitles={post.superTitles}
+                category={post.category || ''}
+              />
+            </div>
+          )}
+          {post.summary && (
+            <section
+              id="summary"
+              aria-labelledby="summary-heading"
+              style={{
+                boxSizing: 'border-box',
+                minHeight: '150px',
+                containIntrinsicSize: '100% 150px',
+                contain: 'layout',
+              }}
+            >
               <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
-              <p style={{ fontSize: '1.1rem', lineHeight: '1.7', boxSizing: 'border-box', minHeight: '90px', containIntrinsicSize: '100% 90px', contain: 'layout' }}>
+              <p
+                style={{
+                  fontSize: '1.1rem',
+                  lineHeight: '1.7',
+                  boxSizing: 'border-box',
+                  minHeight: '90px',
+                  containIntrinsicSize: '100% 90px',
+                  contain: 'layout',
+                }}
+              >
                 {parsedSummary}
               </p>
             </section>
-          </Suspense>
-        )}
-
-        <Suspense fallback={<SkeletonNavigationLinks><div /><div /><div /></SkeletonNavigationLinks>}>
+          )}
           <NavigationLinks aria-label="Page navigation">
-            <Link to="/explore" aria-label="Back to blog">Blog</Link>
+            <Link to="/explore" aria-label="Back to blog">
+              Blog
+            </Link>
             {post.category && (
-              <Link to={`/category/${post.category.toLowerCase()}`} aria-label={`Explore ${post.category}`}>
+              <Link
+                to={`/category/${post.category.toLowerCase()}`}
+                aria-label={`Explore ${post.category}`}
+              >
                 {post.category}
               </Link>
             )}
-            <Link to="/" aria-label="Home">Home</Link>
+            <Link to="/" aria-label="Home">
+              Home
+            </Link>
           </NavigationLinks>
+          <LazyRelatedPostsSection relatedPosts={relatedPosts} />
+          <LazyReferencesSection post={post} />
         </Suspense>
-
         <CompleteButton
           isCompleted={isCompleted}
           onClick={handleMarkAsCompleted}
@@ -772,10 +955,6 @@ const PostContentNonCritical = memo(
         >
           {isCompleted ? 'Completed' : 'Mark as Completed'}
         </CompleteButton>
-
-        <LazyRelatedPostsSection relatedPosts={relatedPosts} />
-
-        <LazyReferencesSection post={post} />
       </div>
     );
   }
