@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, Suspense, useMemo } from 'react';
 
 const criticalCss = `
   .post-header {
@@ -20,6 +20,12 @@ const criticalCss = `
     font-family: 'Segoe UI', Roboto, sans-serif;
     font-display: swap;
   }
+  .content-chunk {
+    width: 100%;
+    contain: layout;
+    min-height: 24px;
+    contain-intrinsic-size: 100% 24px;
+  }
   .content-section p, .content-section ul, .content-section li, .content-section div {
     margin-bottom: 0.5rem;
     overflow-wrap: break-word;
@@ -35,6 +41,17 @@ const criticalCss = `
   .content-section a {
     color: #0066cc;
     text-decoration: underline;
+  }
+  .content-section img {
+    width: 100%;
+    max-width: 280px;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    object-fit: contain;
+    border-radius: 0.25rem;
+    contain: layout;
+    min-height: 157.5px;
+    contain-intrinsic-size: 280px 157.5px;
   }
   .image-container {
     width: 100%;
@@ -74,14 +91,20 @@ const criticalCss = `
     border-radius: 0.25rem;
     contain: layout;
   }
+  .skeleton-chunk {
+    width: 100%;
+    min-height: 24px;
+    contain-intrinsic-size: 100% 24px;
+    margin-bottom: 0.5rem;
+  }
   @media (min-width: 769px) {
     .content-section {
       font-size: 1rem;
     }
     .content-section img {
-      aspect-ratio: 16 / 9;
+      max-width: 480px;
       min-height: 270px;
-      contain-intrinsic-size: 100% 270px;
+      contain-intrinsic-size: 480px 270px;
     }
     .meta-info {
       flex-direction: row;
@@ -99,6 +122,11 @@ const criticalCss = `
     .post-header {
       font-size: clamp(1.25rem, 3vw, 1.5rem);
     }
+    .content-section img {
+      max-width: 400px;
+      min-height: 225px;
+      contain-intrinsic-size: 400px 225px;
+    }
     .image-container {
       max-width: 400px;
       min-height: 225px;
@@ -106,6 +134,11 @@ const criticalCss = `
     }
   }
   @media (max-width: 320px) {
+    .content-section img {
+      max-width: 280px;
+      min-height: 157.5px;
+      contain-intrinsic-size: 280px 157.5px;
+    }
     .image-container {
       max-width: 280px;
       min-height: 157.5px;
@@ -114,24 +147,96 @@ const criticalCss = `
   }
 `;
 
+// Simple parser to split content into chunks
+const parseContentChunks = (content) => {
+  if (!content) return [];
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(content, 'text/html');
+  const elements = Array.from(doc.body.childNodes);
+  const chunks = [];
+  let currentChunk = '';
+  let chunkHeight = 0;
+
+  elements.forEach((node, index) => {
+    const html = node.outerHTML || node.textContent;
+    let height = 24; // Default for text or <p>
+    if (node.tagName) {
+      if (node.tagName.toLowerCase() === 'img') {
+        height = window.innerWidth <= 768 ? 225 : 270;
+      } else if (['ul', 'ol'].includes(node.tagName.toLowerCase())) {
+        height = 48 + (node.children.length * 24);
+      } else if (['div', 'section', 'article'].includes(node.tagName.toLowerCase())) {
+        height = 24 + (node.children.length * 24);
+      }
+    }
+
+    if (chunkHeight + height > 300 || index === 0) {
+      if (currentChunk) {
+        chunks.push({ html: currentChunk, height: chunkHeight });
+      }
+      currentChunk = html;
+      chunkHeight = height;
+    } else {
+      currentChunk += html;
+      chunkHeight += height;
+    }
+  });
+
+  if (currentChunk) {
+    chunks.push({ html: currentChunk, height: chunkHeight });
+  }
+
+  return chunks;
+};
+
+// Lazy-loaded ContentChunk component
+const ContentChunk = React.lazy(() => Promise.resolve({
+  default: ({ html, height }) => (
+    <div
+      className="content-chunk"
+      style={{
+        minHeight: `${height}px`,
+        containIntrinsicSize: `100% ${height}px`,
+      }}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  ),
+}));
+
 const PriorityContent = memo(({ post, readTime }) => {
   console.log('[PriorityContent] Rendering with post:', post);
 
   const isLoading = !post || post.title === 'Loading...';
 
-  // Enhanced content height calculation
-  const contentHeight = post?.preRenderedContent && !isLoading
-    ? (post.estimatedContentHeight || Math.max(200, Math.ceil(post.preRenderedContent.length / 100) * 24)) +
-      (post.preRenderedContent.includes('<img') ? (window.innerWidth <= 768 ? 225 : 270) : 0) +
-      (post.preRenderedContent.includes('<ul') || post.preRenderedContent.includes('<ol') ? 48 : 0)
-    : 200;
+  // Parse content into chunks
+  const contentChunks = useMemo(() => parseContentChunks(post?.preRenderedContent), [post?.preRenderedContent]);
+
+  // Calculate total content height
+  const contentHeight = isLoading
+    ? 200
+    : contentChunks.reduce((acc, chunk) => acc + (chunk.height || 24), 0) || 200;
+
+  // Preload first image in preRenderedContent
+  const firstImage = useMemo(() => {
+    if (!post?.preRenderedContent || isLoading) return null;
+    const match = post.preRenderedContent.match(/<img[^>]+src=["'](.*?)["']/i);
+    return match ? match[1] : null;
+  }, [post?.preRenderedContent, isLoading]);
 
   return (
     <>
       {post?.titleImage && !isLoading && (
         <link
           rel="preload"
-          href={`${post.titleImage}?w=${window.innerWidth <= 768 ? 400 : 480}&format=avif&q=50`}
+          href={`${post.titleImage}?w=${window.innerWidth <= 768 ? 400 : 480}&format=avif&q=75`}
+          as="image"
+          fetchpriority="high"
+        />
+      )}
+      {firstImage && !isLoading && (
+        <link
+          rel="preload"
+          href={`${firstImage}?w=${window.innerWidth <= 768 ? 400 : 480}&format=avif&q=75`}
           as="image"
           fetchpriority="high"
         />
@@ -160,11 +265,14 @@ const PriorityContent = memo(({ post, readTime }) => {
               <div className="skeleton" style={{ width: '100px', minHeight: '16px' }} />
               <div className="skeleton" style={{ width: '100px', minHeight: '16px' }} />
             </div>
-            <div
-              className="skeleton"
-              style={{ width: '100%', minHeight: `${contentHeight}px` }}
-              aria-hidden="true"
-            />
+            {Array.from({ length: Math.ceil(contentHeight / 24) }).map((_, i) => (
+              <div
+                key={i}
+                className="skeleton skeleton-chunk"
+                style={{ minHeight: i === 0 && contentHeight > 225 ? '225px' : '24px' }}
+                aria-hidden="true"
+              />
+            ))}
           </header>
         ) : (
           <>
@@ -172,13 +280,13 @@ const PriorityContent = memo(({ post, readTime }) => {
               {post.titleImage && (
                 <div className="image-container">
                   <img
-                    src={`${post.titleImage}?w=${window.innerWidth <= 768 ? 400 : 480}&format=avif&q=50`}
+                    src={`${post.titleImage}?w=${window.innerWidth <= 768 ? 400 : 480}&format=avif&q=75`}
                     srcSet={`
-                      ${post.titleImage}?w=280&format=avif&q=50 280w,
-                      ${post.titleImage}?w=320&format=avif&q=50 320w,
-                      ${post.titleImage}?w=360&format=avif&q=50 360w,
-                      ${post.titleImage}?w=400&format=avif&q=50 400w,
-                      ${post.titleImage}?w=480&format=avif&q=50 480w
+                      ${post.titleImage}?w=280&format=avif&q=75 280w,
+                      ${post.titleImage}?w=320&format=avif&q=75 320w,
+                      ${post.titleImage}?w=360&format=avif&q=75 360w,
+                      ${post.titleImage}?w=400&format=avif&q=75 400w,
+                      ${post.titleImage}?w=480&format=avif&q=75 480w
                     `}
                     sizes="(max-width: 320px) 280px, (max-width: 480px) 400px, (max-width: 768px) 400px, 480px"
                     alt={post.title || 'Post image'}
@@ -225,15 +333,22 @@ const PriorityContent = memo(({ post, readTime }) => {
                 containIntrinsicSize: `100% ${contentHeight}px`,
               }}
             >
-              <div
-                style={{
-                  contain: 'layout',
-                  width: '100%',
-                  minHeight: `${contentHeight}px`,
-                  containIntrinsicSize: `100% ${contentHeight}px`,
-                }}
-                dangerouslySetInnerHTML={{ __html: post.preRenderedContent || '' }}
-              />
+              {contentChunks.map((chunk, index) => (
+                <Suspense
+                  key={index}
+                  fallback={
+                    <div
+                      className="skeleton skeleton-chunk"
+                      style={{
+                        minHeight: `${chunk.height || 24}px`,
+                        containIntrinsicSize: `100% ${chunk.height || 24}px`,
+                      }}
+                    />
+                  }
+                >
+                  <ContentChunk html={chunk.html} height={chunk.height} />
+                </Suspense>
+              ))}
             </section>
           </>
         )}
