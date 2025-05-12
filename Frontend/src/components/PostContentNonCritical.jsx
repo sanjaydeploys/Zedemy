@@ -1,14 +1,20 @@
-import React, { memo, Suspense, useCallback, useMemo } from 'react';
+import React, { memo, Suspense, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { slugify, parseLinks } from './utils';
 import { markPostAsCompleted } from '../actions/postActions';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 
 const RelatedPosts = React.lazy(() => import('./RelatedPosts'));
 const AccessibleZoom = React.lazy(() => import('./AccessibleZoom'));
 const ComparisonTable = React.lazy(() => import('./ComparisonTable'));
 const CodeHighlighter = React.lazy(() => import('./CodeHighlighter'));
+
+const pulse = keyframes`
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+`;
 
 const SubtitleHeader = styled.h2`
   font-size: clamp(1.25rem, 3vw, 1.5rem);
@@ -63,26 +69,26 @@ const CompleteButton = styled.button`
 const ImageContainer = styled.figure`
   width: 100%;
   max-width: 280px;
-  margin: 1rem 0;
+  margin: 1rem 0 1rem;
   aspect-ratio: 16 / 9;
-  min-height: 157.5px;
-  contain-intrinsic-size: 280px 157.5px;
+  min-height: 209.5px;
+  contain-intrinsic-size: 280px 209.5px;
   box-sizing: border-box;
   contain: layout;
   @media (min-width: 769px) {
     max-width: 480px;
-    min-height: 270px;
-    contain-intrinsic-size: 480px 270px;
+    min-height: 322px;
+    contain-intrinsic-size: 480px 322px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
-    min-height: 135px;
-    contain-intrinsic-size: 240px 135px;
+    min-height: 187px;
+    contain-intrinsic-size: 240px 187px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
-    min-height: 112.5px;
-    contain-intrinsic-size: 200px 112.5px;
+    min-height: 164.5px;
+    contain-intrinsic-size: 200px 164.5px;
   }
 `;
 
@@ -112,26 +118,26 @@ const PostImage = styled.img`
 const VideoContainer = styled.figure`
   width: 100%;
   max-width: 280px;
-  margin: 1rem 0;
+  margin: 1rem 0 1rem;
   aspect-ratio: 16 / 9;
-  min-height: 157.5px;
-  contain-intrinsic-size: 280px 157.5px;
+  min-height: 209.5px;
+  contain-intrinsic-size: 280px 209.5px;
   box-sizing: border-box;
   contain: layout;
   @media (min-width: 769px) {
     max-width: 480px;
-    min-height: 270px;
-    contain-intrinsic-size: 480px 270px;
+    min-height: 322px;
+    contain-intrinsic-size: 480px 322px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
-    min-height: 135px;
-    contain-intrinsic-size: 240px 135px;
+    min-height: 187px;
+    contain-intrinsic-size: 240px 187px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
-    min-height: 112.5px;
-    contain-intrinsic-size: 200px 112.5px;
+    min-height: 164.5px;
+    contain-intrinsic-size: 200px 164.5px;
   }
 `;
 
@@ -161,7 +167,7 @@ const Placeholder = styled.div`
   width: 100%;
   max-width: 280px;
   aspect-ratio: 16 / 9;
-  min-height: 157.5px;
+  min-height: 209.5px;
   background: #e0e0e0;
   display: flex;
   align-items: center;
@@ -169,23 +175,24 @@ const Placeholder = styled.div`
   color: #666;
   border-radius: 0.375rem;
   font-size: 0.875rem;
-  contain-intrinsic-size: 280px 157.5px;
+  contain-intrinsic-size: 280px 209.5px;
   box-sizing: border-box;
   contain: layout;
+  margin: 1rem 0 1rem;
   @media (min-width: 769px) {
     max-width: 480px;
-    min-height: 270px;
-    contain-intrinsic-size: 480px 270px;
+    min-height: 322px;
+    contain-intrinsic-size: 480px 322px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
-    min-height: 135px;
-    contain-intrinsic-size: 240px 135px;
+    min-height: 187px;
+    contain-intrinsic-size: 240px 187px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
-    min-height: 112.5px;
-    contain-intrinsic-size: 200px 112.5px;
+    min-height: 164.5px;
+    contain-intrinsic-size: 200px 164.5px;
   }
 `;
 
@@ -299,26 +306,27 @@ const SkeletonImage = styled.div`
   width: 100%;
   max-width: 280px;
   aspect-ratio: 16 / 9;
-  min-height: 157.5px;
+  min-height: 209.5px;
   background: #e0e0e0;
   border-radius: 0.375rem;
-  contain-intrinsic-size: 280px 157.5px;
+  contain-intrinsic-size: 280px 209.5px;
   box-sizing: border-box;
   contain: layout;
+  margin: 1rem 0 1rem;
   @media (min-width: 769px) {
     max-width: 480px;
-    min-height: 270px;
-    contain-intrinsic-size: 480px 270px;
+    min-height: 322px;
+    contain-intrinsic-size: 480px 322px;
   }
   @media (max-width: 480px) {
     max-width: 240px;
-    min-height: 135px;
-    contain-intrinsic-size: 240px 135px;
+    min-height: 187px;
+    contain-intrinsic-size: 240px 187px;
   }
   @media (max-width: 320px) {
     max-width: 200px;
-    min-height: 112.5px;
-    contain-intrinsic-size: 200px 112.5px;
+    min-height: 164.5px;
+    contain-intrinsic-size: 200px 164.5px;
   }
 `;
 
@@ -472,9 +480,9 @@ const SkeletonReferences = styled.div`
   }
 `;
 
-const SkeletonRelatedPosts = ({ count = 3 }) => (
+const SkeletonRelatedPosts = () => (
   <SkeletonRelatedPostsContainer aria-hidden="true">
-    {Array.from({ length: count }).map((_, i) => (
+    {Array.from({ length: 3 }).map((_, i) => (
       <SkeletonRelatedPost key={i}>
         <SkeletonImage />
         <SkeletonTitle />
@@ -485,8 +493,8 @@ const SkeletonRelatedPosts = ({ count = 3 }) => (
 );
 
 const SubtitleSection = memo(({ subtitle, index, category }) => {
-  const parsedTitle = useMemo(() => parseLinks(subtitle.title || '', category, false), [subtitle.title, category]);
-  const parsedBulletPoints = useMemo(
+  const parsedTitle = React.useMemo(() => parseLinks(subtitle.title || '', category, false), [subtitle.title, category]);
+  const parsedBulletPoints = React.useMemo(
     () =>
       (subtitle.bulletPoints || []).map((point) => ({
         ...point,
@@ -497,45 +505,47 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
 
   if (!subtitle) return null;
 
-  const calculateSubtitleHeight = useMemo(() => {
-    const headerHeight = 32;
-    const margin = 16;
-    const listPadding = 20;
-    const bulletHeight = parsedBulletPoints.length * (30 + 8);
-    const mediaHeight =
-      subtitle.image || subtitle.video
+  const calculateSubtitleHeight = () => {
+    const headerHeight = 32; // SubtitleHeader
+    const margin = 16; // margin-bottom: 0.75rem
+    const listPadding = 20; // padding-left: 1.25rem
+    const bulletHeight = parsedBulletPoints.length * (30 + 8); // 30px per bullet + 8px margin-bottom
+    const mediaHeight = subtitle.image || subtitle.video
+      ? window.innerWidth <= 320
+        ? 164.5
+        : window.innerWidth <= 480
+        ? 187
+        : window.innerWidth <= 768
+        ? 209.5
+        : 322
+      : 0;
+    const mediaMargin = subtitle.image || subtitle.video ? 32 : 0; // margin: 1rem 0 1rem
+    const pointMediaHeight = parsedBulletPoints.reduce((acc, point) => {
+      return acc + (point.image || point.video
         ? window.innerWidth <= 320
-          ? 112.5
+          ? 164.5
           : window.innerWidth <= 480
-          ? 135
+          ? 187
           : window.innerWidth <= 768
-          ? 157.5
-          : 270
-        : 0;
-    const mediaMargin = subtitle.image || subtitle.video ? 16 : 0;
-    const pointMediaHeight = parsedBulletPoints.reduce((sum, point) => {
-      if (point.image || point.video) {
-        return (
-          sum +
-          (window.innerWidth <= 320 ? 112.5 : window.innerWidth <= 480 ? 135 : window.innerWidth <= 768 ? 157.5 : 270) +
-          16
-        );
-      }
-      return sum + (point.codeSnippet ? 100 : 0);
+          ? 209.5
+          : 322
+        : 0);
     }, 0);
-    return headerHeight + margin + listPadding + bulletHeight + mediaHeight + mediaMargin + pointMediaHeight;
-  }, [subtitle, parsedBulletPoints]);
+    const pointMediaMargin = parsedBulletPoints.reduce((acc, point) => {
+      return acc + (point.image || point.video ? 32 : 0);
+    }, 0);
+    const codeSnippetHeight = parsedBulletPoints.reduce((acc, point) => {
+      return acc + (point.codeSnippet ? 100 : 0);
+    }, 0);
+    return headerHeight + margin + listPadding + bulletHeight + mediaHeight + mediaMargin + pointMediaHeight + pointMediaMargin + codeSnippetHeight;
+  };
 
   return (
     <>
-      {(subtitle.image || (subtitle.video && index === 0)) && (
+      {(index === 0 && (subtitle.image || subtitle.video)) && (
         <link
           rel="preload"
-          href={
-            subtitle.image
-              ? `${subtitle.image}?w=${window.innerWidth <= 768 ? 280 : 480}&format=avif&q=30`
-              : `${subtitle.videoPoster || subtitle.image}?w=80&format=webp&q=30`
-          }
+          href={`${subtitle.image || subtitle.videoPoster}?w=${window.innerWidth <= 768 ? 280 : 480}&format=avif&q=20`}
           as="image"
           fetchpriority="high"
         />
@@ -545,8 +555,8 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
         aria-labelledby={`subtitle-${index}-heading`}
         style={{
           boxSizing: 'border-box',
-          minHeight: `${calculateSubtitleHeight}px`,
-          containIntrinsicSize: `100% ${calculateSubtitleHeight}px`,
+          minHeight: `${calculateSubtitleHeight()}px`,
+          containIntrinsicSize: `100% ${calculateSubtitleHeight()}px`,
           contain: 'layout',
         }}
       >
@@ -555,24 +565,23 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
           <ImageContainer>
             <AccessibleZoom caption={subtitle.title || ''}>
               <PostImage
-                src={`${subtitle.image}?w=${window.innerWidth <= 768 ? 280 : 480}&format=avif&q=30`}
+                src={`${subtitle.image}?w=${window.innerWidth <= 768 ? 280 : 480}&format=avif&q=20`}
                 srcSet={`
-                  ${subtitle.image}?w=100&format=avif&q=30 100w,
-                  ${subtitle.image}?w=150&format=avif&q=30 150w,
-                  ${subtitle.image}?w=200&format=avif&q=30 200w,
-                  ${subtitle.image}?w=240&format=avif&q=30 240w,
-                  ${subtitle.image}?w=280&format=avif&q=30 280w,
-                  ${subtitle.image}?w=480&format=avif&q=30 480w
+                  ${subtitle.image}?w=100&format=avif&q=20 100w,
+                  ${subtitle.image}?w=150&format=avif&q=20 150w,
+                  ${subtitle.image}?w=200&format=avif&q=20 200w,
+                  ${subtitle.image}?w=240&format=avif&q=20 240w,
+                  ${subtitle.image}?w=280&format=avif&q=20 280w,
+                  ${subtitle.image}?w=320&format=avif&q=20 320w,
+                  ${subtitle.image}?w=360&format=avif&q=20 360w,
+                  ${subtitle.image}?w=480&format=avif&q=20 480w
                 `}
                 sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
                 alt={`Illustration for ${subtitle.title || 'section'}`}
                 loading={index === 0 ? 'eager' : 'lazy'}
                 decoding="async"
                 fetchpriority={index === 0 ? 'high' : 'low'}
-                onError={(e) => {
-                  console.error('Subtitle Image Failed:', subtitle.image);
-                  e.target.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
-                }}
+                onError={() => console.error('Subtitle Image Failed:', subtitle.image)}
               />
             </AccessibleZoom>
           </ImageContainer>
@@ -581,13 +590,12 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
           <VideoContainer>
             <PostVideo
               controls
-              preload={index === 0 ? 'metadata' : 'none'}
-              poster={`${subtitle.videoPoster || subtitle.image}?w=80&format=webp&q=30`}
-              loading={index === 0 ? 'eager' : 'lazy'}
+              preload="none"
+              poster={`${subtitle.videoPoster || subtitle.image}?w=80&format=webp&q=5`}
+              loading="lazy"
               decoding="async"
               aria-label={`Video for ${subtitle.title || 'section'}`}
-              fetchpriority={index === 0 ? 'high' : 'low'}
-              onError={() => console.error('Subtitle Video Failed:', subtitle.video)}
+              fetchpriority="low"
             >
               <source src={`${subtitle.video}#t=0.1`} type="video/mp4" />
             </PostVideo>
@@ -599,8 +607,8 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
             fontSize: '1.1rem',
             lineHeight: '1.7',
             boxSizing: 'border-box',
-            minHeight: `${parsedBulletPoints.length * 38 + parsedBulletPoints.reduce((sum, point) => sum + (point.image || point.video ? (window.innerWidth <= 320 ? 112.5 : window.innerWidth <= 480 ? 135 : window.innerWidth <= 768 ? 157.5 : 270) + 16 : point.codeSnippet ? 100 : 0), 0)}px`,
-            containIntrinsicSize: `100% ${parsedBulletPoints.length * 38 + parsedBulletPoints.reduce((sum, point) => sum + (point.image || point.video ? (window.innerWidth <= 320 ? 112.5 : window.innerWidth <= 480 ? 135 : window.innerWidth <= 768 ? 157.5 : 270) + 16 : point.codeSnippet ? 100 : 0), 0)}px`,
+            minHeight: `${parsedBulletPoints.length * 38 + parsedBulletPoints.reduce((acc, point) => acc + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 32 : point.codeSnippet ? 100 : 0), 0)}px`,
+            containIntrinsicSize: `100% ${parsedBulletPoints.length * 38 + parsedBulletPoints.reduce((acc, point) => acc + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 32 : point.codeSnippet ? 100 : 0), 0)}px`,
             contain: 'layout',
           }}
         >
@@ -609,8 +617,8 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
               key={j}
               style={{
                 marginBottom: '0.5rem',
-                minHeight: `${30 + (point.image || point.video ? (window.innerWidth <= 320 ? 112.5 : window.innerWidth <= 480 ? 135 : window.innerWidth <= 768 ? 157.5 : 270) + 16 : point.codeSnippet ? 100 : 0)}px`,
-                containIntrinsicSize: `100% ${30 + (point.image || point.video ? (window.innerWidth <= 320 ? 112.5 : window.innerWidth <= 480 ? 135 : window.innerWidth <= 768 ? 157.5 : 270) + 16 : point.codeSnippet ? 100 : 0)}px`,
+                minHeight: `${30 + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 32 : point.codeSnippet ? 100 : 0)}px`,
+                containIntrinsicSize: `100% ${30 + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 32 : point.codeSnippet ? 100 : 0)}px`,
                 boxSizing: 'border-box',
               }}
             >
@@ -620,24 +628,23 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                   <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
                     <AccessibleZoom caption={`Example for ${point.text || ''}`}>
                       <PostImage
-                        src={`${point.image}?w=${window.innerWidth <= 768 ? 280 : 480}&format=avif&q=30`}
+                        src={`${point.image}?w=${window.innerWidth <= 768 ? 280 : 480}&format=avif&q=20`}
                         srcSet={`
-                          ${point.image}?w=100&format=avif&q=30 100w,
-                          ${point.image}?w=150&format=avif&q=30 150w,
-                          ${point.image}?w=200&format=avif&q=30 200w,
-                          ${point.image}?w=240&format=avif&q=30 240w,
-                          ${point.image}?w=280&format=avif&q=30 280w,
-                          ${point.image}?w=480&format=avif&q=30 480w
+                          ${point.image}?w=100&format=avif&q=20 100w,
+                          ${point.image}?w=150&format=avif&q=20 150w,
+                          ${point.image}?w=200&format=avif&q=20 200w,
+                          ${point.image}?w=240&format=avif&q=20 240w,
+                          ${point.image}?w=280&format=avif&q=20 280w,
+                          ${point.image}?w=320&format=avif&q=20 320w,
+                          ${point.image}?w=360&format=avif&q=20 360w,
+                          ${point.image}?w=480&format=avif&q=20 480w
                         `}
                         sizes="(max-width: 320px) 200px, (max-width: 480px) 240px, (max-width: 768px) 280px, 480px"
                         alt={`Illustration for ${point.text || 'example point'}`}
                         loading="lazy"
                         decoding="async"
                         fetchpriority="low"
-                        onError={(e) => {
-                          console.error('Point Image Failed:', point.image);
-                          e.target.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
-                        }}
+                        onError={() => console.error('Point Image Failed:', point.image)}
                       />
                     </AccessibleZoom>
                   </Suspense>
@@ -648,12 +655,11 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                   <PostVideo
                     controls
                     preload="none"
-                    poster={`${point.videoPoster || point.image}?w=80&format=webp&q=30`}
+                    poster={`${point.videoPoster || point.image}?w=80&format=webp&q=5`}
                     loading="lazy"
                     decoding="async"
                     aria-label={`Video example for ${point.text || 'point'}`}
                     fetchpriority="low"
-                    onError={() => console.error('Point Video Failed:', point.video)}
                   >
                     <source src={`${point.video}#t=0.1`} type="video/mp4" />
                   </PostVideo>
@@ -683,7 +689,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
   );
 });
 
-const FirstSubtitleSkeleton = ({ bulletCount = 3, hasMedia = true }) => (
+const FirstSubtitleSkeleton = ({ bulletCount = 3 }) => (
   <SkeletonSubtitleSection aria-hidden="true">
     <div
       style={{
@@ -695,7 +701,7 @@ const FirstSubtitleSkeleton = ({ bulletCount = 3, hasMedia = true }) => (
         marginBottom: '0.75rem',
       }}
     />
-    {hasMedia && <Placeholder />}
+    <Placeholder />
     <ul
       style={{
         paddingLeft: '1.25rem',
@@ -713,13 +719,13 @@ const FirstSubtitleSkeleton = ({ bulletCount = 3, hasMedia = true }) => (
 );
 
 const LazySubtitleSection = memo(({ subtitle, index, category }) => (
-  <Suspense fallback={<FirstSubtitleSkeleton bulletCount={subtitle.bulletPoints?.length || 3} hasMedia={!!(subtitle.image || subtitle.video)} />}>
+  <Suspense fallback={<SkeletonSubtitleSection>Loading section...</SkeletonSubtitleSection>}>
     <SubtitleSection subtitle={subtitle} index={index} category={category} />
   </Suspense>
 ));
 
 const LazyRelatedPostsSection = memo(({ relatedPosts }) => (
-  <Suspense fallback={<SkeletonRelatedPosts count={relatedPosts?.length || 3} />}>
+  <Suspense fallback={<SkeletonRelatedPosts />}>
     <RelatedPostsSection aria-labelledby="related-posts-heading">
       <SubtitleHeader id="related-posts-heading">Related Posts</SubtitleHeader>
       <RelatedPosts relatedPosts={relatedPosts} />
@@ -739,10 +745,6 @@ const LazyReferencesSection = memo(({ post }) => (
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`Visit ${ref.title}`}
-            style={{
-              minHeight: `${ref.title.length > 100 ? 48 : 24}px`,
-              containIntrinsicSize: `100% ${ref.title.length > 100 ? 48 : 24}px`,
-            }}
           >
             {ref.title}
           </ReferenceLink>
@@ -754,7 +756,6 @@ const LazyReferencesSection = memo(({ post }) => (
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`GeeksforGeeks ${post.category || 'Tutorials'} Tutorials`}
-            style={{ minHeight: '24px', containIntrinsicSize: '100% 24px' }}
           >
             GeeksforGeeks: {post.category || 'Tutorials'} Tutorials
           </ReferenceLink>
@@ -763,7 +764,6 @@ const LazyReferencesSection = memo(({ post }) => (
             target="_blank"
             rel="noopener noreferrer"
             aria-label={`MDN ${post.category || 'Documentation'} Documentation`}
-            style={{ minHeight: '24px', containIntrinsicSize: '100% 24px' }}
           >
             MDN: {post.category || 'Documentation'} Documentation
           </ReferenceLink>
@@ -777,11 +777,11 @@ const PostContentNonCritical = memo(
   ({ post, relatedPosts, completedPosts, dispatch, isSidebarOpen, setSidebarOpen, activeSection, setActiveSection, subtitlesListRef }) => {
     const completedPostsSelector = useSelector((state) => state.postReducer.completedPosts || []);
     const isCompleted = completedPostsSelector.some((cp) => cp.postId === post.postId);
-    const parsedSummary = useMemo(
+    const parsedSummary = React.useMemo(
       () => parseLinks(post.summary || '', post.category || '', false),
       [post.summary, post.category]
     );
-    const subtitleSlugs = useMemo(() => {
+    const subtitleSlugs = React.useMemo(() => {
       if (!post?.subtitles) return {};
       const slugs = {};
       post.subtitles.forEach((s, i) => {
@@ -812,208 +812,220 @@ const PostContentNonCritical = memo(
       [isSidebarOpen, setSidebarOpen, setActiveSection, subtitleSlugs]
     );
 
-    const calculateWrapperHeight = useMemo(() => {
+    React.useEffect(() => {
+      const hash = window.location.hash.slice(1);
+      if (hash) {
+        const sectionId = Object.keys(subtitleSlugs).find((id) => subtitleSlugs[id] === hash);
+        if (sectionId) {
+          setTimeout(() => scrollToSection(sectionId, false), 0);
+        }
+      }
+    }, [subtitleSlugs, scrollToSection]);
+
+    const calculateWrapperHeight = () => {
       const subtitleCount = (post.subtitles || []).length;
-      const subtitleHeight = post.subtitles?.reduce((sum, subtitle) => {
+      const hasSummary = post.summary ? 150 : 0;
+      const hasSuperTitles = post.superTitles?.length > 0 ? 200 : 0;
+      const navigationHeight = 44;
+      const relatedPostsHeight = 450;
+      const referencesHeight = 150;
+      const subtitleHeight = (post.subtitles || []).reduce((acc, subtitle) => {
         const headerHeight = 32;
         const margin = 16;
         const listPadding = 20;
-        const bulletHeight = (subtitle.bulletPoints?.length || 0) * (30 + 8);
-        const mediaHeight =
-          subtitle.image || subtitle.video
+        const bulletHeight = (subtitle.bulletPoints || []).length * (30 + 8);
+        const mediaHeight = subtitle.image || subtitle.video
+          ? window.innerWidth <= 320
+            ? 164.5
+            : window.innerWidth <= 480
+            ? 187
+            : window.innerWidth <= 768
+            ? 209.5
+            : 322
+          : 0;
+        const mediaMargin = subtitle.image || subtitle.video ? 32 : 0;
+        const pointMediaHeight = (subtitle.bulletPoints || []).reduce((acc, point) => {
+          return acc + (point.image || point.video
             ? window.innerWidth <= 320
-              ? 112.5
+              ? 164.5
               : window.innerWidth <= 480
-              ? 135
+              ? 187
               : window.innerWidth <= 768
-              ? 157.5
-              : 270
-            : 0;
-        const mediaMargin = subtitle.image || subtitle.video ? 16 : 0;
-        const pointMediaHeight = (subtitle.bulletPoints || []).reduce((sum, point) => {
-          if (point.image || point.video) {
-            return (
-              sum +
-              (window.innerWidth <= 320 ? 112.5 : window.innerWidth <= 480 ? 135 : window.innerWidth <= 768 ? 157.5 : 270) +
-              16
-            );
-          }
-          return sum + (point.codeSnippet ? 100 : 0);
+              ? 209.5
+              : 322
+            : 0);
         }, 0);
-        return sum + headerHeight + margin + listPadding + bulletHeight + mediaHeight + mediaMargin + pointMediaHeight;
-      }, 0) || 0;
-      const hasSummary = post.summary
-        ? Math.max(150, Math.min(300, (post.summary.length / 200) * 50) + 32 + 16)
-        : 0;
-      const hasSuperTitles = post.superTitles?.length > 0
-        ? 200 + (post.superTitles.length * 50)
-        : 0;
-      const navigationHeight = post.category ? 68 : 44;
-      const relatedPostsHeight = (relatedPosts?.length || 3) * (window.innerWidth <= 320 ? 200 : window.innerWidth <= 480 ? 230 : window.innerWidth <= 768 ? 260 : 380) + 32 + 16;
-      const referencesHeight = post.references?.length
-        ? 32 + 16 + (post.references.length * (post.references.some(ref => ref.title.length > 100) ? 48 : 24))
-        : 32 + 16 + 48;
+        const pointMediaMargin = (subtitle.bulletPoints || []).reduce((acc, point) => {
+          return acc + (point.image || point.video ? 32 : 0);
+        }, 0);
+        const codeSnippetHeight = (subtitle.bulletPoints || []).reduce((acc, point) => {
+          return acc + (point.codeSnippet ? 100 : 0);
+        }, 0);
+        return acc + (headerHeight + margin + listPadding + bulletHeight + mediaHeight + mediaMargin + pointMediaHeight + pointMediaMargin + codeSnippetHeight);
+      }, 0);
       return subtitleHeight + hasSummary + hasSuperTitles + navigationHeight + relatedPostsHeight + referencesHeight;
-    }, [post, relatedPosts]);
-
-    const calculateSuspenseHeight = useMemo(() => {
-      const firstSubtitleHeight = post.subtitles?.[0]
-        ? (32 + 16 + 20 + (post.subtitles[0].bulletPoints?.length || 0) * 38 +
-          (post.subtitles[0].image || post.subtitles[0].video
-            ? (window.innerWidth <= 320 ? 112.5 : window.innerWidth <= 480 ? 135 : window.innerWidth <= 768 ? 157.5 : 270) + 16
-            : 0) +
-          (post.subtitles[0].bulletPoints || []).reduce((sum, point) => sum + (point.image || point.video ? (window.innerWidth <= 320 ? 112.5 : window.innerWidth <= 480 ? 135 : window.innerWidth <= 768 ? 157.5 : 270) + 16 : point.codeSnippet ? 100 : 0), 0))
-        : 0;
-      return calculateWrapperHeight - firstSubtitleHeight;
-    }, [post, calculateWrapperHeight]);
+    };
 
     return (
-      <>
-        {relatedPosts?.[0]?.image && (
-          <link
-            rel="preload"
-            href={`${relatedPosts[0].image}?w=${window.innerWidth <= 768 ? 280 : 480}&format=avif&q=30`}
-            as="image"
-            fetchpriority="low"
+      <div
+        style={{
+          width: '100%',
+          minHeight: `${calculateWrapperHeight()}px`,
+          containIntrinsicSize: `100% ${calculateWrapperHeight()}px`,
+          boxSizing: 'border-box',
+          contain: 'layout',
+        }}
+      >
+        {(post.subtitles || []).length > 0 && (
+          <SubtitleSection
+            subtitle={post.subtitles[0]}
+            index={0}
+            category={post.category || ''}
           />
         )}
-        <div
-          style={{
-            width: '100%',
-            minHeight: `${calculateWrapperHeight}px`,
-            containIntrinsicSize: `100% ${calculateWrapperHeight}px`,
-            boxSizing: 'border-box',
-            contain: 'layout',
-          }}
+        <Suspense
+          fallback={
+            <div
+              style={{
+                width: '100%',
+                minHeight: `${calculateWrapperHeight() - ((post.subtitles || []).length > 0 ? (post.subtitles[0].bulletPoints || []).reduce((acc, point) => {
+                  return acc + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 32 : point.codeSnippet ? 100 : 0);
+                }, (post.subtitles[0].image || post.subtitles[0].video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 32 : 0) + (post.subtitles[0].bulletPoints || []).length * 38 + 32 + 20 + 16) : 0)}px`,
+                containIntrinsicSize: `100% ${calculateWrapperHeight() - ((post.subtitles || []).length > 0 ? (post.subtitles[0].bulletPoints || []).reduce((acc, point) => {
+                  return acc + (point.image || point.video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 32 : point.codeSnippet ? 100 : 0);
+                }, (post.subtitles[0].image || post.subtitles[0].video ? (window.innerWidth <= 320 ? 164.5 : window.innerWidth <= 480 ? 187 : window.innerWidth <= 768 ? 209.5 : 322) + 32 : 0) + (post.subtitles[0].bulletPoints || []).length * 38 + 32 + 20 + 16) : 0)}px`,
+                boxSizing: 'border-box',
+                contain: 'layout',
+              }}
+            >
+              {(post.subtitles || []).slice(1).map((subtitle, i) => (
+                <SkeletonSubtitleSection key={i}>
+                  <div
+                    style={{
+                      width: '100%',
+                      minHeight: '32px',
+                      background: '#e0e0e0',
+                      borderRadius: '0.25rem',
+                      containIntrinsicSize: '100% 32px',
+                      marginBottom: '0.75rem',
+                    }}
+                  />
+                  {(subtitle.image || subtitle.video) && <Placeholder />}
+                  <ul
+                    style={{
+                      paddingLeft: '1.25rem',
+                      boxSizing: 'border-box',
+                      minHeight: `${(subtitle.bulletPoints || []).length * 38}px`,
+                      containIntrinsicSize: `100% ${(subtitle.bulletPoints || []).length * 38}px`,
+                      contain: 'layout',
+                    }}
+                  >
+                    {(subtitle.bulletPoints || []).map((_, j) => (
+                      <SkeletonBulletPoint key={j} />
+                    ))}
+                  </ul>
+                </SkeletonSubtitleSection>
+              ))}
+              {post.superTitles?.length > 0 && (
+                <SectionPlaceholder minHeight="200px">
+                  Loading comparison...
+                </SectionPlaceholder>
+              )}
+              {post.summary && <SkeletonSummary />}
+              <SkeletonNavigationLinks>
+                <div />
+                <div />
+                <div />
+              </SkeletonNavigationLinks>
+              <SkeletonRelatedPosts />
+              <SkeletonReferences>
+                <div />
+                <div />
+                <div />
+              </SkeletonReferences>
+            </div>
+          }
         >
-          {(post.subtitles || []).length > 0 && (
-            <SubtitleSection
-              subtitle={post.subtitles[0]}
-              index={0}
+          {(post.subtitles || []).slice(1).map((subtitle, i) => (
+            <LazySubtitleSection
+              key={i + 1}
+              subtitle={subtitle}
+              index={i + 1}
               category={post.category || ''}
             />
-          )}
-          <Suspense
-            fallback={
-              <div
-                style={{
-                  width: '100%',
-                  minHeight: `${calculateSuspenseHeight}px`,
-                  containIntrinsicSize: `100% ${calculateSuspenseHeight}px`,
-                  boxSizing: 'border-box',
-                  contain: 'layout',
-                }}
-              >
-                {(post.subtitles || []).slice(1).map((subtitle, i) => (
-                  <FirstSubtitleSkeleton
-                    key={i}
-                    bulletCount={subtitle.bulletPoints?.length || 3}
-                    hasMedia={!!(subtitle.image || subtitle.video)}
-                  />
-                ))}
-                {post.superTitles?.length > 0 && (
-                  <SectionPlaceholder minHeight="200px">
-                    Loading comparison...
-                  </SectionPlaceholder>
-                )}
-                {post.summary && <SkeletonSummary />}
-                <SkeletonNavigationLinks>
-                  {Array.from({ length: post.category ? 3 : 2 }).map((_, i) => (
-                    <div key={i} />
-                  ))}
-                </SkeletonNavigationLinks>
-                <SkeletonRelatedPosts count={relatedPosts?.length || 3} />
-                <SkeletonReferences>
-                  <div />
-                  {Array.from({ length: post.references?.length || 2 }).map((_, i) => (
-                    <div key={i} />
-                  ))}
-                </SkeletonReferences>
-              </div>
-            }
-          >
-            {(post.subtitles || []).slice(1).map((subtitle, i) => (
-              <LazySubtitleSection
-                key={i + 1}
-                subtitle={subtitle}
-                index={i + 1}
+          ))}
+          {post.superTitles?.length > 0 && (
+            <div
+              style={{
+                width: '100%',
+                minHeight: '200px',
+                containIntrinsicSize: '100% 200px',
+                boxSizing: 'border-box',
+                contain: 'layout',
+              }}
+            >
+              <ComparisonTable
+                superTitles={post.superTitles}
                 category={post.category || ''}
               />
-            ))}
-            {post.superTitles?.length > 0 && (
-              <div
+            </div>
+          )}
+          {post.summary && (
+            <section
+              id="summary"
+              aria-labelledby="summary-heading"
+              style={{
+                boxSizing: 'border-box',
+                minHeight: '150px',
+                containIntrinsicSize: '100% 150px',
+                contain: 'layout',
+              }}
+            >
+              <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
+              <p
                 style={{
-                  width: '100%',
-                  minHeight: `${200 + (post.superTitles.length * 50)}px`,
-                  containIntrinsicSize: `100% ${200 + (post.superTitles.length * 50)}px`,
+                  fontSize: '1.1rem',
+                  lineHeight: '1.7',
                   boxSizing: 'border-box',
+                  minHeight: '90px',
+                  containIntrinsicSize: '100% 90px',
                   contain: 'layout',
                 }}
               >
-                <ComparisonTable
-                  superTitles={post.superTitles}
-                  category={post.category || ''}
-                />
-              </div>
-            )}
-            {post.summary && (
-              <section
-                id="summary"
-                aria-labelledby="summary-heading"
-                style={{
-                  boxSizing: 'border-box',
-                  minHeight: `${Math.max(150, Math.min(300, (post.summary.length / 200) * 50) + 32 + 16)}px`,
-                  containIntrinsicSize: `100% ${Math.max(150, Math.min(300, (post.summary.length / 200) * 50) + 32 + 16)}px`,
-                  contain: 'layout',
-                }}
+                {parsedSummary}
+              </p>
+            </section>
+          )}
+          <NavigationLinks aria-label="Page navigation">
+            <Link to="/explore" aria-label="Back to blog">
+              Blog
+            </Link>
+            {post.category && (
+              <Link
+                to={`/category/${post.category.toLowerCase()}`}
+                aria-label={`Explore ${post.category}`}
               >
-                <SubtitleHeader id="summary-heading">Summary</SubtitleHeader>
-                <p
-                  style={{
-                    fontSize: '1.1rem',
-                    lineHeight: '1.7',
-                    boxSizing: 'border-box',
-                    minHeight: `${Math.max(90, Math.min(240, (post.summary.length / 200) * 50))}px`,
-                    containIntrinsicSize: `100% ${Math.max(90, Math.min(240, (post.summary.length / 200) * 50))}px`,
-                    contain: 'layout',
-                  }}
-                >
-                  {parsedSummary}
-                </p>
-              </section>
+                {post.category}
+              </Link>
             )}
-            <NavigationLinks aria-label="Page navigation">
-              <Link to="/explore" aria-label="Back to blog" style={{ minHeight: '24px', containIntrinsicSize: '60px 24px' }}>
-                Blog
-              </Link>
-              {post.category && (
-                <Link
-                  to={`/category/${post.category.toLowerCase()}`}
-                  aria-label={`Explore ${post.category}`}
-                  style={{ minHeight: '24px', containIntrinsicSize: '60px 24px' }}
-                >
-                  {post.category}
-                </Link>
-              )}
-              <Link to="/" aria-label="Home" style={{ minHeight: '24px', containIntrinsicSize: '60px 24px' }}>
-                Home
-              </Link>
-            </NavigationLinks>
-            <LazyRelatedPostsSection relatedPosts={relatedPosts} />
-            <LazyReferencesSection post={post} />
-          </Suspense>
-          <CompleteButton
-            isCompleted={isCompleted}
-            onClick={handleMarkAsCompleted}
-            disabled={isCompleted}
-            aria-label={isCompleted ? 'Post already marked as completed' : 'Mark post as completed'}
-          >
-            {isCompleted ? 'Completed' : 'Mark as Completed'}
-          </CompleteButton>
-        </div>
-      </>
-    );
-  }
-);
+            <Link to="/" aria-label="Home">
+              Home
+            </Link>
+          </NavigationLinks>
+          <LazyRelatedPostsSection relatedPosts={relatedPosts} />
+          <LazyReferencesSection post={post} />
+        </Suspense>
+        <CompleteButton
+          isCompleted={isCompleted}
+          onClick={handleMarkAsCompleted}
+          disabled={isCompleted}
+          aria-label={isCompleted ? 'Post already marked as completed' : 'Mark post as completed'}
+        >
+          {isCompleted ? 'Completed' : 'Mark as Completed'}
+        </CompleteButton>
+      </div>
+  
+  );
+});
 
 export default PostContentNonCritical;
