@@ -591,7 +591,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
             >
               <source src={`${subtitle.video}#t=0.1`} type="video/mp4" />
             </PostVideo>
-          </ImageContainer>
+          </VideoContainer>
         )}
         <ul
           style={{
@@ -657,7 +657,7 @@ const SubtitleSection = memo(({ subtitle, index, category }) => {
                   >
                     <source src={`${point.video}#t=0.1`} type="video/mp4" />
                   </PostVideo>
-                </ImageContainer>
+                </VideoContainer>
               )}
               {point.codeSnippet && (
                 <Suspense fallback={<Placeholder minHeight="100px">Loading code...</Placeholder>}>
