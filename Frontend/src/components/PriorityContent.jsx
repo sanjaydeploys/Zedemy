@@ -92,7 +92,7 @@ const PriorityContent = memo(({ post, readTime }) => {
         ? 157.5
         : 337.5
       : 0;
-    const imageMargin = post?.titleImage ? 32 : 0; // margin: 1rem 0
+    const imageMargin = post?.titleImage ? 32 : 0;
     const titleHeight = post?.title
       ? Math.ceil((post.title.length / 40) * (window.innerWidth <= 480 ? 24 : window.innerWidth <= 767 ? 30 : 48))
       : window.innerWidth <= 480
@@ -101,30 +101,21 @@ const PriorityContent = memo(({ post, readTime }) => {
     const metaHeight = window.innerWidth <= 767
       ? Math.max(
           60,
-          (3 * 16) + // 3 items × 16px
-          (2 * 8) + // 2 gaps × 8px
-          (post?.author && post.author.length > 30 ? 16 : 0) + // Extra line for long author
-          (post?.date && post.date.length > 20 ? 16 : 0) // Extra line for long date
+          (3 * 16) + (2 * 8) +
+          (post?.author && post.author.length > 30 ? 16 : 0) +
+          (post?.date && post.date.length > 20 ? 16 : 0)
         )
       : Math.max(
           24,
-          (post?.author && post.author.length > 30 ? 16 : 0) + // Wrapping in row
+          (post?.author && post.author.length > 30 ? 16 : 0) +
           (post?.date && post.date.length > 20 ? 16 : 0)
         );
     const contentHeight = post?.estimatedContentHeight
       ? post.estimatedContentHeight
       : post?.preRenderedContent
-      ? (() => {
-          const div = document.createElement('div');
-          div.innerHTML = post.preRenderedContent;
-          const paragraphs = div.querySelectorAll('p').length || 1;
-          const lists = div.querySelectorAll('ul, ol').length;
-          const headings = div.querySelectorAll('h1, h2, h3').length;
-          const baseHeight = paragraphs * 50 + lists * 100 + headings * 40;
-          return Math.max(150, Math.min(500, baseHeight));
-        })()
+      ? Math.max(150, Math.min(500, (post.preRenderedContent.length / 200) * 50))
       : 150;
-    const contentMargin = 16; // margin-bottom: 1rem
+    const contentMargin = 16;
     const totalHeight = imageHeight + imageMargin + titleHeight + metaHeight + contentHeight + contentMargin;
 
     return {
