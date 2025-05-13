@@ -4,12 +4,28 @@ import { toast } from 'react-toastify';
 const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
 
 export const fetchPostBySlug = (slug) => async (dispatch) => {
+  const viewport = window.innerWidth <= 360 ? 'small' : window.innerWidth <= 480 ? 'mobile' : window.innerWidth <= 768 ? 'tablet' : window.innerWidth <= 1200 ? 'desktop' : 'large';
   try {
     dispatch({ type: 'CLEAR_POST' });
 
-    const viewport = window.innerWidth <= 360 ? 'small' : window.innerWidth <= 480 ? 'mobile' : window.innerWidth <= 768 ? 'tablet' : window.innerWidth <= 1200 ? 'desktop' : 'large';
     const cacheKey = `${API_BASE_URL}/post/${slug}?viewport=${viewport}`;
     const cachedPost = await caches.match(cacheKey);
+    
+    // Placeholder image for faster LCP
+    const placeholderImage = 'https://via.placeholder.com/240x135?text=Loading+Image';
+
+    // Early dispatch to render LCP element immediately
+    dispatch({
+      type: 'FETCH_POST_INITIAL',
+      payload: {
+        title: 'Loading...',
+        lcpContent: '',
+        contentHeight: 0,
+        titleImage: placeholderImage,
+        titleImageAspectRatio: '16:9'
+      }
+    });
+
     if (cachedPost) {
       const post = await cachedPost.json();
       if (!post.lcpContent || !post.preRenderedContent) {
@@ -17,15 +33,6 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
         const cache = await caches.open('api-cache');
         await cache.delete(cacheKey);
       } else {
-        dispatch({
-          type: 'FETCH_POST_INITIAL',
-          payload: {
-            title: post.title,
-            lcpContent: post.lcpContent,
-            contentHeight: post.contentHeight,
-            titleImageAspectRatio: post.titleImageAspectRatio || '16:9'
-          }
-        });
         dispatch({
           type: 'FETCH_POST_SUCCESS',
           payload: {
@@ -62,16 +69,6 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
 
     console.log('[fetchPostBySlug] API response:', { preRenderedContent, lcpContent });
 
-    dispatch({
-      type: 'FETCH_POST_INITIAL',
-      payload: {
-        title: data.title,
-        lcpContent,
-        contentHeight: data.contentHeight,
-        titleImageAspectRatio: data.titleImageAspectRatio || '16:9'
-      }
-    });
-
     const post = {
       ...data,
       preRenderedContent,
@@ -94,15 +91,6 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
       const post = await cachedPost.json();
       if (post.lcpContent && post.preRenderedContent) {
         dispatch({
-          type: 'FETCH_POST_INITIAL',
-          payload: {
-            title: post.title,
-            lcpContent: post.lcpContent,
-            contentHeight: post.contentHeight,
-            titleImageAspectRatio: post.titleImageAspectRatio || '16:9'
-          }
-        });
-        dispatch({
           type: 'FETCH_POST_SUCCESS',
           payload: post
         });
@@ -110,28 +98,10 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
       } else {
         console.log('[fetchPostBySlug] Skipping invalid cache in error handler: empty lcpContent or preRenderedContent');
         dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
-        dispatch({
-          type: 'FETCH_POST_INITIAL',
-          payload: {
-            title: 'Loading...',
-            lcpContent: '',
-            contentHeight: 0,
-            titleImageAspectRatio: '16:9'
-          }
-        });
         toast.error('Failed to load post. Please check your connection.', { position: 'top-right', autoClose: 3000 });
       }
     } else {
       dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
-      dispatch({
-        type: 'FETCH_POST_INITIAL',
-        payload: {
-          title: 'Loading...',
-          lcpContent: '',
-          contentHeight: 0,
-          titleImageAspectRatio: '16:9'
-        }
-      });
       toast.error('Failed to load post. Please check your connection.', { position: 'top-right', autoClose: 3000 });
     }
   }
