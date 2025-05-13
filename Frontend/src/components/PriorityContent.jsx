@@ -5,51 +5,17 @@ const criticalCss = minify(`
 *,*::before,*::after{box-sizing:border-box;}
 body{font-family:system-ui,-apple-system,sans-serif;font-display:swap;margin:0;padding:0;}
 article,section{margin:0;padding:0;}
-.PriorityContent-header{
-    font-size:clamp(1.25rem, 3vw, 2rem);
-    color:#011020;
-    font-weight:800;
-    line-height:1.2;
-    margin:0;
-    padding:0.5rem 0;
-}
-.PriorityContent-section{
-    font-size:clamp(0.8125rem, 2vw, 1.125rem);
-    line-height:clamp(1.3, 2vw, 1.6);
-    width:100%;
-    max-width:800px;
-    padding:0.25rem 0;
-    margin:0;
-    contain:layout;
-    word-break:break-word;
-}
-.PriorityContent-section > *:last-child{margin-bottom:0;}
-.PriorityContent-section p,.PriorityContent-section ul,.PriorityContent-section ol,.PriorityContent-section pre,.PriorityContent-section h2,.PriorityContent-section h3,.PriorityContent-section blockquote,.PriorityContent-section figure,.PriorityContent-section table{
-    margin:0 0 0.5rem 0;
-    padding:0;
-}
-.PriorityContent-section a{color:#0066cc;text-decoration:underline;}
-.PriorityContent-section img{max-width:min(100%, 360px);height:auto;object-fit:contain;}
-.PriorityContent-imageContainer{
-    width:100%;
-    max-width:min(100%, 360px);
-    margin:0 auto;
-    padding:0.5rem 0;
-    contain:layout;
-}
-.PriorityContent-image{width:100%;height:auto;object-fit:contain;}
-.PriorityContent-metaInfo{
-    color:#666;
-    font-size:clamp(0.7rem, 1.5vw, 0.875rem);
-    padding:0.25rem 0;
-    margin:0;
-}
-.PriorityContent-skeleton{
-    background:linear-gradient(90deg,#e0e0e0 25%,#f0f0f0 50%,#e0e0e0 75%);
-    background-size:200% 100%;
-    animation:PriorityContent-shimmer 1.5s infinite;
-}
-@keyframes PriorityContent-shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+header > h1{font-size:clamp(1.25rem, 3vw, 2rem);color:#011020;font-weight:800;line-height:1.2;margin:0;padding:0.5rem 0;}
+header > div:last-child{color:#666;font-size:clamp(0.7rem, 1.5vw, 0.875rem);padding:0.25rem 0;margin:0;}
+header > div:first-child{width:100%;max-width:min(100%, 360px);margin:0 auto;padding:0.5rem 0;}
+header > div:first-child > img{width:100%;height:auto;object-fit:contain;}
+article{font-size:clamp(0.8125rem, 2vw, 1.125rem);line-height:clamp(1.3, 2vw, 1.6);width:100%;max-width:800px;padding:0.25rem 0;margin:0;word-break:break-word;}
+article > *:last-child{margin-bottom:0;}
+article p,article ul,article ol,article pre,article h2,article h3,article blockquote,article figure,article table{margin:0 0 0.5rem 0;padding:0;}
+article a{color:#0066cc;text-decoration:underline;}
+article img{max-width:min(100%, 360px);height:auto;object-fit:contain;}
+div[aria-hidden="true"]{background:linear-gradient(90deg,#e0e0e0 25%,#f0f0f0 50%,#e0e0e0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;}
+@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
 `).css;
 
 const LCPContent = ({ lcpContent, preRenderedContent }) => {
@@ -82,7 +48,7 @@ const LCPContent = ({ lcpContent, preRenderedContent }) => {
           onError={(e) => console.error('LCP image failed:', e.target.src)}
         />
       ) : (
-        <div className="PriorityContent-skeleton" style={{ height: '50px' }} />
+        <div aria-hidden="true" style={{ height: '50px' }} />
       )}
     </>
   );
@@ -110,6 +76,7 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
     titleImageAspectRatio: '16:9',
   };
   const [nonCriticalContent, setNonCriticalContent] = useState(null);
+  const [imageSrc, setImageSrc] = useState(post.titleImage);
   const isLoading = !post || (!post.title && !post.lcpContent);
   const viewport = post.contentStyles?.viewport || 'mobile';
   const style = post.contentStyles?.[viewport] || {
@@ -144,7 +111,7 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
         console.log('[PriorityContent] Non-critical content rendered');
       } catch (error) {
         console.error('[PriorityContent] Non-critical render failed:', error);
-        setNonCriticalContent(<div className="PriorityContent-skeleton" style={{ height: '50px' }} />);
+        setNonCriticalContent(<div aria-hidden="true" style={{ height: '50px' }} />);
       }
     };
 
@@ -154,6 +121,12 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
       setTimeout(renderNonCritical, 0);
     }
   }, [post.preRenderedContent, post.lcpContent]);
+
+  useEffect(() => {
+    if (post.titleImage && post.titleImage !== imageSrc) {
+      setImageSrc(post.titleImage);
+    }
+  }, [post.titleImage]);
 
   const aspectRatio = post.titleImageAspectRatio || '16:9';
   const [aspectWidth, aspectHeight] = aspectRatio.split(':').map(Number);
@@ -169,69 +142,46 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
             maxWidth: '800px',
             display: 'flex',
             flexDirection: 'column',
-            contain: 'layout',
             fetchPriority: 'high',
             margin: 0,
             padding: 0,
           }}
           aria-live="polite"
         >
-          {post.titleImage && !isLoading && (
+          {imageSrc && !isLoading && (
             <link
               rel="preload"
-              href={`${post.titleImage}?w=${style.image.width}&format=avif&q=10`}
+              href={`${imageSrc}?w=${style.image.width}&format=avif&q=10`}
               as="image"
               fetchpriority="high"
+              crossorigin="anonymous"
             />
-          )}
-          {post.preRenderedContent && !isLoading && (
-            [...(post.preRenderedContent.matchAll(/<img[^>]+src=["']([^"']+)["']/gi) || [])]
-              .slice(0, 3)
-              .map((match, i) => (
-                <link
-                  key={i}
-                  rel="preload"
-                  href={`${match[1]}?w=${style.image.width}&format=avif&q=10`}
-                  as="image"
-                  fetchpriority="high"
-                />
-              ))
           )}
           {isLoading ? (
             <div
-              className="PriorityContent-skeleton"
+              aria-hidden="true"
               style={{
                 width: '100%',
                 height: '200px',
                 fetchPriority: 'high',
               }}
-              aria-hidden="true"
             />
           ) : (
             <>
-              <header style={{ width: '100%', contain: 'layout', margin: 0, padding: 0 }}>
-                {post.titleImage && (
-                  <div className="PriorityContent-imageContainer">
+              <header style={{ width: '100%', margin: 0, padding: 0 }}>
+                {imageSrc && (
+                  <div>
                     <img
-                      src={
-                        post.titleImage
-                          ? `${post.titleImage}?w=${style.image.width}&format=avif&q=10`
-                          : 'https://via.placeholder.com/240x135?text=Image+Not+Found'
-                      }
-                      srcSet={
-                        post.titleImage
-                          ? `
-                          ${post.titleImage}?w=220&format=avif&q=10 220w,
-                          ${post.titleImage}?w=240&format=avif&q=10 240w,
-                          ${post.titleImage}?w=280&format=avif&q=10 280w,
-                          ${post.titleImage}?w=320&format=avif&q=10 320w,
-                          ${post.titleImage}?w=360&format=avif&q=10 360w
-                        `
-                          : ''
-                      }
+                      src={imageSrc ? `${imageSrc}?w=${style.image.width}&format=avif&q=10` : 'https://via.placeholder.com/240x135?text=Image+Not+Found'}
+                      srcSet={imageSrc ? `
+                        ${imageSrc}?w=220&format=avif&q=10 220w,
+                        ${imageSrc}?w=240&format=avif&q=10 240w,
+                        ${imageSrc}?w=280&format=avif&q=10 280w,
+                        ${imageSrc}?w=320&format=avif&q=10 320w,
+                        ${imageSrc}?w=360&format=avif&q=10 360w
+                      ` : ''}
                       sizes="(max-width: 360px) 220px, (max-width: 480px) 240px, (max-width: 768px) 280px, (max-width: 1200px) 320px, 360px"
                       alt={post.title || 'Post image'}
-                      className="PriorityContent-image"
                       width={style.image.width}
                       height={imageHeight}
                       decoding="sync"
@@ -242,10 +192,10 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
                     />
                   </div>
                 )}
-                <h1 className="PriorityContent-header" style={{ willChange: 'contents', fetchPriority: 'high' }}>
+                <h1 style={{ willChange: 'contents', fetchPriority: 'high' }}>
                   {post.title || 'Untitled'}
                 </h1>
-                <div className="PriorityContent-metaInfo">
+                <div>
                   <span>By {post.author || 'Unknown'}</span>
                   <span>
                     {' | '}
@@ -264,14 +214,12 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
                 </div>
               </header>
               <section
-                className="PriorityContent-section"
                 role="region"
                 aria-label="Priority content"
                 ref={contentRef}
                 style={{
                   width: '100%',
                   maxWidth: '800px',
-                  contain: 'layout',
                   fetchPriority: 'high',
                   willChange: 'contents',
                   margin: 0,
@@ -289,7 +237,7 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
   } catch (error) {
     console.error('[PriorityContent] Render error:', error);
     return (
-      <div className="PriorityContent-skeleton" style={{ height: '200px' }}>
+      <div aria-hidden="true" style={{ height: '200px' }}>
         <p>Error rendering content. Please try refreshing.</p>
       </div>
     );
