@@ -1,267 +1,299 @@
-import React, { memo, useState, useEffect, useDeferredValue } from 'react';
+import React, { memo, useEffect, useState, useRef } from 'react';
 import { minify } from 'csso';
 
 const criticalCss = minify(`
 *,*::before,*::after{box-sizing:border-box;}
-body{font-family:system-ui,-apple-system,sans-serif;font-display:swap;margin:0;}
-.post-header{font-size:0.875rem;color:#011020;font-weight:700;line-height:1.2;}
-.content-section{font-size:0.875rem;line-height:1.4;width:100%;padding:0.25rem;contain:strict;overflow:hidden;}
-.content-section > *:last-child{margin-bottom:0 !important;}
-.content-section{padding-bottom:0 !important;}
-.content-section p,.content-section div,.content-section ul,.content-section ol,.content-section pre,.content-section h1,.content-section h2,.content-section h3,.content-section h4,.content-section h5,.content-section h6,.content-section .subtitle,.content-section .super-title{margin-bottom:0.5rem;}
-.content-section a{color:#0066cc;text-decoration:underline;}
-.content-section img{max-width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;}
-.image-container{max-width:100%;margin-bottom:0.5rem;}
-.post-image{max-width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;}
-.meta-info{color:#666;font-size:0.75rem;padding:0.25rem;}
-.skeleton{background:linear-gradient(90deg,#e0e0e0 25%,#f0f0f0 50%,#e0e0e0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;}
-@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
-.error-message{color:#d32f2f;font-size:0.75rem;padding:0.25rem;}
-@media (max-width:320px){
-    .post-header{font-size:0.8125rem;}
-    .content-section{font-size:0.8125rem;line-height:1.3;}
-    .content-section img,.post-image{max-width:220px;height:123.75px;}
-    .image-container{max-width:220px;}
+body{font-family:system-ui,-apple-system,sans-serif;font-display:swap;margin:0;padding:0;}
+article,section{margin:0;padding:0;}
+.PriorityContent-header{
+    font-size:clamp(1.25rem, 3vw, 2rem);
+    color:#011020;
+    font-weight:800;
+    line-height:1.2;
+    margin:0;
+    padding:0.5rem 0;
 }
-@media (min-width:361px){
-    .content-section img,.post-image{max-width:240px;height:135px;}
-    .image-container{max-width:240px;}
+.PriorityContent-section{
+    font-size:clamp(0.8125rem, 2vw, 1.125rem);
+    line-height:clamp(1.3, 2vw, 1.6);
+    width:100%;
+    max-width:800px;
+    padding:0.25rem 0;
+    margin:0;
+    contain:layout;
+    word-break:break-word;
 }
-@media (min-width:481px){
-    .post-header{font-size:0.9375rem;}
-    .content-section{font-size:0.9375rem;line-height:1.5;}
-    .content-section p,.content-section div,.content-section ul,.content-section ol,.content-section pre,.content-section h1,.content-section h2,.content-section h3,.content-section h4,.content-section h5,.content-section h6,.content-section .subtitle,.content-section .super-title{margin-bottom:0.5625rem;}
-    .content-section img,.post-image{max-width:280px;height:157.5px;}
-    .image-container{max-width:280px;margin-bottom:0.5625rem;}
-    .meta-info{padding:0.3rem;}
+.PriorityContent-section > *:last-child{margin-bottom:0;}
+.PriorityContent-section p,.PriorityContent-section ul,.PriorityContent-section ol,.PriorityContent-section pre,.PriorityContent-section h2,.PriorityContent-section h3,.PriorityContent-section blockquote,.PriorityContent-section figure,.PriorityContent-section table{
+    margin:0 0 0.5rem 0;
+    padding:0;
 }
-@media (min-width:769px){
-    .post-header{font-size:1rem;}
-    .content-section{font-size:1rem;line-height:1.6;}
-    .content-section p,.content-section div,.content-section ul,.content-section ol,.content-section pre,.content-section h1,.content-section h2,.content-section h3,.content-section h4,.content-section h5,.content-section h6,.content-section .subtitle,.content-section .super-title{margin-bottom:0.6rem;}
-    .content-section img,.post-image{max-width:320px;height:180px;}
-    .image-container{max-width:320px;margin-bottom:0.6rem;}
-    .meta-info{padding:0.375rem;}
+.PriorityContent-section a{color:#0066cc;text-decoration:underline;}
+.PriorityContent-section img{max-width:min(100%, 360px);height:auto;object-fit:contain;}
+.PriorityContent-imageContainer{
+    width:100%;
+    max-width:min(100%, 360px);
+    margin:0 auto;
+    padding:0.5rem 0;
+    contain:layout;
 }
-@media (min-width:1201px){
-    .post-header{font-size:1.125rem;}
-    .content-section{font-size:1.125rem;line-height:1.6;}
-    .content-section img,.post-image{max-width:360px;height:202.5px;}
-    .image-container{max-width:360px;}
+.PriorityContent-image{width:100%;height:auto;object-fit:contain;}
+.PriorityContent-metaInfo{
+    color:#666;
+    font-size:clamp(0.7rem, 1.5vw, 0.875rem);
+    padding:0.25rem 0;
+    margin:0;
 }
-@media (min-width:1601px){
-    .post-header{font-size:1.25rem;}
-    .content-section{font-size:1.25rem;line-height:1.7;}
-    .content-section img,.post-image{max-width:400px;height:225px;}
-    .image-container{max-width:400px;}
+.PriorityContent-skeleton{
+    background:linear-gradient(90deg,#e0e0e0 25%,#f0f0f0 50%,#e0e0e0 75%);
+    background-size:200% 100%;
+    animation:PriorityContent-shimmer 1.5s infinite;
 }
+@keyframes PriorityContent-shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
 `).css;
 
-const LCPContent = ({ lcpContent, fullContent }) => {
+const LCPContent = ({ lcpContent, preRenderedContent }) => {
   const startTime = performance.now();
-  const lcpImage = lcpContent.match(/src=["']([^"']+)["']/i)?.[1];
-  const lcpElement = lcpContent.startsWith('<p') ? (
-    <p dangerouslySetInnerHTML={{ __html: lcpContent }} />
-  ) : lcpContent.startsWith('<img') ? (
-    <img
-      src={lcpImage}
-      width={lcpContent.match(/width=["'](\d+)["']/i)?.[1] || 240}
-      height={lcpContent.match(/height=["'](\d+\.?\d*)["']/i)?.[1] || 135}
-      alt="LCP image"
-      loading="eager"
-      fetchpriority="high"
-      decoding="sync"
-      style={{ objectFit: 'cover', maxWidth: '100%', height: 'auto' }}
-      onError={(e) => console.error('LCP image failed:', e.target.src)}
-    />
-  ) : null;
+  let effectiveLcpContent = lcpContent;
+  if (!lcpContent && preRenderedContent) {
+    const firstSentence = preRenderedContent.match(/[^.!?]+[.!?]/)?.[0] || preRenderedContent.slice(0, 100);
+    effectiveLcpContent = `<p>${firstSentence}</p>`;
+    console.log('[LCPContent] Using preRenderedContent fallback:', effectiveLcpContent);
+  }
+  const lcpImage = effectiveLcpContent?.match(/src=["']([^"']+)["']/i)?.[1];
 
   console.log('LCP render time:', performance.now() - startTime);
 
   return (
     <>
       {lcpImage && <link rel="preload" href={`${lcpImage}?w=240&format=avif&q=10`} as="image" fetchpriority="high" />}
-      {lcpElement}
-      {fullContent && (
-        <div
-          style={{
-            width: '100%',
-            willChange: 'contents',
-            fetchPriority: 'low'
-          }}
-          dangerouslySetInnerHTML={{ __html: fullContent }}
+      {effectiveLcpContent?.startsWith('<p') ? (
+        <div dangerouslySetInnerHTML={{ __html: effectiveLcpContent }} />
+      ) : effectiveLcpContent?.startsWith('<img') ? (
+        <img
+          src={lcpImage}
+          width={effectiveLcpContent.match(/width=["'](\d+)["']/i)?.[1] || 240}
+          height={effectiveLcpContent.match(/height=["'](\d+\.?\d*)["']/i)?.[1] || 135}
+          alt="LCP image"
+          loading="eager"
+          fetchpriority="high"
+          decoding="sync"
+          style={{ width: '100%', height: 'auto', objectFit: 'contain' }}
+          onError={(e) => console.error('LCP image failed:', e.target.src)}
         />
+      ) : (
+        <div className="PriorityContent-skeleton" style={{ height: '50px' }} />
       )}
     </>
   );
 };
 
 const areEqual = (prev, next) => {
-  return prev.post?.titleInitial === next.post?.titleInitial &&
-         prev.post?.title === next.post?.title &&
-         prev.post?.titleImageInitial === next.post?.titleImageInitial &&
-         prev.post?.titleImage === next.post?.titleImage &&
-         prev.post?.lcpContent === next.post?.lcpContent &&
-         prev.post?.preRenderedContent === next.post?.preRenderedContent &&
-         prev.post?.contentHeight === next.post?.contentHeight &&
-         prev.readTime === next.readTime;
+  return (
+    prev.post?.title === next.post?.title &&
+    prev.post?.titleImage === next.post?.titleImage &&
+    prev.post?.lcpContent === next.post?.lcpContent &&
+    prev.post?.preRenderedContent === next.post?.preRenderedContent &&
+    prev.post?.contentHeight === next.post?.contentHeight &&
+    prev.post?.titleImageAspectRatio === next.post?.titleImageAspectRatio &&
+    prev.readTime === next.readTime
+  );
 };
 
 const PriorityContent = memo(({ post: rawPost, readTime }) => {
   const post = rawPost || {
     preRenderedContent: '',
     lcpContent: '',
-    contentHeight: 100,
-    titleInitial: 'Loading...',
+    contentHeight: 0,
     title: 'Loading...',
-    titleImageInitial: null,
-    titleImage: null
+    titleImage: null,
+    titleImageAspectRatio: '16:9',
   };
-  const [fullContent, setFullContent] = useState('');
-  const deferredContent = useDeferredValue(fullContent);
-
-  useEffect(() => {
-    setFullContent(post.preRenderedContent);
-  }, [post.preRenderedContent]);
-
-  const isLoading = !post || (post.titleInitial === 'Loading...' && post.title === 'Loading...');
+  const [nonCriticalContent, setNonCriticalContent] = useState(null);
+  const isLoading = !post || (!post.title && !post.lcpContent);
   const viewport = post.contentStyles?.viewport || 'mobile';
   const style = post.contentStyles?.[viewport] || {
     image: { width: 240, height: 135 },
     margin: 8,
-    padding: 4
+    padding: 4,
   };
-  const headerHeight = viewport === 'small' ? ((post.titleImageInitial || post.titleImage) ? 185 : 50) :
-                      viewport === 'mobile' ? ((post.titleImageInitial || post.titleImage) ? 195 : 60) :
-                      viewport === 'tablet' ? ((post.titleImageInitial || post.titleImage) ? 229.5 : 72) :
-                      viewport === 'desktop' ? ((post.titleImageInitial || post.titleImage) ? 248 : 80) :
-                      ((post.titleImageInitial || post.titleImage) ? 272.5 : 88);
-  const contentHeight = isLoading ? 100 : post.contentHeight || 100;
+  const contentHeight = post.contentHeight || 0;
+  const contentRef = useRef(null);
 
-  return (
-    <article
-      style={{
-        width: '100%',
-        maxWidth: '800px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.5rem',
-        contain: 'layout',
-        fetchPriority: 'high'
-      }}
-      aria-live="polite"
-    >
-      {(post.titleImageInitial || post.titleImage) && !isLoading && (
-        <link
-          rel="preload"
-          href={`${post.titleImageInitial || post.titleImage}?w=${style.image.width}&format=avif&q=10`}
-          as="image"
-          fetchpriority="high"
-        />
-      )}
-      {post.preRenderedContent && !isLoading && (
-        [...(post.preRenderedContent.matchAll(/<img[^>]+src=["']([^"']+)["']/gi) || [])]
-          .slice(0, 3)
-          .map((match, i) => (
+  useEffect(() => {
+    if (contentRef.current && !isLoading) {
+      const actualHeight = contentRef.current.offsetHeight;
+      console.log('[PriorityContent] contentHeight (backend):', contentHeight, 'Actual height:', actualHeight);
+      if (Math.abs(actualHeight - contentHeight) > 10) {
+        console.warn('[PriorityContent] Height mismatch detected!');
+      }
+    }
+  }, [contentHeight, nonCriticalContent, isLoading]);
+
+  useEffect(() => {
+    if (!post.preRenderedContent || !post.lcpContent) {
+      console.log('[PriorityContent] Skipping non-critical render: missing preRenderedContent or lcpContent');
+      setNonCriticalContent(null);
+      return;
+    }
+
+    const renderNonCritical = () => {
+      try {
+        const content = post.lcpContent ? post.preRenderedContent.replace(post.lcpContent, '') : post.preRenderedContent;
+        setNonCriticalContent(<div dangerouslySetInnerHTML={{ __html: content }} style={{ fetchPriority: 'low' }} />);
+        console.log('[PriorityContent] Non-critical content rendered');
+      } catch (error) {
+        console.error('[PriorityContent] Non-critical render failed:', error);
+        setNonCriticalContent(<div className="PriorityContent-skeleton" style={{ height: '50px' }} />);
+      }
+    };
+
+    if (window.requestIdleCallback) {
+      window.requestIdleCallback(renderNonCritical, { timeout: 2000 });
+    } else {
+      setTimeout(renderNonCritical, 0);
+    }
+  }, [post.preRenderedContent, post.lcpContent]);
+
+  const aspectRatio = post.titleImageAspectRatio || '16:9';
+  const [aspectWidth, aspectHeight] = aspectRatio.split(':').map(Number);
+  const imageHeight = Math.round((style.image.width / aspectWidth) * aspectHeight);
+
+  try {
+    return (
+      <>
+        <style>{criticalCss}</style>
+        <article
+          style={{
+            width: '100%',
+            maxWidth: '800px',
+            display: 'flex',
+            flexDirection: 'column',
+            contain: 'layout',
+            fetchPriority: 'high',
+            margin: 0,
+            padding: 0,
+          }}
+          aria-live="polite"
+        >
+          {post.titleImage && !isLoading && (
             <link
-              key={i}
               rel="preload"
-              href={`${match[1]}?w=${style.image.width}&format=avif&q=10`}
+              href={`${post.titleImage}?w=${style.image.width}&format=avif&q=10`}
               as="image"
               fetchpriority="high"
             />
-          ))
-      )}
-      {isLoading ? (
-        <div
-          className="skeleton"
-          style={{
-            width: '100%',
-            height: `${contentHeight + headerHeight}px`,
-            containIntrinsicSize: `auto ${contentHeight + headerHeight}px`,
-            fetchPriority: 'high'
-          }}
-          aria-hidden="true"
-        />
-      ) : (
-        <>
-          <header style={{ width: '100%', contain: 'layout' }}>
-            {(post.titleImageInitial || post.titleImage) && (
-              <div
-                className="image-container"
-                style={{ containIntrinsicSize: `auto ${style.image.height}px` }}
-              >
-                <img
-                  src={(post.titleImageInitial || post.titleImage) ? `${post.titleImageInitial || post.titleImage}?w=${style.image.width}&format=avif&q=10` : 'https://via.placeholder.com/240x135?text=Image+Not+Found'}
-                  srcSet={(post.titleImageInitial || post.titleImage) ? `
-                    ${post.titleImageInitial || post.titleImage}?w=220&format=avif&q=10 220w,
-                    ${post.titleImageInitial || post.titleImage}?w=240&format=avif&q=10 240w,
-                    ${post.titleImageInitial || post.titleImage}?w=280&format=avif&q=10 280w,
-                    ${post.titleImageInitial || post.titleImage}?w=320&format=avif&q=10 320w,
-                    ${post.titleImageInitial || post.titleImage}?w=360&format=avif&q=10 360w
-                  ` : ''}
-                  sizes="(max-width: 360px) 220px, (max-width: 480px) 240px, (max-width: 768px) 280px, (max-width: 1200px) 320px, 360px"
-                  alt={post.titleInitial || post.title || 'Post image'}
-                  className="post-image"
-                  width={style.image.width}
-                  height={style.image.height}
-                  decoding="sync"
-                  loading="eager"
+          )}
+          {post.preRenderedContent && !isLoading && (
+            [...(post.preRenderedContent.matchAll(/<img[^>]+src=["']([^"']+)["']/gi) || [])]
+              .slice(0, 3)
+              .map((match, i) => (
+                <link
+                  key={i}
+                  rel="preload"
+                  href={`${match[1]}?w=${style.image.width}&format=avif&q=10`}
+                  as="image"
                   fetchpriority="high"
-                  style={{ containIntrinsicSize: `${style.image.width}px ${style.image.height}px`, objectFit: 'cover', maxWidth: '100%', height: 'auto' }}
-                  onError={(e) => console.error('Title image failed:', e.target.src)}
                 />
-              </div>
-            )}
-            <h1
-              className="post-header"
-              style={{ willChange: 'contents', fetchPriority: 'high' }}
-            >
-              {post.titleInitial || post.title || 'Untitled'}
-            </h1>
-            <div className="meta-info">
-              <span>By {post.author || 'Unknown'}</span>
-              <span>
-                {' | '}
-                {post.date && !isNaN(new Date(post.date).getTime())
-                  ? new Date(post.date).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })
-                  : 'Unknown Date'}
-              </span>
-              <span>
-                {' | Read time: '}
-                <span id="read-time">{readTime || '0'}</span> min
-              </span>
-            </div>
-          </header>
-          <section
-            className="content-section"
-            role="region"
-            aria-label="Post content"
-            style={{
-              width: '100%',
-              maxWidth: '800px',
-              height: `${contentHeight}px`,
-              contain: 'strict',
-              containIntrinsicSize: `auto ${contentHeight}px`,
-              fetchPriority: 'high',
-              willChange: 'contents'
-            }}
-          >
-            {!post.preRenderedContent ? (
-              <p className="error-message">Content failed to render. Please try refreshing.</p>
-            ) : (
-              <LCPContent lcpContent={post.lcpContent} fullContent={deferredContent} />
-            )}
-          </section>
-        </>
-      )}
-      <style>{criticalCss}</style>
-    </article>
-  );
+              ))
+          )}
+          {isLoading ? (
+            <div
+              className="PriorityContent-skeleton"
+              style={{
+                width: '100%',
+                height: '200px',
+                fetchPriority: 'high',
+              }}
+              aria-hidden="true"
+            />
+          ) : (
+            <>
+              <header style={{ width: '100%', contain: 'layout', margin: 0, padding: 0 }}>
+                {post.titleImage && (
+                  <div className="PriorityContent-imageContainer">
+                    <img
+                      src={
+                        post.titleImage
+                          ? `${post.titleImage}?w=${style.image.width}&format=avif&q=10`
+                          : 'https://via.placeholder.com/240x135?text=Image+Not+Found'
+                      }
+                      srcSet={
+                        post.titleImage
+                          ? `
+                          ${post.titleImage}?w=220&format=avif&q=10 220w,
+                          ${post.titleImage}?w=240&format=avif&q=10 240w,
+                          ${post.titleImage}?w=280&format=avif&q=10 280w,
+                          ${post.titleImage}?w=320&format=avif&q=10 320w,
+                          ${post.titleImage}?w=360&format=avif&q=10 360w
+                        `
+                          : ''
+                      }
+                      sizes="(max-width: 360px) 220px, (max-width: 480px) 240px, (max-width: 768px) 280px, (max-width: 1200px) 320px, 360px"
+                      alt={post.title || 'Post image'}
+                      className="PriorityContent-image"
+                      width={style.image.width}
+                      height={imageHeight}
+                      decoding="sync"
+                      loading="eager"
+                      fetchpriority="high"
+                      style={{ width: '100%', height: 'auto', objectFit: 'contain' }}
+                      onError={(e) => console.error('Title image failed:', e.target.src)}
+                    />
+                  </div>
+                )}
+                <h1 className="PriorityContent-header" style={{ willChange: 'contents', fetchPriority: 'high' }}>
+                  {post.title || 'Untitled'}
+                </h1>
+                <div className="PriorityContent-metaInfo">
+                  <span>By {post.author || 'Unknown'}</span>
+                  <span>
+                    {' | '}
+                    {post.date && !isNaN(new Date(post.date).getTime())
+                      ? new Date(post.date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })
+                      : 'Unknown Date'}
+                  </span>
+                  <span>
+                    {' | Read time: '}
+                    <span id="read-time">{readTime || '0'}</span> min
+                  </span>
+                </div>
+              </header>
+              <section
+                className="PriorityContent-section"
+                role="region"
+                aria-label="Priority content"
+                ref={contentRef}
+                style={{
+                  width: '100%',
+                  maxWidth: '800px',
+                  contain: 'layout',
+                  fetchPriority: 'high',
+                  willChange: 'contents',
+                  margin: 0,
+                  padding: '0.25rem 0',
+                }}
+              >
+                <LCPContent lcpContent={post.lcpContent} preRenderedContent={post.preRenderedContent} />
+                {nonCriticalContent}
+              </section>
+            </>
+          )}
+        </article>
+      </>
+    );
+  } catch (error) {
+    console.error('[PriorityContent] Render error:', error);
+    return (
+      <div className="PriorityContent-skeleton" style={{ height: '200px' }}>
+        <p>Error rendering content. Please try refreshing.</p>
+      </div>
+    );
+  }
 }, areEqual);
 
 export default PriorityContent;
