@@ -17,7 +17,7 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
         payload: {
           ...post,
           preRenderedContent: post.preRenderedContent || '',
-          estimatedContentHeight: post.estimatedContentHeight || 400,
+          estimatedContentHeight: post.estimatedContentHeight || 300,
         },
       });
       return;
@@ -29,7 +29,7 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
       payload: {
         title: 'Loading...',
         preRenderedContent: '',
-        estimatedContentHeight: 400,
+        estimatedContentHeight: 300,
       },
     });
 
@@ -43,24 +43,43 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     const data = await response.json();
 
+    if (!data) {
+      throw new Error('Invalid API response: No data');
+    }
+
     const contentField = data.content || data.body || data.text || '';
     if (!contentField) {
       console.warn('[fetchPostBySlug] No content field:', data);
     }
 
-    // Parse content synchronously with image optimization
-    const preRenderedContent = parseLinks(contentField, data.category || '', true)
-      .replace(/<img([^>]+)src=["']([^"']+)["']/gi, (match, attrs, src) => {
-        const width = window.innerWidth <= 768 ? 400 : 480;
-        return `<img${attrs} src="${src}?w=${width}&format=avif&q=5" srcset="${src}?w=280&format=avif&q=5 280w,${src}?w=320&format=avif&q=5 320w,${src}?w=360&format=avif&q=5 360w,${src}?w=400&format=avif&q=5 400w,${src}?w=480&format=avif&q=5 480w" sizes="(max-width: 320px) 280px, (max-width: 480px) 400px, (max-width: 768px) 400px, 480px" loading="lazy" decoding="async" fetchpriority="low"`;
-      });
+    // Parse content with image optimization
+    const preRenderedContent = contentField
+      ? parseLinks(contentField, data.category || '', true).replace(
+          /<img([^>]+)src=["']([^"']+)["']/gi,
+          (match, attrs, src) => {
+            const width = window.innerWidth <= 768 ? 400 : 480;
+            return `<img${attrs} src="${src}?w=${width}&format=avif&q=5" srcset="${src}?w=280&format=avif&q=5 280w,${src}?w=320&format=avif&q=5 320w,${src}?w=360&format=avif&q=5 360w,${src}?w=400&format=avif&q=5 400w,${src}?w=480&format=avif&q=5 480w" sizes="(max-width: 320px) 280px, (max-width: 480px) 400px, (max-width: 768px) 400px, 480px" width="${width}" height="${width / (16/9)}" loading="lazy" decoding="async" fetchpriority="low"`;
+          }
+        )
+      : '';
+
+    const charCount = contentField.length;
+    const fontSize = window.innerWidth <= 768 ? 1.25 : 1.375; // rem
+    const lineHeight = 1.8;
+    const lineHeightPx = fontSize * 16 * lineHeight; // px
+    const viewportWidth = Math.min(window.innerWidth, 800); // px
+    const charsPerLine = Math.floor(viewportWidth / (fontSize * 10)); // Approx 80 chars at 800px
+    const textLines = Math.ceil(charCount / charsPerLine);
+    const textHeight = textLines * lineHeightPx;
 
     const estimatedContentHeight = Math.max(
-      400,
-      (contentField.match(/<(img|ul|ol|p|div)/g)?.length || 0) * 50 +
-      (contentField.match(/<img/g)?.length || 0) * 150 +
-      (contentField.match(/<ul|<ol/g)?.length || 0) * 30 +
-      (contentField.match(/<li/g)?.length || 0) * 20
+      300,
+      textHeight +
+        (contentField.match(/<(img|ul|ol|p|div|h1|h2|h3|h4|h5|h6)/g)?.length || 0) * 40 +
+        (contentField.match(/<img/g)?.length || 0) * 150 +
+        (contentField.match(/<ul|<ol/g)?.length || 0) * 30 +
+        (contentField.match(/<li/g)?.length || 0) * 20 +
+        (contentField.match(/<h[1-6]/g)?.length || 0) * 40
     );
 
     const post = {
@@ -72,13 +91,16 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
     // Cache the response
     const cache = await caches.open('api-cache');
     await cache.put(`${API_BASE_URL}/post/${slug}`, new Response(JSON.stringify(post), {
-      headers: { 'Cache-Control': 'public, max-age=3600' },
+      headers: { 'Cache-Control': 'public, max-age=86400' },
     }));
 
     dispatch({ type: 'FETCH_POST_SUCCESS', payload: post });
   } catch (error) {
     console.error('[fetchPostBySlug] Error:', { message: error.message });
-    dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
+    dispatch({
+      type: 'FETCH_POST_FAILURE',
+      payload: error.message,
+    });
     import('react-toastify').then(({ toast }) => {
       toast.error('Failed to fetch post. Please try again later.', { position: 'top-right', autoClose: 2000 });
     });
