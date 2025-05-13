@@ -1,21 +1,22 @@
-import React, { memo, Suspense } from 'react';
+import React, { memo } from 'react';
 import DOMPurify from 'dompurify';
 
 const criticalCss = `
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+*,*::before,*::after{box-sizing:borderbox;margin:0;padding:0;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;font-display:swap;}
 .post-header{font-size:clamp(1.5rem,3vw,2rem);color:#011020;font-weight:700;line-height:1.2;min-height:48px;contain-intrinsic-size:100% 48px;}
-.content-section{font-size:1.1rem;line-height:1.7;width:100%;margin-bottom:2rem;padding:0.75rem;}
-.content-section p,.content-section ul,.content-section li,.content-section div{margin-bottom:1rem;min-height:28px;contain-intrinsic-size:100% 28px;}
+.content-section{font-size:1.2rem;line-height:1.8;width:100%;margin-bottom:2rem;padding:1rem;}
+.content-section p,.content-section ul,.content-section li,.content-section div{margin-bottom:1rem;min-height:30px;contain-intrinsic-size:100% 30px;}
 .content-section a{color:#0066cc;text-decoration:underline;}
 .content-section img{width:100%;max-width:100%;height:auto;}
 .image-container{width:100%;max-width:280px;margin:1.5rem 0 2rem;aspect-ratio:16/9;min-height:157.5px;contain-intrinsic-size:280px 157.5px;}
-.post-image{width:100%;max-width:280px;height:auto;aspect-ratio:16/9;object-fit:contain;border-radius:0.25rem;border:1px solid #e0e0e0;box-shadow:0 2px 4px rgba(0,0,0,0.1);}
-.meta-info{color:#666;font-size:0.875rem;margin:1.5rem 0;padding:0.75rem;display:grid;grid-template-columns:1fr;gap:1rem;min-height:84px;contain-intrinsic-size:100% 84px;}
+.post-image{width:100%;max-width:280px;height:auto;aspect-ratio:16/9;object-fit:contain;border-radius:.25rem;}
+.meta-info{color:#666;font-size:.875rem;margin:1.5rem 0;padding:1rem;display:grid;grid-template-columns:1fr;gap:1rem;min-height:84px;contain-intrinsic-size:100% 84px;}
 .meta-info span{min-height:24px;contain-intrinsic-size:100% 24px;}
-.skeleton{background:#e0e0e0;border-radius:0.25rem;}
+.skeleton{background:#e0e0e0;border-radius:.25rem;}
+.error-message{color:#d32f2f;font-size:1rem;padding:1rem;}
 @media (min-width:769px){
-.content-section{font-size:1.25rem;padding:1.5rem;}
+.content-section{font-size:1.375rem;padding:2rem;}
 .meta-info{grid-template-columns:repeat(3,auto);gap:2rem;min-height:32px;contain-intrinsic-size:100% 32px;}
 .image-container{max-width:480px;min-height:270px;contain-intrinsic-size:480px 270px;}
 .post-image{max-width:480px;}
@@ -35,10 +36,10 @@ const PriorityContent = memo(({ post, readTime }) => {
   React.useEffect(() => {
     if (window.requestIdleCallback) {
       window.requestIdleCallback(() => {
-        console.log('[PriorityContent] Rendering with post:', post);
+        console.log('[PriorityContent] Rendering with post:', { title: post?.title, hasContent: !!post?.preRenderedContent });
       });
     } else {
-      console.log('[PriorityContent] Rendering with post:', post);
+      console.log('[PriorityContent] Rendering with post:', { title: post?.title, hasContent: !!post?.preRenderedContent });
     }
   }, [post]);
 
@@ -46,24 +47,37 @@ const PriorityContent = memo(({ post, readTime }) => {
 
   const contentHeight = post?.preRenderedContent && !isLoading
     ? Math.max(
-        300,
+        400,
         (post.estimatedContentHeight || 0) +
-          (post.preRenderedContent.match(/<(img|ul|ol|p|div)/g)?.length || 0) * 40 +
-          (post.preRenderedContent.match(/<img/g)?.length || 0) * 100 +
-          (post.preRenderedContent.match(/<ul|<ol/g)?.length || 0) * 20
+          (post.preRenderedContent.match(/<(img|ul|ol|p|div)/g)?.length || 0) * 50 +
+          (post.preRenderedContent.match(/<img/g)?.length || 0) * 150 +
+          (post.preRenderedContent.match(/<ul|<ol/g)?.length || 0) * 30 +
+          (post.preRenderedContent.match(/<li/g)?.length || 0) * 20
       )
-    : 300;
+    : 400;
 
   const sanitizedContent = React.useMemo(() => {
     if (!post?.preRenderedContent || isLoading) return '';
-    return DOMPurify.sanitize(post.preRenderedContent, {
+    const sanitized = DOMPurify.sanitize(post.preRenderedContent, {
       FORBID_TAGS: ['script', 'style'],
       FORBID_ATTR: ['onerror', 'onload', 'onclick'],
     });
+    console.log('[PriorityContent] Sanitized content:', { inputLength: post.preRenderedContent.length, outputLength: sanitized.length });
+    if (!sanitized && post.preRenderedContent) {
+      console.warn('[PriorityContent] Sanitized content is empty:', post.preRenderedContent);
+    }
+    return sanitized;
   }, [post?.preRenderedContent, isLoading]);
 
   return (
     <>
+      <link
+        rel="preload"
+        href="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif"
+        as="font"
+        type="font/woff2"
+        crossOrigin="anonymous"
+      />
       {post?.titleImage && !isLoading && (
         <link
           rel="preload"
@@ -79,6 +93,7 @@ const PriorityContent = memo(({ post, readTime }) => {
           flexDirection: 'column',
           alignItems: 'center',
           contain: 'layout',
+          fetchPriority: 'high',
         }}
       >
         {isLoading ? (
@@ -190,30 +205,19 @@ const PriorityContent = memo(({ post, readTime }) => {
               }}
               aria-hidden="true"
             />
+          ) : !sanitizedContent && post?.preRenderedContent ? (
+            <p className="error-message">Content failed to render. Please try refreshing the page.</p>
           ) : (
-            <Suspense
-              fallback={
-                <div
-                  className="skeleton"
-                  style={{
-                    width: '100%',
-                    minHeight: `${contentHeight}px`,
-                    containIntrinsicSize: `100% ${contentHeight}px`,
-                  }}
-                />
-              }
-            >
-              <div
-                style={{
-                  width: '100%',
-                  minHeight: `${contentHeight}px`,
-                  containIntrinsicSize: `100% ${contentHeight}px`,
-                  fetchPriority: 'high',
-                  contain: 'layout',
-                }}
-                dangerouslySetInnerHTML={{ __html: sanitizedContent }}
-              />
-            </Suspense>
+            <div
+              style={{
+                width: '100%',
+                minHeight: `${contentHeight}px`,
+                containIntrinsicSize: `100% ${contentHeight}px`,
+                fetchPriority: 'high',
+                contain: 'layout',
+              }}
+              dangerouslySetInnerHTML={{ __html: sanitizedContent }}
+            />
           )}
         </section>
         <style>{criticalCss}</style>
@@ -222,4 +226,4 @@ const PriorityContent = memo(({ post, readTime }) => {
   );
 });
 
-export default PriorityContent; 
+export default PriorityContent;
