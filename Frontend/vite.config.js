@@ -130,7 +130,7 @@ export default defineConfig({
     },
     outDir: 'dist',
     assetsDir: 'assets',
-    assetsInlineLimit: 16384, // Increased to inline PriorityContent, PostPage, Layout
+    assetsInlineLimit: 16384,
     chunkSizeWarningLimit: 250,
   },
   optimizeDeps: {
@@ -152,5 +152,8 @@ export default defineConfig({
       path.resolve(__dirname, 'src/components/PostPage.jsx'),
       path.resolve(__dirname, 'src/components/Layout.jsx'),
     ],
+    proxy: {
+      '/api': 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod'
+    }
   },
 });
