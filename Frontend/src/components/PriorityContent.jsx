@@ -1,22 +1,21 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 
 const criticalCss = `
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;font-display:swap;}
-.post-header{font-size:clamp(1.5rem,3vw,2rem);color:#011020;font-weight:700;line-height:1.2;text-rendering:optimizeSpeed;contain:layout;min-height:48px;contain-intrinsic-size:100% 48px;}
-.content-section{font-size:1rem;line-height:1.6;width:100%;margin-bottom:1.5rem;padding:0.5rem;contain:layout;}
-.content-section p,.content-section ul,.content-section li,.content-section div{margin-bottom:0.75rem;overflow-wrap:break-word;contain:layout;min-height:24px;contain-intrinsic-size:100% 24px;}
-.content-section a{color:#0066cc;text-decoration:underline;}
-.content-section a:hover{color:#0033cc;}
+.post-header{font-size:clamp(1.5rem,3vw,2rem);color:#011020;font-weight:700;line-height:1.2;contain:layout;min-height:48px;contain-intrinsic-size:100% 48px;}
+.content-section{font-size:1.125rem;line-height:1.7;width:100%;margin-bottom:2rem;padding:1rem;contain:layout;overflow:hidden;}
+.content-section p,.content-section ul,.content-section li,.content-section div,.content-section table,.content-section iframe{margin-bottom:1rem;overflow-wrap:break-word;contain:layout;min-height:28px;contain-intrinsic-size:100% 28px;}
 .content-section img{width:100%;max-width:100%;height:auto;contain:layout;}
+.content-section a{color:#0066cc;text-decoration:underline;}
 .image-container{width:100%;max-width:280px;margin:1.5rem 0 2rem;aspect-ratio:16/9;contain:layout;min-height:157.5px;contain-intrinsic-size:280px 157.5px;}
-.post-image{width:100%;max-width:280px;height:auto;aspect-ratio:16/9;object-fit:contain;border-radius:0.25rem;border:1px solid #e0e0e0;box-shadow:0 2px 4px rgba(0,0,0,0.1);contain:layout;}
-.meta-info{color:#666;font-size:0.875rem;margin:1rem 0;padding:0.5rem;display:grid;grid-template-columns:1fr;gap:0.75rem;contain:layout;min-height:72px;contain-intrinsic-size:100% 72px;}
-.meta-info span{min-height:20px;contain-intrinsic-size:100% 20px;}
+.post-image{width:100%;max-width:280px;height:auto;aspect-ratio:16/9;objectopat-fit:contain;border-radius:0.25rem;border:1px solid #e0e0e0;box-shadow:0 2px 4px rgba(0,0,0,0.1);contain:layout;}
+.meta-info{color:#666;font-size:0.875rem;margin:1rem 0;padding:0.75rem;display:grid;grid-template-columns:1fr;gap:1rem;contain:layout;min-height:96px;contain-intrinsic-size:100% 96px;}
+.meta-info span{min-height:24px;contain-intrinsic-size:100% 24px;}
 .skeleton{background:#e0e0e0;border-radius:0.25rem;contain:layout;}
 @media (min-width:769px){
-  .content-section{font-size:1.125rem;padding:1rem;}
-  .meta-info{grid-template-columns:repeat(3,auto);gap:1.5rem;min-height:28px;contain-intrinsic-size:100% 28px;}
+  .content-section{font-size:1.25rem;padding:1.5rem;}
+  .meta-info{grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:2rem;min-height:32px;contain-intrinsic-size:100% 32px;}
   .image-container{max-width:480px;min-height:270px;contain-intrinsic-size:480px 270px;}
   .post-image{max-width:480px;}
 }
@@ -44,9 +43,25 @@ const PriorityContent = memo(({ post, readTime }) => {
 
   const isLoading = !post || post.title === 'Loading...';
 
-  const contentHeight = post?.preRenderedContent && !isLoading
-    ? Math.max(200, (post.estimatedContentHeight || 0) + (post.preRenderedContent.match(/<(img|ul|ol|p|div)/g)?.length || 0) * 30)
-    : 200;
+  const contentHeight = useMemo(() => {
+    if (!post?.preRenderedContent || isLoading) return 300;
+    return Math.max(
+      300,
+      (post.estimatedContentHeight || 0) +
+        (post.preRenderedContent.match(/<(img|ul|ol|p|div|table|iframe)/g)?.length || 0) * 50 +
+        (post.preRenderedContent.match(/<img/g)?.length || 0) * 100 +
+        (post.preRenderedContent.match(/<(ul|ol)/g)?.length || 0) * 20
+    );
+  }, [post, isLoading]);
+
+  const optimizedContent = useMemo(() => {
+    if (!post?.preRenderedContent || isLoading) return '';
+    const criticalContent = post.preRenderedContent.slice(0, 1000);
+    return criticalContent.replace(
+      /<img([^>]*?)>/g,
+      '<img$1 width="280" height="157.5" loading="lazy" style="max-width:100%;height:auto;" fetchpriority="low">'
+    );
+  }, [post, isLoading]);
 
   return (
     <>
@@ -86,7 +101,7 @@ const PriorityContent = memo(({ post, readTime }) => {
               style={{
                 width: '80%',
                 minHeight: '48px',
-                margin: '0.75rem 0',
+                margin: '1rem 0',
                 containIntrinsicSize: '80% 48px',
               }}
               aria-hidden="true"
@@ -98,8 +113,8 @@ const PriorityContent = memo(({ post, readTime }) => {
                   className="skeleton"
                   style={{
                     width: '120px',
-                    minHeight: '20px',
-                    containIntrinsicSize: '120px 20px',
+                    minHeight: '24px',
+                    containIntrinsicSize: '120px 24px',
                   }}
                 />
               ))}
@@ -184,7 +199,7 @@ const PriorityContent = memo(({ post, readTime }) => {
                 containIntrinsicSize: `100% ${contentHeight}px`,
                 fetchPriority: 'high',
               }}
-              dangerouslySetInnerHTML={{ __html: post.preRenderedContent || '' }}
+              dangerouslySetInnerHTML={{ __html: optimizedContent }}
             />
           )}
         </section>
