@@ -6,27 +6,23 @@ const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/pr
 export const fetchPostBySlug = (slug) => async (dispatch) => {
   try {
     dispatch({ type: 'CLEAR_POST' });
-    dispatch({
-      type: 'FETCH_POST_SUCCESS',
-      payload: {
-        title: 'Loading...',
-        preRenderedContent: '',
-        contentHeight: { mobile: 300, mobileSmall: 300, tablet: 300, desktop: 300 },
-      },
-    });
 
-    const width = window.innerWidth;
-    const viewport = width <= 375 ? 'mobileSmall' : width <= 768 ? 'mobile' : width <= 1024 ? 'tablet' : 'desktop';
+    const viewport = window.innerWidth <= 360 ? 'small' : window.innerWidth <= 480 ? 'mobile' : window.innerWidth <= 768 ? 'tablet' : window.innerWidth <= 1200 ? 'desktop' : 'large';
     const cacheKey = `${API_BASE_URL}/post/${slug}?viewport=${viewport}`;
     const cachedPost = await caches.match(cacheKey);
     if (cachedPost) {
       const post = await cachedPost.json();
       dispatch({
+        type: 'FETCH_POST_INITIAL',
+        payload: { titleInitial: post.title, titleImageInitial: post.titleImage, lcpContent: post.lcpContent }
+      });
+      dispatch({
         type: 'FETCH_POST_SUCCESS',
         payload: {
           ...post,
           preRenderedContent: post.preRenderedContent || '',
-          contentHeight: post.contentHeight || { mobile: 300, mobileSmall: 300, tablet: 300, desktop: 300 },
+          lcpContent: post.lcpContent || '',
+          contentHeight: post.contentHeight || 300,
         },
       });
       return;
@@ -43,45 +39,79 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
       throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
     }
     const data = await response.json();
+
     if (!data) {
       throw new Error('Invalid API response: No data');
     }
 
     const contentField = data.content || data.body || data.text || '';
-    let isFirstImage = true;
+    if (!contentField) {
+      console.error('[fetchPostBySlug] No valid content field:', data);
+    }
+
+    let imageCount = 0;
     const preRenderedContent = contentField
       ? parseLinks(contentField, data.category || '', true)
           .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
           .replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, '')
           .replace(/<img([^>]+)src=["']([^"']+)["']/gi, (match, attrs, src) => {
-              const width = window.innerWidth <= 375 ? 200 : window.innerWidth <= 768 ? 240 : window.innerWidth <= 1024 ? 280 : 320;
+              const width = viewport === 'small' ? 220 : viewport === 'mobile' ? 240 : viewport === 'tablet' ? 280 : viewport === 'desktop' ? 320 : 360;
               const height = width / (16/9);
-              const priority = isFirstImage ? 'eager' : 'lazy';
-              const fetchPriority = isFirstImage ? 'high' : 'auto';
-              const decoding = isFirstImage ? 'sync' : 'async';
-              isFirstImage = false;
-              return `<img${attrs} src="${src}?w=${width}&format=avif&q=20" srcset="${src}?w=200&format=avif&q=20 200w,${src}?w=240&format=avif&q=20 240w,${src}?w=280&format=avif&q=20 280w,${src}?w=320&format=avif&q=20 320w" sizes="(max-width: 375px) 200px, (max-width: 768px) 240px, (max-width: 1024px) 280px, 320px" width="${width}" height="${height}" loading="${priority}" decoding="${decoding}" fetchpriority="${fetchPriority}"`;
+              const priority = imageCount < 3 ? 'eager' : 'lazy';
+              const fetchPriority = imageCount < 3 ? 'high' : 'auto';
+              imageCount++;
+              return `<img${attrs} src="${src}?w=${width}&format=avif&q=10" srcset="${src}?w=220&format=avif&q=10 220w,${src}?w=240&format=avif&q=10 240w,${src}?w=280&format=avif&q=10 280w,${src}?w=320&format=avif&q=10 320w,${src}?w=360&format=avif&q=10 360w" sizes="(max-width: 360px) 220px, (max-width: 480px) 240px, (max-width: 768px) 280px, (max-width: 1200px) 320px, 360px" width="${width}" height="${height}" loading="${priority}" decoding="sync" fetchpriority="${fetchPriority}"`;
             })
       : '';
+
+const lcpMatch = contentField.match(/<p[^>]*>[\s\S]*?<\/p>|<img[^>]+>/i);
+    const lcpContent = lcpMatch ? lcpMatch[0].replace(/<[^>]*$/, '') : '';
+
+    if (preRenderedContent.match(/<script|\bon\w+/i)) {
+      console.error('[fetchPostBySlug] Suspicious content detected');
+    }
+
+    dispatch({
+      type: 'FETCH_POST_INITIAL',
+      payload: { titleInitial: data.title, titleImageInitial: data.titleImage, lcpContent }
+    });
 
     const post = {
       ...data,
       preRenderedContent,
-      contentHeight: data.contentHeight || { mobile: 300, mobileSmall: 300, tablet: 300, desktop: 300 },
+      lcpContent,
+      contentHeight: data.contentHeight || 300,
     };
 
     const cache = await caches.open('api-cache');
     await cache.put(cacheKey, new Response(JSON.stringify(post), {
-      headers: { 'Cache-Control': 'public, max-age=86400' },
+      headers: { 'Cache-Control': 'public, max-age=86400, stale-while-revalidate=604800' },
     }));
 
     dispatch({ type: 'FETCH_POST_SUCCESS', payload: post });
   } catch (error) {
-    console.error('[fetchPostBySlug] Error:', { message: error.message, slug });
-    dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
-    import('react-toastify').then(({ toast }) => {
-      toast.error('Failed to fetch post.', { position: 'top-right', autoClose: 2000 });
-    });
+    console.error('[fetchPostBySlug] Fetch failed:', error.message, error.stack);
+    const cacheKey = `${API_BASE_URL}/post/${slug}?viewport=${viewport}`;
+    const cachedPost = await caches.match(cacheKey);
+    if (cachedPost) {
+      const post = await cachedPost.json();
+      dispatch({
+        type: 'FETCH_POST_INITIAL',
+        payload: { titleInitial: post.title, titleImageInitial: post.titleImage, lcpContent: post.lcpContent }
+      });
+      dispatch({
+        type: 'FETCH_POST_SUCCESS',
+        payload: post
+      });
+      import('react-toastify').then(({ toast }) => {
+        toast.warn('Using cached post due to network issue.', { position: 'top-right', autoClose: 3000 });
+      });
+    } else {
+      dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
+      import('react-toastify').then(({ toast }) => {
+        toast.error('Failed to load post. Please check your connection.', { position: 'top-right', autoClose: 3000 });
+      });
+    }
   }
 };
 
@@ -166,9 +196,6 @@ export const addPost = (
   const token = localStorage.getItem('token');
   if (!token) {
     console.error('[addPost] No auth token found');
-    import('react-toastify').then(({ toast }) => {
-      toast.error('Please log in to add a post.', { position: 'top-right', autoClose: 2000 });
-    });
     return;
   }
   const { user } = getState().auth || JSON.parse(localStorage.getItem('user') || '{}');
@@ -204,15 +231,15 @@ export const addPost = (
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const data = await res.json();
     dispatch({ type: 'ADD_POST_SUCCESS', payload: data });
-    import('react-toastify').then(({ toast }) => {
-      toast.success('Post added successfully!', { position: 'top-right', autoClose: 2000 });
-    });
-    await fetch(`https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/users/category/${category}`, {
+    await fetch(`/api/users/category/${category}`, {
       headers: {
         'Accept': 'application/json',
         'Accept-Encoding': 'gzip, deflate, br',
         'x-auth-token': token,
       },
+    });
+    import('react-toastify').then(({ toast }) => {
+      toast.success('Post added successfully!', { position: 'top-right', autoClose: 2000 });
     });
   } catch (error) {
     console.error('[addPost] Error:', error.message);
@@ -225,17 +252,11 @@ export const addPost = (
 export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
   if (!postId) {
     console.error('[markPostAsCompleted] Invalid postId');
-    import('react-toastify').then(({ toast }) => {
-      toast.error('Invalid post ID.', { position: 'top-right', autoClose: 2000 });
-    });
     return;
   }
   const token = localStorage.getItem('token');
   if (!token) {
     console.error('[markPostAsCompleted] No auth token');
-    import('react-toastify').then(({ toast }) => {
-      toast.error('Please log in to mark posts.', { position: 'top-right', autoClose: 2000 });
-    });
     return;
   }
   const { completedPosts = [] } = getState().postReducer || {};
