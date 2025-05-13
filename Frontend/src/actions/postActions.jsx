@@ -17,7 +17,6 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
         payload: {
           ...post,
           preRenderedContent: post.preRenderedContent || '',
-          estimatedContentHeight: post.estimatedContentHeight || 300,
         },
       });
       return;
@@ -29,7 +28,6 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
       payload: {
         title: 'Loading...',
         preRenderedContent: '',
-        estimatedContentHeight: 300,
       },
     });
 
@@ -52,40 +50,24 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
       console.warn('[fetchPostBySlug] No content field:', data);
     }
 
-    // Parse content with image optimization
+    // Parse content with image optimization and safety validation
     const preRenderedContent = contentField
-      ? parseLinks(contentField, data.category || '', true).replace(
-          /<img([^>]+)src=["']([^"']+)["']/gi,
-          (match, attrs, src) => {
-            const width = window.innerWidth <= 768 ? 400 : 480;
-            return `<img${attrs} src="${src}?w=${width}&format=avif&q=5" srcset="${src}?w=280&format=avif&q=5 280w,${src}?w=320&format=avif&q=5 320w,${src}?w=360&format=avif&q=5 360w,${src}?w=400&format=avif&q=5 400w,${src}?w=480&format=avif&q=5 480w" sizes="(max-width: 320px) 280px, (max-width: 480px) 400px, (max-width: 768px) 400px, 480px" width="${width}" height="${width / (16/9)}" loading="lazy" decoding="async" fetchpriority="low"`;
-          }
-        )
+      ? parseLinks(contentField, data.category || '', true)
+          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+          .replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, '')
+          .replace(/<img([^>]+)src=["']([^"']+)["']/gi, (match, attrs, src) => {
+              const width = window.innerWidth <= 768 ? 280 : 360;
+              return `<img${attrs} src="${src}?w=${width}&format=avif&q=5" srcset="${src}?w=280&format=avif&q=5 280w,${src}?w=360&format=avif&q=5 360w" sizes="(max-width: 768px) 280px, 360px" width="${width}" height="${width / (16/9)}" loading="lazy" decoding="async" fetchpriority="low"`;
+            })
       : '';
 
-    const charCount = contentField.length;
-    const fontSize = window.innerWidth <= 768 ? 1.25 : 1.375; // rem
-    const lineHeight = 1.8;
-    const lineHeightPx = fontSize * 16 * lineHeight; // px
-    const viewportWidth = Math.min(window.innerWidth, 800); // px
-    const charsPerLine = Math.floor(viewportWidth / (fontSize * 10)); // Approx 80 chars at 800px
-    const textLines = Math.ceil(charCount / charsPerLine);
-    const textHeight = textLines * lineHeightPx;
-
-    const estimatedContentHeight = Math.max(
-      300,
-      textHeight +
-        (contentField.match(/<(img|ul|ol|p|div|h1|h2|h3|h4|h5|h6)/g)?.length || 0) * 40 +
-        (contentField.match(/<img/g)?.length || 0) * 150 +
-        (contentField.match(/<ul|<ol/g)?.length || 0) * 30 +
-        (contentField.match(/<li/g)?.length || 0) * 20 +
-        (contentField.match(/<h[1-6]/g)?.length || 0) * 40
-    );
+    if (preRenderedContent.match(/<script|\bon\w+/i)) {
+      console.warn('[fetchPostBySlug] Suspicious content detected:', preRenderedContent);
+    }
 
     const post = {
       ...data,
       preRenderedContent,
-      estimatedContentHeight,
     };
 
     // Cache the response
