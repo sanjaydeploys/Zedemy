@@ -8,37 +8,43 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
   try {
     dispatch({ type: 'CLEAR_POST' });
 
-    // Check local cache first
-    const cachedPost = await caches.match(`${API_BASE_URL}/post/${slug}`);
+    dispatch({
+      type: 'FETCH_POST_SUCCESS',
+      payload: {
+        title: 'Loading...',
+        preRenderedContent: '',
+        contentHeight: 300,
+      },
+    });
+
+    const viewport = window.innerWidth > 768 ? 'desktop' : 'mobile';
+    const cacheKey = `${API_BASE_URL}/post/${slug}?viewport=${viewport}`;
+    const cachedPost = await caches.match(cacheKey);
     if (cachedPost) {
+      console.log('[fetchPostBySlug] Using cached post');
       const post = await cachedPost.json();
       dispatch({
         type: 'FETCH_POST_SUCCESS',
         payload: {
           ...post,
           preRenderedContent: post.preRenderedContent || '',
+          contentHeight: post.contentHeight || 300,
         },
       });
       return;
     }
 
-    // Dispatch minimal placeholder
-    dispatch({
-      type: 'FETCH_POST_SUCCESS',
-      payload: {
-        title: 'Loading...',
-        preRenderedContent: '',
-      },
-    });
-
-    // Fetch post data
-    const response = await fetch(`${API_BASE_URL}/post/${slug}`, {
+    const response = await fetch(`${API_BASE_URL}/post/${slug}?viewport=${viewport}`, {
       headers: {
         'Accept': 'application/json',
         'Accept-Encoding': 'gzip, deflate, br',
       },
     });
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[fetchPostBySlug] API error:', response.status, errorText);
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
     const data = await response.json();
 
     if (!data) {
@@ -47,17 +53,17 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
 
     const contentField = data.content || data.body || data.text || '';
     if (!contentField) {
-      console.warn('[fetchPostBySlug] No content field:', data);
+      console.warn('[fetchPostBySlug] No valid content field:', data);
     }
 
-    // Parse content with image optimization and safety validation
     const preRenderedContent = contentField
       ? parseLinks(contentField, data.category || '', true)
           .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
           .replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, '')
           .replace(/<img([^>]+)src=["']([^"']+)["']/gi, (match, attrs, src) => {
-              const width = window.innerWidth <= 768 ? 280 : 360;
-              return `<img${attrs} src="${src}?w=${width}&format=avif&q=5" srcset="${src}?w=280&format=avif&q=5 280w,${src}?w=360&format=avif&q=5 360w" sizes="(max-width: 768px) 280px, 360px" width="${width}" height="${width / (16/9)}" loading="lazy" decoding="async" fetchpriority="low"`;
+              const width = window.innerWidth <= 768 ? 240 : 320;
+              const height = width / (16/9);
+              return `<img${attrs} src="${src}?w=${width}&format=avif&q=5" srcset="${src}?w=240&format=avif&q=5 240w,${src}?w=320&format=avif&q=5 320w" sizes="(max-width: 768px) 240px, 320px" width="${width}" height="${height}" loading="lazy" decoding="async" fetchpriority="low"`;
             })
       : '';
 
@@ -68,23 +74,23 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
     const post = {
       ...data,
       preRenderedContent,
+      contentHeight: data.contentHeight || 300,
     };
 
-    // Cache the response
     const cache = await caches.open('api-cache');
-    await cache.put(`${API_BASE_URL}/post/${slug}`, new Response(JSON.stringify(post), {
-      headers: { 'Cache-Control': 'public, max-age=86400' },
+    await cache.put(cacheKey, new Response(JSON.stringify(post), {
+      headers: { 'Cache-Control': 'public, max-age=2592000' },
     }));
 
     dispatch({ type: 'FETCH_POST_SUCCESS', payload: post });
   } catch (error) {
-    console.error('[fetchPostBySlug] Error:', { message: error.message });
+    console.error('[fetchPostBySlug] Error:', { message: error.message, slug });
     dispatch({
       type: 'FETCH_POST_FAILURE',
       payload: error.message,
     });
     import('react-toastify').then(({ toast }) => {
-      toast.error('Failed to fetch post. Please try again later.', { position: 'top-right', autoClose: 2000 });
+      toast.error('Failed to fetch post. Please check your network or try again later.', { position: 'top-right', autoClose: 2000 });
     });
   }
 };
