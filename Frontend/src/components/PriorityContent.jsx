@@ -1,32 +1,28 @@
-import React, { memo, useMemo, useRef, useEffect } from 'react';
-import DOMPurify from 'dompurify';
+import React, { memo, useMemo } from 'react';
 
 const criticalCss = `
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-
-.post-header{font-size:clamp(1.5rem,3vw,2rem);color:#011020;font-weight:700;line-height:1.2;min-height:48px;contain-intrinsic-size:100% 48px;}
-.content-section{font-size:1.25rem;line-height:1.8;width:100%;margin-bottom:1rem;padding:1rem;transition:none;}
-.content-section p,.content-section ul,.content-section li,.content-section div{margin-bottom:0.5rem;min-height:28px;contain-intrinsic-size:100% 28px;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;font-display:swap;}
+.post-header{font-size:clamp(1.25rem,2.5vw,1.5rem);color:#011020;font-weight:700;line-height:1.2;min-height:40px;contain-intrinsic-size:100% 40px;}
+.content-section{font-size:1rem;line-height:1.6;width:100%;margin-bottom:0.5rem;padding:0.5rem;}
+.content-section p,.content-section ul,.content-section li,.content-section div{margin-bottom:0.5rem;min-height:24px;contain-intrinsic-size:100% 24px;}
 .content-section a{color:#0066cc;text-decoration:underline;}
-.content-section img{width:100%;max-width:100%;height:auto;contain-intrinsic-size:100% 150px;}
-.image-container{width:100%;max-width:280px;margin:1rem 0;aspect-ratio:16/9;min-height:157.5px;contain-intrinsic-size:280px 157.5px;}
+.content-section img{width:100%;max-width:100%;height:auto;aspect-ratio:16/9;contain-intrinsic-size:100% 120px;}
+.image-container{width:100%;max-width:280px;margin:0.5rem 0;aspect-ratio:16/9;min-height:157.5px;contain-intrinsic-size:280px 157.5px;}
 .post-image{width:100%;max-width:280px;height:auto;aspect-ratio:16/9;object-fit:contain;}
-.meta-info{color:#666;font-size:.875rem;margin:1rem 0;padding:1rem;display:grid;grid-template-columns:1fr;gap:1rem;min-height:84px;contain-intrinsic-size:100% 84px;}
-.meta-info span{min-height:24px;contain-intrinsic-size:100% 24px;}
+.meta-info{color:#666;font-size:.875rem;margin:0.5rem 0;padding:0.5rem;display:grid;grid-template-columns:1fr;gap:0.5rem;min-height:60px;contain-intrinsic-size:100% 60px;}
+.meta-info span{min-height:20px;contain-intrinsic-size:100% 20px;}
 .skeleton{background:#e0e0e0;}
-.error-message{color:#d32f2f;font-size:1rem;padding:1rem;}
+.error-message{color:#d32f2f;font-size:0.875rem;padding:0.5rem;min-height:24px;contain-intrinsic-size:100% 24px;}
 @media (min-width:769px){
-.content-section{font-size:1.375rem;padding:1rem;margin-bottom:1rem;}
-.meta-info{grid-template-columns:repeat(3,auto);gap:1rem;min-height:32px;contain-intrinsic-size:100% 32px;}
-.image-container{max-width:480px;min-height:270px;contain-intrinsic-size:480px 270px;}
-.post-image{max-width:480px;}
+.content-section{font-size:1.125rem;padding:0.5rem;margin-bottom:0.5rem;}
+.post-header{font-size:clamp(1.5rem,2.5vw,1.75rem);}
+.meta-info{grid-template-columns:repeat(3,auto);gap:0.5rem;min-height:24px;contain-intrinsic-size:100% 24px;}
+.image-container{max-width:360px;min-height:202.5px;contain-intrinsic-size:360px 202.5px;}
+.post-image{max-width:360px;}
 }
 @media (max-width:480px){
-.post-header{font-size:clamp(1.25rem,3vw,1.5rem);}
-.image-container{max-width:400px;min-height:225px;contain-intrinsic-size:400px 225px;}
-.post-image{max-width:400px;}
-}
-@media (max-width:320px){
+.post-header{font-size:clamp(1.125rem,2.5vw,1.25rem);}
 .image-container{max-width:280px;min-height:157.5px;contain-intrinsic-size:280px 157.5px;}
 .post-image{max-width:280px;}
 }
@@ -34,74 +30,18 @@ const criticalCss = `
 
 const PriorityContent = memo(({ post: rawPost, readTime }) => {
   const post = rawPost || { preRenderedContent: '' };
-
-  useEffect(() => {
-    console.log('[PriorityContent] Post state:', { post, hasPreRenderedContent: !!post?.preRenderedContent });
-    if (!post?.preRenderedContent) {
-      console.warn('[PriorityContent] preRenderedContent is undefined or empty:', { post });
-    }
-  }, [post]);
-
   const isLoading = !post || post.title === 'Loading...';
+
+  console.log('[PriorityContent] Post state:', { post, hasPreRenderedContent: !!post?.preRenderedContent });
+  if (!post?.preRenderedContent && !isLoading) {
+    console.warn('[PriorityContent] preRenderedContent is empty:', { post });
+  }
 
   const contentHeight = useMemo(() => {
     if (!post?.preRenderedContent || isLoading) return 300;
     const charCount = post.preRenderedContent.length;
-    const fontSize = window.innerWidth <= 768 ? 1.25 : 1.375; // rem
-    const lineHeight = 1.8;
-    const lineHeightPx = fontSize * 16 * lineHeight; // px
-    const viewportWidth = Math.min(window.innerWidth, 800); // px
-    const charsPerLine = Math.floor(viewportWidth / (fontSize * 10)); // Approx 80 chars at 800px
-    const textLines = Math.ceil(charCount / charsPerLine);
-    const textHeight = textLines * lineHeightPx;
-
-    return Math.max(
-      300,
-      textHeight +
-        (post.preRenderedContent.match(/<(img|ul|ol|p|div|h1|h2|h3|h4|h5|h6)/g)?.length || 0) * 40 +
-        (post.preRenderedContent.match(/<img/g)?.length || 0) * 150 +
-        (post.preRenderedContent.match(/<ul|<ol/g)?.length || 0) * 30 +
-        (post.preRenderedContent.match(/<li/g)?.length || 0) * 20 +
-        (post.preRenderedContent.match(/<h[1-6]/g)?.length || 0) * 40
-    );
-  }, [post?.preRenderedContent, isLoading]);
-
-  const criticalContent = useMemo(() => {
-    if (!post?.preRenderedContent || isLoading) return '';
-    const criticalHtml = post.preRenderedContent.slice(0, 1000);
-    const sanitized = DOMPurify.sanitize(criticalHtml, {
-      FORBID_TAGS: ['script'],
-      FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout'],
-    });
-    console.log('[PriorityContent] Critical content sanitized:', { inputLength: criticalHtml.length, outputLength: sanitized.length });
-    return sanitized;
-  }, [post?.preRenderedContent, isLoading]);
-
-  const nonCriticalRef = useRef(null);
-  const [nonCriticalContent, setNonCriticalContent] = React.useState('');
-
-  useEffect(() => {
-    if (!post?.preRenderedContent || isLoading) {
-      setNonCriticalContent('');
-      return;
-    }
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          const nonCriticalHtml = post.preRenderedContent.slice(1000);
-          const sanitized = DOMPurify.sanitize(nonCriticalHtml, {
-            FORBID_TAGS: ['script'],
-            FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout'],
-          });
-          setNonCriticalContent(sanitized);
-          console.log('[PriorityContent] Non-critical content sanitized:', { inputLength: nonCriticalHtml.length, outputLength: sanitized.length });
-          observer.disconnect();
-        }
-      },
-      { rootMargin: '100px' }
-    );
-    if (nonCriticalRef.current) observer.observe(nonCriticalRef.current);
-    return () => observer.disconnect();
+    const imageCount = (post.preRenderedContent.match(/<img/g)?.length || 0);
+    return Math.max(300, Math.ceil(charCount / 80) * 25.6 + imageCount * 120); // 16px * 1.6 line-height
   }, [post?.preRenderedContent, isLoading]);
 
   const firstImageMatch = post?.preRenderedContent?.match(/<img[^>]+src=["']([^"']+)["']/i);
@@ -118,7 +58,7 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
       {post?.titleImage && !isLoading && (
         <link
           rel="preload"
-          href={`${post.titleImage}?w=${window.innerWidth <= 768 ? 400 : 480}&format=avif&q=5`}
+          href={`${post.titleImage}?w=${window.innerWidth <= 768 ? 280 : 360}&format=avif&q=5`}
           as="image"
           fetchpriority="high"
         />
@@ -126,7 +66,7 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
       {firstImageMatch && !isLoading && (
         <link
           rel="preload"
-          href={`${firstImageMatch[1]}?w=${window.innerWidth <= 768 ? 400 : 480}&format=avif&q=5`}
+          href={`${firstImageMatch[1]}?w=${window.innerWidth <= 768 ? 280 : 360}&format=avif&q=5`}
           as="image"
           fetchpriority="high"
         />
@@ -134,6 +74,7 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
       <article
         style={{
           width: '100%',
+          maxWidth: '800px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -142,7 +83,7 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
         }}
       >
         {isLoading ? (
-          <header style={{ width: '100%', maxWidth: '800px', contain: 'layout' }}>
+          <header style={{ width: '100%', contain: 'layout' }}>
             <div className="image-container" aria-hidden="true">
               <div
                 className="skeleton"
@@ -159,9 +100,9 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
               className="skeleton"
               style={{
                 width: '80%',
-                minHeight: '48px',
-                margin: '1rem 0',
-                containIntrinsicSize: '80% 48px',
+                minHeight: '40px',
+                margin: '0.5rem 0',
+                containIntrinsicSize: '80% 40px',
               }}
               aria-hidden="true"
             />
@@ -171,32 +112,29 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
                   key={i}
                   className="skeleton"
                   style={{
-                    width: '120px',
-                    minHeight: '24px',
-                    containIntrinsicSize: '120px 24px',
+                    width: '100px',
+                    minHeight: '20px',
+                    containIntrinsicSize: '100px 20px',
                   }}
                 />
               ))}
             </div>
           </header>
         ) : (
-          <header style={{ width: '100%', maxWidth: '800px', contain: 'layout' }}>
+          <header style={{ width: '100%', contain: 'layout' }}>
             {post.titleImage && (
               <div className="image-container">
                 <img
-                  src={`${post.titleImage}?w=${window.innerWidth <= 768 ? 400 : 480}&format=avif&q=5`}
+                  src={`${post.titleImage}?w=${window.innerWidth <= 768 ? 280 : 360}&format=avif&q=5`}
                   srcSet={`
                     ${post.titleImage}?w=280&format=avif&q=5 280w,
-                    ${post.titleImage}?w=320&format=avif&q=5 320w,
-                    ${post.titleImage}?w=360&format=avif&q=5 360w,
-                    ${post.titleImage}?w=400&format=avif&q=5 400w,
-                    ${post.titleImage}?w=480&format=avif&q=5 480w
+                    ${post.titleImage}?w=360&format=avif&q=5 360w
                   `}
-                  sizes="(max-width: 320px) 280px, (max-width: 480px) 400px, (max-width: 768px) 400px, 480px"
+                  sizes="(max-width: 768px) 280px, 360px"
                   alt={post.title || 'Post image'}
                   className="post-image"
-                  width={window.innerWidth <= 768 ? 400 : 480}
-                  height={window.innerWidth <= 768 ? 225 : 270}
+                  width={window.innerWidth <= 768 ? 280 : 360}
+                  height={window.innerWidth <= 768 ? 157.5 : 202.5}
                   decoding="sync"
                   loading="eager"
                   fetchpriority="high"
@@ -234,8 +172,8 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
           style={{
             width: '100%',
             maxWidth: '800px',
-            minHeight: `${contentHeight}px`,
-            containIntrinsicSize: `100% ${contentHeight}px`,
+            minHeight: isLoading ? '300px' : `${contentHeight}px`,
+            containIntrinsicSize: isLoading ? '100% 300px' : `100% ${contentHeight}px`,
             fetchPriority: 'high',
             contain: 'layout',
           }}
@@ -245,39 +183,24 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
               className="skeleton"
               style={{
                 width: '100%',
-                minHeight: `${contentHeight}px`,
-                containIntrinsicSize: `100% ${contentHeight}px`,
+                minHeight: '300px',
+                containIntrinsicSize: '100% 300px',
               }}
               aria-hidden="true"
             />
-          ) : !criticalContent && post?.preRenderedContent !== undefined ? (
+          ) : !post?.preRenderedContent ? (
             <p className="error-message">Content failed to render. Please try refreshing the page.</p>
           ) : (
-            <>
-              <div
-                style={{
-                  width: '100%',
-                  minHeight: '150px',
-                  containIntrinsicSize: '100% 150px',
-                  fetchPriority: 'high',
-                  contain: 'layout',
-                }}
-                dangerouslySetInnerHTML={{ __html: criticalContent }}
-              />
-              {post?.preRenderedContent?.length > 1000 && (
-                <div
-                  ref={nonCriticalRef}
-                  style={{
-                    width: '100%',
-                    minHeight: `${contentHeight - 150}px`,
-                    containIntrinsicSize: `100% ${contentHeight - 150}px`,
-                    fetchPriority: 'low',
-                    contain: 'layout',
-                  }}
-                  dangerouslySetInnerHTML={{ __html: nonCriticalContent }}
-                />
-              )}
-            </>
+            <div
+              style={{
+                width: '100%',
+                minHeight: `${contentHeight}px`,
+                containIntrinsicSize: `100% ${contentHeight}px`,
+                fetchPriority: 'high',
+                contain: 'layout',
+              }}
+              dangerouslySetInnerHTML={{ __html: post.preRenderedContent }}
+            />
           )}
         </section>
         <style>{criticalCss}</style>
