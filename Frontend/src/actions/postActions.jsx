@@ -12,20 +12,33 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
     const cachedPost = await caches.match(cacheKey);
     if (cachedPost) {
       const post = await cachedPost.json();
-      dispatch({
-        type: 'FETCH_POST_INITIAL',
-        payload: { titleInitial: post.title, titleImageInitial: post.titleImage, lcpContent: post.lcpContent }
-      });
-      dispatch({
-        type: 'FETCH_POST_SUCCESS',
-        payload: {
-          ...post,
-          preRenderedContent: post.preRenderedContent || '',
-          lcpContent: post.lcpContent || '',
-          contentHeight: post.contentHeight || 82,
-        },
-      });
-      return;
+      if (!post.lcpContent || !post.preRenderedContent) {
+        console.log('[fetchPostBySlug] Skipping invalid cache: empty lcpContent or preRenderedContent');
+        const cache = await caches.open('api-cache');
+        await cache.delete(cacheKey);
+      } else {
+        dispatch({
+          type: 'FETCH_POST_INITIAL',
+          payload: {
+            title: post.title,
+            lcpContent: post.lcpContent,
+            contentHeight: post.contentHeight,
+            titleImageAspectRatio: post.titleImageAspectRatio || '16:9'
+          }
+        });
+        dispatch({
+          type: 'FETCH_POST_SUCCESS',
+          payload: {
+            ...post,
+            preRenderedContent: post.preRenderedContent || '',
+            lcpContent: post.lcpContent || '',
+            contentHeight: post.contentHeight,
+            titleImageAspectRatio: post.titleImageAspectRatio || '16:9'
+          },
+        });
+        console.log('[fetchPostBySlug] Cached post:', { preRenderedContent: post.preRenderedContent, lcpContent: post.lcpContent });
+        return;
+      }
     }
 
     const response = await fetch(`${API_BASE_URL}/post/${slug}?viewport=${viewport}`, {
@@ -40,29 +53,31 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
     }
     const data = await response.json();
 
-    if (!data) {
-      throw new Error('Invalid API response: No data');
+    if (!data || !data.lcpContent) {
+      throw new Error('Invalid API response: No data or empty lcpContent');
     }
 
-    const contentField = data.content || data.body || data.text || '';
-    if (!contentField) {
-      console.error('[fetchPostBySlug] No valid content field:', data);
-    }
+    const preRenderedContent = data.preRenderedContent || '<p>No content available.</p>';
+    const lcpContent = data.lcpContent || '';
 
-    const preRenderedContent = data.preRenderedContent || contentField;
-const lcpMatch = contentField.match(/<p[^>]*>[\s\S]*?<\/p>|<img[^>]+>/i);
-    const lcpContent = lcpMatch ? lcpMatch[0].replace(/<[^>]*$/, '') : '';
+    console.log('[fetchPostBySlug] API response:', { preRenderedContent, lcpContent });
 
     dispatch({
       type: 'FETCH_POST_INITIAL',
-      payload: { titleInitial: data.title, titleImageInitial: data.titleImage, lcpContent }
+      payload: {
+        title: data.title,
+        lcpContent,
+        contentHeight: data.contentHeight,
+        titleImageAspectRatio: data.titleImageAspectRatio || '16:9'
+      }
     });
 
     const post = {
       ...data,
       preRenderedContent,
       lcpContent,
-      contentHeight: data.contentHeight || 82,
+      contentHeight: data.contentHeight,
+      titleImageAspectRatio: data.titleImageAspectRatio || '16:9'
     };
 
     const cache = await caches.open('api-cache');
@@ -77,17 +92,46 @@ const lcpMatch = contentField.match(/<p[^>]*>[\s\S]*?<\/p>|<img[^>]+>/i);
     const cachedPost = await caches.match(cacheKey);
     if (cachedPost) {
       const post = await cachedPost.json();
-      dispatch({
-        type: 'FETCH_POST_INITIAL',
-        payload: { titleInitial: post.title, titleImageInitial: post.titleImage, lcpContent: post.lcpContent }
-      });
-      dispatch({
-        type: 'FETCH_POST_SUCCESS',
-        payload: post
-      });
-      toast.warn('Using cached post due to network issue.', { position: 'top-right', autoClose: 3000 });
+      if (post.lcpContent && post.preRenderedContent) {
+        dispatch({
+          type: 'FETCH_POST_INITIAL',
+          payload: {
+            title: post.title,
+            lcpContent: post.lcpContent,
+            contentHeight: post.contentHeight,
+            titleImageAspectRatio: post.titleImageAspectRatio || '16:9'
+          }
+        });
+        dispatch({
+          type: 'FETCH_POST_SUCCESS',
+          payload: post
+        });
+        toast.warn('Using cached post due to network issue.', { position: 'top-right', autoClose: 3000 });
+      } else {
+        console.log('[fetchPostBySlug] Skipping invalid cache in error handler: empty lcpContent or preRenderedContent');
+        dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
+        dispatch({
+          type: 'FETCH_POST_INITIAL',
+          payload: {
+            title: 'Loading...',
+            lcpContent: '',
+            contentHeight: 0,
+            titleImageAspectRatio: '16:9'
+          }
+        });
+        toast.error('Failed to load post. Please check your connection.', { position: 'top-right', autoClose: 3000 });
+      }
     } else {
       dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
+      dispatch({
+        type: 'FETCH_POST_INITIAL',
+        payload: {
+          title: 'Loading...',
+          lcpContent: '',
+          contentHeight: 0,
+          titleImageAspectRatio: '16:9'
+        }
+      });
       toast.error('Failed to load post. Please check your connection.', { position: 'top-right', autoClose: 3000 });
     }
   }
@@ -165,7 +209,8 @@ export const addPost = (
   superTitles,
   titleVideo,
   titleImageHash,
-  videoHash
+  videoHash,
+  titleImageAspectRatio
 ) => async (dispatch, getState) => {
   const token = localStorage.getItem('token');
   if (!token) {
@@ -189,6 +234,7 @@ export const addPost = (
     titleImageHash,
     videoHash,
     author: user.name,
+    titleImageAspectRatio: titleImageAspectRatio || '16:9'
   };
   try {
     setAuthToken(token);
