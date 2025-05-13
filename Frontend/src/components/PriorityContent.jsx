@@ -1,78 +1,109 @@
-import React, { memo, useState, useEffect } from 'react';
-import { minify } from 'csso';
-import { useMediaQuery } from 'react-responsive';
+import { memo, useMemo, useState } from 'react';
 
-const criticalCss = minify(`
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+const criticalCss = `
+*{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;font-display:swap;}
-.post-header{font-size:1rem;color:#011020;font-weight:700;line-height:1.2;min-height:24px;}
-.content-section{font-size:0.875rem;line-height:1.5;width:100%;padding:0.25rem;margin:0;}
-.content-section p,.content-section div{margin-bottom:0.5rem;}
-.content-section ul,.content-section ol{padding-left:1.5rem;margin-bottom:0.5rem;}
-.content-section pre,.content-section code{font-size:0.75rem;margin-bottom:0.5rem;}
-.content-section h1,.content-section h2,.content-section h3,.content-section h4,.content-section h5,.content-section h6{font-size:1rem;margin-bottom:0.5rem;}
-.content-section .subtitle,.content-section .super-title{font-size:0.875rem;margin-bottom:0.5rem;}
+.post-header{font-size:0.85rem;color:#011020;font-weight:700;line-height:1.2;}
+.content-section{font-size:0.85rem;line-height:1.5;width:100%;padding:0.25rem;}
+.content-section :where(p,div,ul,ol,pre,h1,h2,h3,h4,h5,h6,.subtitle,.super-title){margin-bottom:0.5rem;}
+.content-section ul,.content-section ol{padding-left:1rem;}
+.content-section pre,.content-section code{font-size:0.7rem;}
+.content-section :where(h1,h2,h3,h4,h5,h6,.subtitle,.super-title){font-size:0.85rem;}
 .content-section a{color:#0066cc;text-decoration:underline;}
-.content-section img{width:100%;max-width:240px;height:135px;aspect-ratio:16/9;object-fit:contain;}
-.image-container{width:100%;max-width:240px;margin:0.25rem 0;aspect-ratio:16/9;min-height:135px;}
-.post-image{width:100%;max-width:240px;height:135px;aspect-ratio:16/9;object-fit:contain;}
-.meta-info{color:#666;font-size:0.75rem;margin:0.25rem 0;padding:0.25rem;display:grid;grid-template-columns:1fr;gap:0.25rem;min-height:48px;}
-.meta-info span{min-height:16px;}
-.skeleton{background:#e0e0e0;}
-.error-message{color:#d32f2f;font-size:0.75rem;padding:0.25rem;min-height:20px;}
-@media (min-width:769px){
-    .post-header{font-size:1.25rem;min-height:32px;}
-    .content-section{font-size:1rem;line-height:1.6;}
-    .content-section .subtitle,.content-section .super-title{font-size:1rem;}
-    .content-section img,.post-image{max-width:320px;height:180px;}
-    .image-container{max-width:320px;min-height:180px;}
-    .meta-info{grid-template-columns:repeat(3,auto);min-height:20px;}
+.content-section img,.post-image{width:100%;max-width:180px;height:101px;aspect-ratio:16/9;object-fit:contain;}
+.image-container{max-width:180px;margin:0.25rem 0;aspect-ratio:16/9;}
+.meta-info{color:#666;font-size:0.7rem;padding:0.25rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:0.25rem;}
+.skeleton{background:#e0e0e0;animation:fade 1s infinite;}
+.error-message{color:#d32f2f;font-size:0.7rem;padding:0.25rem;}
+@keyframes fade{0%{opacity:0.8;}50%{opacity:1;}100%{opacity:0.8;}}
+@media (min-width:376px){
+  .post-header,.content-section,.content-section :where(h1,h2,h3,h4,h5,h6,.subtitle,.super-title){font-size:0.875rem;}
+  .content-section img,.post-image{max-width:200px;height:112px;}
+  .image-container{max-width:200px;}
 }
-`).css;
+@media (min-width:412px){
+  .post-header,.content-section,.content-section :where(h1,h2,h3,h4,h5,h6,.subtitle,.super-title){font-size:0.9rem;}
+  .content-section img,.post-image{max-width:220px;height:124px;}
+  .image-container{max-width:220px;}
+}
+@media (min-width:481px){
+  .post-header,.content-section,.content-section :where(h1,h2,h3,h4,h5,h6,.subtitle,.super-title){font-size:0.9375rem;}
+  .content-section{line-height:1.55;}
+  .content-section img,.post-image{max-width:280px;height:157px;}
+  .image-container{max-width:280px;}
+}
+@media (min-width:769px){
+  .post-header,.content-section,.content-section :where(h1,h2,h3,h4,h5,h6,.subtitle,.super-title){font-size:1rem;}
+  .content-section{line-height:1.6;}
+  .content-section img,.post-image{max-width:320px;height:180px;}
+  .image-container{max-width:320px;}
+}`;
 
-const ProgressiveContent = ({ html }) => {
-  const [content, setContent] = useState('');
-  useEffect(() => {
-    const firstChunk = html.slice(0, 1000);
-    setContent(firstChunk);
-    const renderRest = () => {
-      setContent(html);
+const VirtualizedContent = memo(({ html }) => {
+  const [nodes, setNodes] = useState([]);
+  useMemo(() => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html || '<p>Loading content...</p>', 'text/html');
+    const elements = Array.from(doc.body.childNodes);
+    const chunkSize = 200;
+    const chunks = [];
+    let currentSize = 0;
+    let currentChunk = [];
+
+    elements.forEach(node => {
+      const outerHTML = node.outerHTML || node.textContent || '';
+      const size = outerHTML.length;
+      if (currentSize + size > chunkSize && currentChunk.length) {
+        chunks.push(currentChunk);
+        currentChunk = [];
+        currentSize = 0;
+      }
+      currentChunk.push(outerHTML);
+      currentSize += size;
+    });
+    if (currentChunk.length) chunks.push(currentChunk);
+
+    setNodes(chunks[0] || ['<p>Loading content...</p>']);
+    let index = 1;
+    const appendNext = () => {
+      if (index >= chunks.length) return;
+      setNodes(prev => [...prev, ...chunks[index]]);
+      index++;
+      requestAnimationFrame(appendNext);
     };
-    if (window.requestIdleCallback) {
-      window.requestIdleCallback(renderRest, { timeout: 100 });
-    } else {
-      setTimeout(renderRest, 0);
-    }
+    if (chunks.length > 1) requestAnimationFrame(appendNext);
   }, [html]);
+
   return (
-    <div
-      style={{
-        width: '100%',
-        contain: 'layout',
-        fetchPriority: 'high',
-      }}
-      dangerouslySetInnerHTML={{ __html: content }}
-    />
+    <div style={{ width: '100%', fetchPriority: 'high' }}>
+      {nodes.map((html, i) => (
+        <div key={i} dangerouslySetInnerHTML={{ __html: html }} />
+      ))}
+    </div>
   );
-};
+});
 
 const PriorityContent = memo(({ post: rawPost, readTime }) => {
-  const post = rawPost || { preRenderedContent: '', contentHeight: 100, title: 'Loading...' };
+  const post = rawPost || {
+    preRenderedContent: '',
+    contentHeight: { mobileSmall: 100, mobile: 100, tablet: 100, desktop: 100 },
+    title: 'Loading...',
+  };
   const isLoading = !post || post.title === 'Loading...';
-  const isDesktop = useMediaQuery({ minWidth: 769 });
 
-  useEffect(() => {
-    if (!post?.preRenderedContent && !isLoading) {
-      console.error('[PriorityContent] preRenderedContent is empty:', post);
-    }
-  }, [post, isLoading]);
+  const viewport = useMemo(() => {
+    if (typeof window === 'undefined') return 'mobile';
+    const media = window.matchMedia;
+    if (media('(max-width: 375px)').matches) return 'mobileSmall';
+    if (media('(min-width: 376px) and (max-width: 768px)').matches) return 'mobile';
+    if (media('(min-width: 769px) and (max-width: 1024px)').matches) return 'tablet';
+    return 'desktop';
+  }, []);
 
-  const imageMatches = post?.preRenderedContent?.matchAll(/<img[^>]+src=["']([^"']+)["']/gi) || [];
-  const preloadImages = [...imageMatches].slice(0, 2).map(match => match[1]);
-  const headerHeight = isDesktop
-    ? (post.titleImage ? 252 : 72) // Desktop: 180px img + 36px title + 20px meta + 16px margins
-    : (post.titleImage ? 200 : 64); // Mobile: 135px img + 24px title + 48px meta + 16px margins
-  const contentHeight = isLoading ? 300 : post?.preRenderedContent ? post.contentHeight : 100;
+  const contentHeight = post.contentHeight?.[viewport] || 100;
+  const firstImageMatch = post.preRenderedContent?.match(/<img[^>]+src=["']([^"']+)["']/i);
+  const imageWidth = viewport === 'mobileSmall' ? 180 : viewport === 'mobile' ? 200 : viewport === 'tablet' ? 280 : 320;
+  const imageHeight = imageWidth / (16 / 9);
 
   return (
     <article
@@ -81,83 +112,55 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
         maxWidth: '800px',
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'flex-start',
         gap: '0.5rem',
         margin: 0,
-        contain: 'layout',
         fetchPriority: 'high',
       }}
       aria-live="polite"
     >
-      {post?.titleImage && !isLoading && (
+      {firstImageMatch && !isLoading && (
         <link
           rel="preload"
-          href={`${post.titleImage}?w=${isDesktop ? 320 : 240}&format=avif&q=30`}
+          href={`${firstImageMatch[1]}?w=${imageWidth}&format=avif&q=10`}
           as="image"
           fetchpriority="high"
         />
       )}
-      {preloadImages.map((src, i) => (
-        <link
-          key={i}
-          rel="preload"
-          href={`${src}?w=${isDesktop ? 320 : 240}&format=avif&q=30`}
-          as="image"
-          fetchpriority="high"
-        />
-      ))}
       {isLoading ? (
-        <header style={{ width: '100%', contain: 'layout', margin: 0 }}>
-          <div className="image-container" aria-hidden="true">
-            <div
-              className="skeleton"
-              style={{
-                width: '100%',
-                maxWidth: isDesktop ? '320px' : '240px',
-                height: isDesktop ? '180px' : '135px',
-                aspectRatio: '16/9',
-              }}
-            />
-          </div>
+        <header style={{ width: '100%', margin: 0 }}>
           <div
             className="skeleton"
             style={{
-              width: '80%',
-              minHeight: isDesktop ? '32px' : '24px',
-              margin: '0.25rem 0',
+              width: '100%',
+              maxWidth: imageWidth,
+              height: imageHeight,
+              aspectRatio: '16/9',
             }}
-            aria-hidden="true"
           />
-          <div className="meta-info" aria-hidden="true">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div
-                key={i}
-                className="skeleton"
-                style={{ width: '80px', minHeight: '16px' }}
-              />
-            ))}
-          </div>
+          <div className="skeleton" style={{ width: '80%', height: '1rem', margin: '0.25rem 0' }} />
+          <div className="skeleton" style={{ width: '100%', height: '2rem' }} />
         </header>
       ) : (
-        <header style={{ width: '100%', contain: 'layout', margin: 0 }}>
+        <header style={{ width: '100%', margin: 0 }}>
           {post.titleImage && (
             <div className="image-container">
               <img
-                src={`${post.titleImage}?w=${isDesktop ? 320 : 240}&format=avif&q=30`}
+                src={`${post.titleImage}?w=${imageWidth}&format=avif&q=10`}
                 srcSet={`
-                  ${post.titleImage}?w=240&format=avif&q=30 240w,
-                  ${post.titleImage}?w=320&format=avif&q=30 320w
+                  ${post.titleImage}?w=180&format=avif&q=10 180w,
+                  ${post.titleImage}?w=200&format=avif&q=10 200w,
+                  ${post.titleImage}?w=280&format=avif&q=10 280w,
+                  ${post.titleImage}?w=320&format=avif&q=10 320w
                 `}
-                sizes="(max-width: 768px) 240px, 320px"
+                sizes="(max-width: 375px) 180px, (max-width: 768px) 200px, (max-width: 1024px) 280px, 320px"
                 alt={post.title || 'Post image'}
                 className="post-image"
-                width={isDesktop ? 320 : 240}
-                height={isDesktop ? 180 : 135}
+                width={imageWidth}
+                height={imageHeight}
                 decoding="sync"
                 loading="eager"
                 fetchpriority="high"
                 onError={(e) => {
-                  console.error('[PriorityContent] Image Failed:', post.titleImage);
                   e.target.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
                 }}
               />
@@ -176,10 +179,7 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
                   })
                 : 'Unknown Date'}
             </span>
-            <span>
-              {' | Read time: '}
-              <span id="read-time">{readTime || '0'}</span> min
-            </span>
+            <span>{' | Read time: '}{readTime || '0'} min</span>
           </div>
         </header>
       )}
@@ -191,24 +191,14 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
           width: '100%',
           maxWidth: '800px',
           minHeight: `${contentHeight}px`,
-          contain: 'layout',
           fetchPriority: 'high',
           margin: 0,
         }}
       >
         {isLoading ? (
-          <div
-            className="skeleton"
-            style={{
-              width: '100%',
-              minHeight: '300px',
-            }}
-            aria-hidden="true"
-          />
-        ) : !post?.preRenderedContent ? (
-          <p className="error-message">Content failed to render. Please try refreshing the page or contact support.</p>
+          <div className="skeleton" style={{ width: '100%', minHeight: '300px' }} />
         ) : (
-          <ProgressiveContent html={post.preRenderedContent} />
+          <VirtualizedContent html={post.preRenderedContent} />
         )}
       </section>
       <style>{criticalCss}</style>
