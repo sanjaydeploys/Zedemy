@@ -3,28 +3,28 @@ import { toast } from 'react-toastify';
 
 const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
 
+// Minimal 1x1 base64 placeholder image to reduce Load Delay
+const placeholderImage = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
+
 export const fetchPostBySlug = (slug) => async (dispatch) => {
+  // Dispatch immediately to render LCP element ASAP
+  dispatch({
+    type: 'FETCH_POST_INITIAL',
+    payload: {
+      title: 'Loading...',
+      lcpContent: '<p>Loading content...</p>',
+      contentHeight: 0,
+      titleImage: placeholderImage,
+      titleImageAspectRatio: '16:9'
+    }
+  });
+
   const viewport = window.innerWidth <= 360 ? 'small' : window.innerWidth <= 480 ? 'mobile' : window.innerWidth <= 768 ? 'tablet' : window.innerWidth <= 1200 ? 'desktop' : 'large';
   try {
     dispatch({ type: 'CLEAR_POST' });
 
     const cacheKey = `${API_BASE_URL}/post/${slug}?viewport=${viewport}`;
     const cachedPost = await caches.match(cacheKey);
-    
-    // Placeholder image for faster LCP
-    const placeholderImage = 'https://via.placeholder.com/240x135?text=Loading+Image';
-
-    // Early dispatch to render LCP element immediately
-    dispatch({
-      type: 'FETCH_POST_INITIAL',
-      payload: {
-        title: 'Loading...',
-        lcpContent: '',
-        contentHeight: 0,
-        titleImage: placeholderImage,
-        titleImageAspectRatio: '16:9'
-      }
-    });
 
     if (cachedPost) {
       const post = await cachedPost.json();
@@ -39,7 +39,7 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
             ...post,
             preRenderedContent: post.preRenderedContent || '',
             lcpContent: post.lcpContent || '',
-            contentHeight: post.contentHeight,
+            contentHeight: post.contentHeight || 0,
             titleImageAspectRatio: post.titleImageAspectRatio || '16:9'
           },
         });
@@ -73,7 +73,7 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
       ...data,
       preRenderedContent,
       lcpContent,
-      contentHeight: data.contentHeight,
+      contentHeight: data.contentHeight || 0,
       titleImageAspectRatio: data.titleImageAspectRatio || '16:9'
     };
 
