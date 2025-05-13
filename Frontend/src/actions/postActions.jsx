@@ -32,6 +32,8 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
         },
       });
       return;
+    } else {
+      console.warn('[fetchPostBySlug] Cache miss for:', cacheKey);
     }
 
     const response = await fetch(`${API_BASE_URL}/post/${slug}?viewport=${viewport}`, {
@@ -56,6 +58,7 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
       console.warn('[fetchPostBySlug] No valid content field:', data);
     }
 
+    let isFirstImage = true;
     const preRenderedContent = contentField
       ? parseLinks(contentField, data.category || '', true)
           .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
@@ -63,7 +66,10 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
           .replace(/<img([^>]+)src=["']([^"']+)["']/gi, (match, attrs, src) => {
               const width = window.innerWidth <= 768 ? 240 : 320;
               const height = width / (16/9);
-              return `<img${attrs} src="${src}?w=${width}&format=avif&q=5" srcset="${src}?w=240&format=avif&q=5 240w,${src}?w=320&format=avif&q=5 320w" sizes="(max-width: 768px) 240px, 320px" width="${width}" height="${height}" loading="lazy" decoding="async" fetchpriority="low"`;
+              const priority = isFirstImage ? 'eager' : 'lazy';
+              const fetchPriority = isFirstImage ? 'high' : 'auto';
+              isFirstImage = false;
+              return `<img${attrs} src="${src}?w=${width}&format=avif&q=30" srcset="${src}?w=240&format=avif&q=30 240w,${src}?w=320&format=avif&q=30 320w" sizes="(max-width: 768px) 240px, 320px" width="${width}" height="${height}" loading="${priority}" decoding="sync" fetchpriority="${fetchPriority}"`;
             })
       : '';
 
@@ -79,7 +85,7 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
 
     const cache = await caches.open('api-cache');
     await cache.put(cacheKey, new Response(JSON.stringify(post), {
-      headers: { 'Cache-Control': 'public, max-age=2592000' },
+      headers: { 'Cache-Control': 'public, max-age=86400' },
     }));
 
     dispatch({ type: 'FETCH_POST_SUCCESS', payload: post });
