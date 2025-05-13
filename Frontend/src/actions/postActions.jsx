@@ -1,5 +1,5 @@
 import { setAuthToken } from '../utils/setAuthToken';
-import { parseLinks } from '../components/utils';
+import { toast } from 'react-toastify';
 
 const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
 
@@ -22,7 +22,7 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
           ...post,
           preRenderedContent: post.preRenderedContent || '',
           lcpContent: post.lcpContent || '',
-          contentHeight: post.contentHeight || 300,
+          contentHeight: post.contentHeight || 82,
         },
       });
       return;
@@ -49,27 +49,9 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
       console.error('[fetchPostBySlug] No valid content field:', data);
     }
 
-    let imageCount = 0;
-    const preRenderedContent = contentField
-      ? parseLinks(contentField, data.category || '', true)
-          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-          .replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, '')
-          .replace(/<img([^>]+)src=["']([^"']+)["']/gi, (match, attrs, src) => {
-              const width = viewport === 'small' ? 220 : viewport === 'mobile' ? 240 : viewport === 'tablet' ? 280 : viewport === 'desktop' ? 320 : 360;
-              const height = width / (16/9);
-              const priority = imageCount < 3 ? 'eager' : 'lazy';
-              const fetchPriority = imageCount < 3 ? 'high' : 'auto';
-              imageCount++;
-              return `<img${attrs} src="${src}?w=${width}&format=avif&q=10" srcset="${src}?w=220&format=avif&q=10 220w,${src}?w=240&format=avif&q=10 240w,${src}?w=280&format=avif&q=10 280w,${src}?w=320&format=avif&q=10 320w,${src}?w=360&format=avif&q=10 360w" sizes="(max-width: 360px) 220px, (max-width: 480px) 240px, (max-width: 768px) 280px, (max-width: 1200px) 320px, 360px" width="${width}" height="${height}" loading="${priority}" decoding="sync" fetchpriority="${fetchPriority}"`;
-            })
-      : '';
-
+    const preRenderedContent = data.preRenderedContent || contentField;
 const lcpMatch = contentField.match(/<p[^>]*>[\s\S]*?<\/p>|<img[^>]+>/i);
     const lcpContent = lcpMatch ? lcpMatch[0].replace(/<[^>]*$/, '') : '';
-
-    if (preRenderedContent.match(/<script|\bon\w+/i)) {
-      console.error('[fetchPostBySlug] Suspicious content detected');
-    }
 
     dispatch({
       type: 'FETCH_POST_INITIAL',
@@ -80,7 +62,7 @@ const lcpMatch = contentField.match(/<p[^>]*>[\s\S]*?<\/p>|<img[^>]+>/i);
       ...data,
       preRenderedContent,
       lcpContent,
-      contentHeight: data.contentHeight || 300,
+      contentHeight: data.contentHeight || 82,
     };
 
     const cache = await caches.open('api-cache');
@@ -103,14 +85,10 @@ const lcpMatch = contentField.match(/<p[^>]*>[\s\S]*?<\/p>|<img[^>]+>/i);
         type: 'FETCH_POST_SUCCESS',
         payload: post
       });
-      import('react-toastify').then(({ toast }) => {
-        toast.warn('Using cached post due to network issue.', { position: 'top-right', autoClose: 3000 });
-      });
+      toast.warn('Using cached post due to network issue.', { position: 'top-right', autoClose: 3000 });
     } else {
       dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
-      import('react-toastify').then(({ toast }) => {
-        toast.error('Failed to load post. Please check your connection.', { position: 'top-right', autoClose: 3000 });
-      });
+      toast.error('Failed to load post. Please check your connection.', { position: 'top-right', autoClose: 3000 });
     }
   }
 };
@@ -129,9 +107,7 @@ export const searchPosts = (slug) => async (dispatch) => {
   } catch (error) {
     console.error('[searchPosts] Error:', error.message);
     dispatch({ type: 'SEARCH_POSTS_FAILURE', payload: error.message });
-    import('react-toastify').then(({ toast }) => {
-      toast.error('Failed to search posts.', { position: 'top-right', autoClose: 2000 });
-    });
+    toast.error('Failed to search posts.', { position: 'top-right', autoClose: 2000 });
   }
 };
 
@@ -153,9 +129,7 @@ export const fetchPosts = () => async (dispatch) => {
   } catch (error) {
     console.error('[fetchPosts] Error:', error.message);
     dispatch({ type: 'FETCH_POSTS_FAILURE', payload: error.message });
-    import('react-toastify').then(({ toast }) => {
-      toast.error('Failed to fetch posts.', { position: 'top-right', autoClose: 2000 });
-    });
+    toast.error('Failed to fetch posts.', { position: 'top-right', autoClose: 2000 });
   }
 };
 
@@ -238,14 +212,10 @@ export const addPost = (
         'x-auth-token': token,
       },
     });
-    import('react-toastify').then(({ toast }) => {
-      toast.success('Post added successfully!', { position: 'top-right', autoClose: 2000 });
-    });
+    toast.success('Post added successfully!', { position: 'top-right', autoClose: 2000 });
   } catch (error) {
     console.error('[addPost] Error:', error.message);
-    import('react-toastify').then(({ toast }) => {
-      toast.error('Failed to add post.', { position: 'top-right', autoClose: 2000 });
-    });
+    toast.error('Failed to add post.', { position: 'top-right', autoClose: 2000 });
   }
 };
 
@@ -261,9 +231,7 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
   }
   const { completedPosts = [] } = getState().postReducer || {};
   if (completedPosts.some((post) => post.postId === postId)) {
-    import('react-toastify').then(({ toast }) => {
-      toast.info('This post is already completed.', { position: 'top-right', autoClose: 2000 });
-    });
+    toast.info('This post is already completed.', { position: 'top-right', autoClose: 2000 });
     return;
   }
   try {
@@ -281,25 +249,19 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
     const data = await res.json();
     dispatch({ type: 'MARK_POST_COMPLETED_SUCCESS', payload: { postId } });
     if (data.certificateUrl) {
-      import('react-toastify').then(({ toast }) => {
-        toast.success(`Category completed! Certificate: ${data.certificateUrl}`, {
-          position: 'top-right',
-          autoClose: 5000,
-          onClick: () => window.open(data.certificateUrl, '_blank'),
-        });
+      toast.success(`Category completed! Certificate: ${data.certificateUrl}`, {
+        position: 'top-right',
+        autoClose: 5000,
+        onClick: () => window.open(data.certificateUrl, '_blank'),
       });
       dispatch({ type: 'FETCH_CERTIFICATES' });
     } else {
-      import('react-toastify').then(({ toast }) => {
-        toast.success('Post marked as completed!', { position: 'top-right', autoClose: 2000 });
-      });
+      toast.success('Post marked as completed!', { position: 'top-right', autoClose: 2000 });
     }
     dispatch({ type: 'FETCH_COMPLETED_POSTS' });
   } catch (error) {
     console.error('[markPostAsCompleted] Error:', error.message);
-    import('react-toastify').then(({ toast }) => {
-      toast.error('Failed to mark post.', { position: 'top-right', autoClose: 2000 });
-    });
+    toast.error('Failed to mark post.', { position: 'top-right', autoClose: 2000 });
   }
 };
 
@@ -321,8 +283,6 @@ export const fetchCompletedPosts = () => async (dispatch) => {
   } catch (error) {
     console.error('[fetchCompletedPosts] Error:', error.message);
     dispatch({ type: 'FETCH_COMPLETED_POSTS_FAILURE' });
-    import('react-toastify').then(({ toast }) => {
-      toast.error('Failed to fetch completed posts.', { position: 'top-right', autoClose: 2000 });
-    });
+    toast.error('Failed to fetch completed posts.', { position: 'top-right', autoClose: 2000 });
   }
 };
