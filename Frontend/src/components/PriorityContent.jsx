@@ -1,4 +1,4 @@
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, useDeferredValue } from 'react';
 import { minify } from 'csso';
 
 const criticalCss = minify(`
@@ -58,6 +58,7 @@ body{font-family:system-ui,-apple-system,sans-serif;font-display:swap;margin:0;}
 `).css;
 
 const LCPContent = ({ lcpContent, fullContent }) => {
+  const startTime = performance.now();
   const lcpImage = lcpContent.match(/src=["']([^"']+)["']/i)?.[1];
   const lcpElement = lcpContent.startsWith('<p') ? (
     <p dangerouslySetInnerHTML={{ __html: lcpContent }} />
@@ -75,18 +76,22 @@ const LCPContent = ({ lcpContent, fullContent }) => {
     />
   ) : null;
 
+  console.log('LCP render time:', performance.now() - startTime);
+
   return (
     <>
       {lcpImage && <link rel="preload" href={`${lcpImage}?w=240&format=avif&q=10`} as="image" fetchpriority="high" />}
       {lcpElement}
-      <div
-        style={{
-          width: '100%',
-          willChange: 'contents',
-          fetchPriority: 'high'
-        }}
-        dangerouslySetInnerHTML={{ __html: fullContent }}
-      />
+      {fullContent && (
+        <div
+          style={{
+            width: '100%',
+            willChange: 'contents',
+            fetchPriority: 'low'
+          }}
+          dangerouslySetInnerHTML={{ __html: fullContent }}
+        />
+      )}
     </>
   );
 };
@@ -106,18 +111,19 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
   const post = rawPost || {
     preRenderedContent: '',
     lcpContent: '',
-    contentHeight: 82,
+    contentHeight: 100,
     titleInitial: 'Loading...',
     title: 'Loading...',
     titleImageInitial: null,
     titleImage: null
   };
   const [fullContent, setFullContent] = useState('');
+  const deferredContent = useDeferredValue(fullContent);
+
   useEffect(() => {
-    if (post.preRenderedContent) {
-      requestIdleCallback(() => setFullContent(post.preRenderedContent));
-    }
+    setFullContent(post.preRenderedContent);
   }, [post.preRenderedContent]);
+
   const isLoading = !post || (post.titleInitial === 'Loading...' && post.title === 'Loading...');
   const viewport = post.contentStyles?.viewport || 'mobile';
   const style = post.contentStyles?.[viewport] || {
@@ -130,7 +136,7 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
                       viewport === 'tablet' ? ((post.titleImageInitial || post.titleImage) ? 229.5 : 72) :
                       viewport === 'desktop' ? ((post.titleImageInitial || post.titleImage) ? 248 : 80) :
                       ((post.titleImageInitial || post.titleImage) ? 272.5 : 88);
-  const contentHeight = isLoading ? 82 : post.contentHeight || 82;
+  const contentHeight = isLoading ? 100 : post.contentHeight || 100;
 
   return (
     <article
@@ -248,7 +254,7 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
             {!post.preRenderedContent ? (
               <p className="error-message">Content failed to render. Please try refreshing.</p>
             ) : (
-              <LCPContent lcpContent={post.lcpContent} fullContent={fullContent} />
+              <LCPContent lcpContent={post.lcpContent} fullContent={deferredContent} />
             )}
           </section>
         </>
