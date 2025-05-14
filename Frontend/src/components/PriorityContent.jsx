@@ -13,215 +13,219 @@ article p,article ul,article ol,article pre,article h2,article h3,article blockq
 article a{color:#0066cc;text-decoration:underline;}
 article img{max-width:min(100%, 360px);height:auto;object-fit:contain;}
 div[aria-hidden="true"]{background:linear-gradient(90deg,#e0e0e0 25%,#f0f0f0 50%,#e0e0e0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;}
-.non-critical-container{min-height:50px;}
+.non-critical-container{height:100%;min-height:50px;}
 @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
 `).css;
 
 const LCPContent = ({ lcpContent, preRenderedContent }) => {
-  const startTime = performance.now();
-  let effectiveLcpContent = lcpContent;
-  if (!lcpContent && preRenderedContent) {
-    const firstSentence = preRenderedContent.match(/[^.!?]+[.!?]/)?.[0] || preRenderedContent.slice(0, 100);
-    effectiveLcpContent = `<p>${firstSentence}</p>`;
-    console.log('[LCPContent] Using preRenderedContent fallback:', effectiveLcpContent);
-  }
-  const lcpImage = effectiveLcpContent?.match(/src=["']([^"']+)["']/i)?.[1];
+    const startTime = performance.now();
+    let effectiveLcpContent = lcpContent;
+    if (!lcpContent && preRenderedContent) {
+        const firstSentence = preRenderedContent.match(/[^.!?]+[.!?]/)?.[0] || preRenderedContent.slice(0, 100);
+        effectiveLcpContent = `<p>${firstSentence}</p>`;
+        console.log('[LCPContent] Using preRenderedContent fallback:', effectiveLcpContent);
+    }
+    const lcpImage = effectiveLcpContent?.match(/src=["']([^"']+)["']/i)?.[1];
 
-  console.log('LCP render time:', performance.now() - startTime);
+    console.log('LCP render time:', performance.now() - startTime);
 
-  return (
-    <>
-      {effectiveLcpContent?.startsWith('<p') ? (
-        <div dangerouslySetInnerHTML={{ __html: effectiveLcpContent }} />
-      ) : effectiveLcpContent?.startsWith('<img') ? (
-        <img
-          src={lcpImage}
-          width={effectiveLcpContent.match(/width=["'](\d+)["']/i)?.[1] || 240}
-          height={effectiveLcpContent.match(/height=["'](\d+\.?\d*)["']/i)?.[1] || 135}
-          alt="LCP image"
-          loading="eager"
-          fetchpriority="high"
-          decoding="sync"
-          style={{ width: '100%', height: 'auto', objectFit: 'contain' }}
-          onError={(e) => console.error('LCP image failed:', e.target.src)}
-        />
-      ) : (
-        <div aria-hidden="true" style={{ height: '50px' }} />
-      )}
-    </>
-  );
+    return (
+        <>
+            {effectiveLcpContent?.startsWith('<p') ? (
+                <div dangerouslySetInnerHTML={{ __html: effectiveLcpContent }} />
+            ) : effectiveLcpContent?.startsWith('<img') ? (
+                <img
+                    src={lcpImage}
+                    width={effectiveLcpContent.match(/width=["'](\d+)["']/i)?.[1] || 240}
+                    height={effectiveLcpContent.match(/height=["'](\d+\.?\d*)["']/i)?.[1] || 135}
+                    alt="LCP image"
+                    loading="eager"
+                    fetchpriority="high"
+                    decoding="sync"
+                    style={{ width: '100%', height: 'auto', objectFit: 'contain' }}
+                    onError={(e) => console.error('LCP image failed:', e.target.src)}
+                />
+            ) : (
+                <div aria-hidden="true" style={{ height: '50px' }} />
+            )}
+        </>
+    );
 };
 
 const areEqual = (prev, next) => {
-  return (
-    prev.post?.title === next.post?.title &&
-    prev.post?.titleImage === next.post?.titleImage &&
-    prev.post?.lcpContent === next.post?.lcpContent &&
-    prev.post?.preRenderedContent === next.post?.preRenderedContent &&
-    prev.post?.contentHeight === next.post?.contentHeight &&
-    prev.post?.titleImageAspectRatio === next.post?.titleImageAspectRatio &&
-    prev.readTime === next.readTime
-  );
+    return (
+        prev.post?.title === next.post?.title &&
+        prev.post?.titleImage === next.post?.titleImage &&
+        prev.post?.lcpContent === next.post?.lcpContent &&
+        prev.post?.preRenderedContent === next.post?.preRenderedContent &&
+        prev.post?.contentHeight === next.post?.contentHeight &&
+        prev.post?.titleImageAspectRatio === next.post?.titleImageAspectRatio &&
+        prev.readTime === next.readTime
+    );
 };
 
 const PriorityContent = memo(({ post: rawPost, readTime }) => {
-  const post = rawPost || {
-    preRenderedContent: '',
-    lcpContent: '',
-    contentHeight: 0,
-    title: 'Loading...',
-    titleImage: null,
-    titleImageAspectRatio: '16:9',
-  };
-  const [nonCriticalContent, setNonCriticalContent] = useState(null);
-  const isLoading = !post || (!post.title && !post.lcpContent);
-  const viewport = post.contentStyles?.viewport || 'mobile';
-  const style = post.contentStyles?.[viewport] || {
-    image: { width: 240, height: 135 },
-    margin: 8,
-    padding: 4,
-  };
-  const contentHeight = post.contentHeight || 0;
-  const contentRef = useRef(null);
-
-  useEffect(() => {
-    if (contentRef.current && !isLoading) {
-      const actualHeight = contentRef.current.offsetHeight;
-      console.log('[PriorityContent] contentHeight (backend):', contentHeight, 'Actual height:', actualHeight);
-      if (Math.abs(actualHeight - contentHeight) > 10) {
-        console.warn('[PriorityContent] Height mismatch detected!');
-      }
-    }
-  }, [contentHeight, nonCriticalContent, isLoading]);
-
-  useEffect(() => {
-    if (!post.preRenderedContent || !post.lcpContent) {
-      console.log('[PriorityContent] Skipping non-critical render: missing preRenderedContent or lcpContent');
-      setNonCriticalContent(null);
-      return;
-    }
-
-    const renderNonCritical = () => {
-      try {
-        const content = post.lcpContent ? post.preRenderedContent.replace(post.lcpContent, '') : post.preRenderedContent;
-        setNonCriticalContent(<div className="non-critical-container" dangerouslySetInnerHTML={{ __html: content }} style={{ fetchPriority: 'low' }} />);
-        console.log('[PriorityContent] Non-critical content rendered');
-      } catch (error) {
-        console.error('[PriorityContent] Non-critical render failed:', error);
-        setNonCriticalContent(<div className="non-critical-container" aria-hidden="true" style={{ height: '50px' }} />);
-      }
+    const post = rawPost || {
+        preRenderedContent: '',
+        lcpContent: '',
+        contentHeight: 0,
+        title: 'Loading...',
+        titleImage: null,
+        titleImageAspectRatio: '16:9',
     };
+    const [nonCriticalContent, setNonCriticalContent] = useState(null);
+    const isLoading = !post || (!post.title && !post.lcpContent);
+    const viewport = post.contentStyles?.viewport || 'mobile';
+    const style = post.contentStyles?.[viewport] || {
+        image: { width: 240, height: 135 },
+        margin: 8,
+        padding: 4,
+    };
+    const contentHeight = post.contentHeight || 0;
+    const contentRef = useRef(null);
 
-    if (window.requestIdleCallback) {
-      window.requestIdleCallback(renderNonCritical, { timeout: 2000 });
-    } else {
-      setTimeout(renderNonCritical, 0);
-    }
-  }, [post.preRenderedContent, post.lcpContent]);
+    useEffect(() => {
+        if (contentRef.current && !isLoading) {
+            const actualHeight = contentRef.current.offsetHeight;
+            console.log('[PriorityContent] contentHeight (backend):', contentHeight, 'Actual height:', actualHeight);
+            if (Math.abs(actualHeight - contentHeight) > 10) {
+                console.warn('[PriorityContent] Height mismatch detected!');
+            }
+        }
+    }, [contentHeight, nonCriticalContent, isLoading]);
 
-  const aspectRatio = post.titleImageAspectRatio || '16:9';
-  const [aspectWidth, aspectHeight] = aspectRatio.split(':').map(Number);
-  const imageHeight = Math.round((style.image.width / aspectWidth) * aspectHeight);
+    useEffect(() => {
+        if (!post.preRenderedContent || !post.lcpContent) {
+            console.log('[PriorityContent] Skipping non-critical render: missing preRenderedContent or lcpContent');
+            setNonCriticalContent(null);
+            return;
+        }
 
-  try {
-    return (
-      <>
-        <style>{criticalCss}</style>
-        <article
-          style={{
-            width: '100%',
-            maxWidth: '800px',
-            display: 'flex',
-            flexDirection: 'column',
-            fetchPriority: 'high',
-            margin: 0,
-            padding: 0,
-          }}
-          aria-live="polite"
-        >
-          {isLoading ? (
-            <div
-              aria-hidden="true"
-              style={{
-                width: '100%',
-                height: '200px',
-                fetchPriority: 'high',
-              }}
-            />
-          ) : (
+        const renderNonCritical = () => {
+            try {
+                const content = post.lcpContent ? post.preRenderedContent.replace(post.lcpContent, '') : post.preRenderedContent;
+                setNonCriticalContent(<div className="non-critical-container" dangerouslySetInnerHTML={{ __html: content }} style={{ fetchPriority: 'low' }} />);
+                console.log('[PriorityContent] Non-critical content rendered');
+            } catch (error) {
+                console.error('[PriorityContent] Non-critical render failed:', error);
+                setNonCriticalContent(<div className="non-critical-container" aria-hidden="true" style={{ height: `${contentHeight}px` }} />);
+            }
+        };
+
+        if (window.requestIdleCallback) {
+            window.requestIdleCallback(renderNonCritical, { timeout: 500 });
+        } else {
+            setTimeout(renderNonCritical, 0);
+        }
+    }, [post.preRenderedContent, post.lcpContent, contentHeight]);
+
+    const aspectRatio = post.titleImageAspectRatio || '16:9';
+    const [aspectWidth, aspectHeight] = aspectRatio.split(':').map(Number);
+    const imageHeight = Math.round((style.image.width / aspectWidth) * aspectHeight);
+
+    try {
+        return (
             <>
-              <header style={{ width: '100%', margin: 0, padding: 0 }}>
-                {post.titleImage && (
-                  <div>
-                    <img
-                      src={post.titleImage}
-                      srcSet={`
-                        ${post.titleImage.replace('w=240', 'w=220')} 220w,
-                        ${post.titleImage} 240w,
-                        ${post.titleImage.replace('w=240', 'w=280')} 280w
-                      `}
-                      sizes="(max-width: 360px) 220px, (max-width: 768px) 240px, 280px"
-                      alt={post.title || 'Post image'}
-                      width={style.image.width}
-                      height={imageHeight}
-                      decoding="sync"
-                      loading="eager"
-                      fetchpriority="high"
-                      style={{ width: '100%', height: 'auto', objectFit: 'contain', aspectRatio: `${aspectWidth}/${aspectHeight}` }}
-                      onError={(e) => console.error('Title image failed:', e.target.src)}
-                    />
-                  </div>
-                )}
-                <h1 style={{ willChange: 'contents', fetchPriority: 'high' }}>
-                  {post.title || 'Untitled'}
-                </h1>
-                <div>
-                  <span>By {post.author || 'Unknown'}</span>
-                  <span>
-                    {' | '}
-                    {post.date && !isNaN(new Date(post.date).getTime())
-                      ? new Date(post.date).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })
-                      : 'Unknown Date'}
-                  </span>
-                  <span>
-                    {' | Read time: '}
-                    <span id="read-time">{readTime || '0'}</span> min
-                  </span>
-                </div>
-              </header>
-              <section
-                role="region"
-                aria-label="Priority content"
-                ref={contentRef}
-                style={{
-                  width: '100%',
-                  maxWidth: '800px',
-                  fetchPriority: 'high',
-                  willChange: 'contents',
-                  margin: 0,
-                  padding: '0.25rem 0',
-                }}
-              >
-                <LCPContent lcpContent={post.lcpContent} preRenderedContent={post.preRenderedContent} />
-                {nonCriticalContent}
-              </section>
+                <style>{criticalCss}</style>
+                <article
+                    style={{
+                        width: '100%',
+                        maxWidth: '800px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        fetchPriority: 'high',
+                        margin: 0,
+                        padding: 0,
+                    }}
+                    aria-live="polite"
+                >
+                    {isLoading ? (
+                        <div
+                            aria-hidden="true"
+                            style={{
+                                width: '100%',
+                                height: '200px',
+                                fetchPriority: 'high',
+                            }}
+                        />
+                    ) : (
+                        <>
+                            <header style={{ width: '100%', margin: 0, padding: 0 }}>
+                                {post.titleImage && (
+                                    <div>
+                                        <img
+                                            src={post.titleImage}
+                                            srcSet={`
+                                                ${post.titleImage.replace('w=240', 'w=220')} 220w,
+                                                ${post.titleImage} 240w,
+                                                ${post.titleImage.replace('w=240', 'w=280')} 280w
+                                            `}
+                                            sizes="(max-width: 360px) 220px, (max-width: 768px) 240px, 280px"
+                                            alt={post.title || 'Post image'}
+                                            width={style.image.width}
+                                            height={imageHeight}
+                                            decoding="sync"
+                                            loading="eager"
+                                            fetchpriority="high"
+                                            style={{ width: '100%', height: 'auto', objectFit: 'contain', aspectRatio: `${aspectWidth}/${aspectHeight}` }}
+                                            onError={(e) => {
+                                                console.error('Title image failed:', e.target.src);
+                                                e.target.src = 'https://via.placeholder.com/240x135?text=Image+Failed';
+                                            }}
+                                        />
+                                    </div>
+                                )}
+                                <h1 style={{ willChange: 'contents', fetchPriority: 'high' }}>
+                                    {post.title || 'Untitled'}
+                                </h1>
+                                <div>
+                                    <span>By {post.author || 'Unknown'}</span>
+                                    <span>
+                                        {' | '}
+                                        {post.date && !isNaN(new Date(post.date).getTime())
+                                            ? new Date(post.date).toLocaleDateString('en-US', {
+                                                  year: 'numeric',
+                                                  month: 'long',
+                                                  day: 'numeric',
+                                              })
+                                            : 'Unknown Date'}
+                                    </span>
+                                    <span>
+                                        {' | Read time: '}
+                                        <span id="read-time">{readTime || '0'}</span> min
+                                    </span>
+                                </div>
+                            </header>
+                            <section
+                                role="region"
+                                aria-label="Priority content"
+                                ref={contentRef}
+                                style={{
+                                    width: '100%',
+                                    maxWidth: '800px',
+                                    fetchPriority: 'high',
+                                    willChange: 'contents',
+                                    margin: 0,
+                                    padding: '0.25rem 0',
+                                    minHeight: contentHeight > 0 ? `${contentHeight}px` : 'auto',
+                                }}
+                            >
+                                <LCPContent lcpContent={post.lcpContent} preRenderedContent={post.preRenderedContent} />
+                                {nonCriticalContent}
+                            </section>
+                        </>
+                    )}
+                </article>
             </>
-          )}
-        </article>
-      </>
-    );
-  } catch (error) {
-    console.error('[PriorityContent] Render error:', error);
-    return (
-      <div aria-hidden="true" style={{ height: '200px' }}>
-        <p>Error rendering content. Please try refreshing.</p>
-      </div>
-    );
-  }
+        );
+    } catch (error) {
+        console.error('[PriorityContent] Render error:', error);
+        return (
+            <div aria-hidden="true" style={{ height: '200px' }}>
+                <p>Error rendering content. Please try refreshing.</p>
+            </div>
+        );
+    }
 }, areEqual);
 
 export default PriorityContent;
