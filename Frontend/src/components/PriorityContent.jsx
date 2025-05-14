@@ -2,18 +2,16 @@ import React, { memo, useEffect, useState, useRef } from 'react';
 import { minify } from 'csso';
 
 const criticalCss = minify(`
-*,*::before,*::after{box-sizing:border-box;}
-body{font-family:system-ui,-apple-system,sans-serif;font-display:swap;margin:0;padding:0;}
 article,section{margin:0;padding:0;}
 header > h1{font-size:clamp(1.25rem, 3vw, 2rem);color:#011020;font-weight:800;line-height:1.2;margin:0;padding:0.5rem 0;}
 header > div:last-child{color:#666;font-size:clamp(0.7rem, 1.5vw, 0.875rem);padding:0.25rem 0;margin:0;}
 header > div:first-child{width:100%;max-width:min(100%, 360px);margin:0 auto;padding:0.5rem 0;}
-header > div:first-child > img{width:100%;height:auto;object-fit:contain;aspect-ratio:16/9;}
+header > div:first-child > img{width:100%;height:auto;object-fit:contain;}
 article{font-size:clamp(0.8125rem, 2vw, 1.125rem);line-height:clamp(1.3, 2vw, 1.6);width:100%;max-width:800px;padding:0.25rem 0;margin:0;word-break:break-word;}
 article > *:last-child{margin-bottom:0;}
 article p,article ul,article ol,article pre,article h2,article h3,article blockquote,article figure,article table{margin:0 0 0.5rem 0;padding:0;}
 article a{color:#0066cc;text-decoration:underline;}
-article img{max-width:min(100%, 360px);height:auto;object-fit:contain;aspect-ratio:16/9;}
+article img{max-width:min(100%, 360px);height:auto;object-fit:contain;}
 div[aria-hidden="true"]{background:linear-gradient(90deg,#e0e0e0 25%,#f0f0f0 50%,#e0e0e0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;}
 .non-critical-container{min-height:50px;}
 @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
@@ -44,7 +42,7 @@ const LCPContent = ({ lcpContent, preRenderedContent }) => {
           loading="eager"
           fetchpriority="high"
           decoding="sync"
-          style={{ width: '100%', height: 'auto', objectFit: 'contain', aspectRatio: '16/9' }}
+          style={{ width: '100%', height: 'auto', objectFit: 'contain' }}
           onError={(e) => console.error('LCP image failed:', e.target.src)}
         />
       ) : (
