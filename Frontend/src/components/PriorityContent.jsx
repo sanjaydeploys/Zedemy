@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useState, useRef } from 'react';
+import { memo, useEffect, useState, useRef } from 'react';
 import { minify } from 'csso';
 
 const criticalCss = minify(`
@@ -7,8 +7,7 @@ body{font-family:system-ui,-apple-system,sans-serif;font-display:swap;margin:0;p
 article,section{margin:0;padding:0;}
 header > h1{font-size:clamp(1.25rem, 3vw, 2rem);color:#011020;font-weight:800;line-height:1.2;margin:0;padding:0.5rem 0;}
 header > div:last-child{color:#666;font-size:clamp(0.7rem, 1.5vw, 0.875rem);padding:0.25rem 0;margin:0;}
-header > div:last-child span{margin-right:0.5rem;}
-header > div:first-child{width:100%;margin:0 auto;padding:0.5rem 0;}
+header > div:first-child{width:100%;max-width:min(100%, 360px);margin:0 auto;padding:0.5rem 0;}
 header > div:first-child > img{width:100%;height:auto;object-fit:contain;}
 article{font-size:clamp(0.8125rem, 2vw, 1.125rem);line-height:clamp(1.3, 2vw, 1.6);width:100%;max-width:800px;padding:0.25rem 0;margin:0;word-break:break-word;}
 article > *:last-child{margin-bottom:0;}
@@ -73,11 +72,8 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
     lcpContent: '',
     contentHeight: 0,
     title: 'Loading...',
-    titleImage: null,
+    titleImage: 'https://via.placeholder.com/240x135?text=Loading+Image',
     titleImageAspectRatio: '16:9',
-    author: 'Unknown',
-    date: new Date().toISOString(),
-    contentStyles: { viewport: 'mobile', mobile: { image: { width: 240, height: 135 } } }
   };
   const [nonCriticalContent, setNonCriticalContent] = useState(null);
   const [imageSrc, setImageSrc] = useState(post.titleImage);
@@ -91,22 +87,6 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
   const contentHeight = post.contentHeight || 0;
   const contentRef = useRef(null);
 
-  // Dynamic aspect ratio for title image
-  const aspectRatio = post.titleImageAspectRatio || '16:9';
-  const [aspectWidth, aspectHeight] = aspectRatio.split(':').map(Number);
-  const imageWidth = style.image.width;
-  const imageHeight = Math.round((style.image.width / aspectWidth) * aspectHeight);
-
-  // Format the date
-  const formattedDate = post.date && !isNaN(new Date(post.date).getTime())
-    ? new Date(post.date).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
-    : 'Unknown Date';
-
-  // Height validation
   useEffect(() => {
     if (contentRef.current && !isLoading) {
       const actualHeight = contentRef.current.offsetHeight;
@@ -117,7 +97,6 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
     }
   }, [contentHeight, nonCriticalContent, isLoading]);
 
-  // Non-critical content rendering
   useEffect(() => {
     if (!post.preRenderedContent || !post.lcpContent) {
       console.log('[PriorityContent] Skipping non-critical render: missing preRenderedContent or lcpContent');
@@ -143,17 +122,27 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
     }
   }, [post.preRenderedContent, post.lcpContent]);
 
-  // Image source update
   useEffect(() => {
     if (post.titleImage && post.titleImage !== imageSrc) {
       setImageSrc(post.titleImage);
     }
   }, [post.titleImage]);
 
+  const aspectRatio = post.titleImageAspectRatio || '16:9';
+  const [aspectWidth, aspectHeight] = aspectRatio.split(':').map(Number);
+  const imageHeight = Math.round((style.image.width / aspectWidth) * aspectHeight);
+
   try {
     return (
       <>
         <style>{criticalCss}</style>
+        <link
+          rel="preload"
+          href={`${imageSrc}?w=${style.image.width}&format=avif&q=10`}
+          as="image"
+          fetchpriority="high"
+          crossorigin="anonymous"
+        />
         <article
           style={{
             width: '100%',
@@ -166,15 +155,6 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
           }}
           aria-live="polite"
         >
-          {imageSrc && !isLoading && (
-            <link
-              rel="preload"
-              href={`${imageSrc}?w=${style.image.width}&format=avif&q=10`}
-              as="image"
-              fetchpriority="high"
-              crossorigin="anonymous"
-            />
-          )}
           {isLoading ? (
             <div
               aria-hidden="true"
@@ -188,7 +168,7 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
             <>
               <header style={{ width: '100%', margin: 0, padding: 0 }}>
                 {imageSrc && (
-                  <div style={{ maxWidth: `${style.image.width}px`, margin: '0 auto' }}>
+                  <div>
                     <img
                       src={imageSrc ? `${imageSrc}?w=${style.image.width}&format=avif&q=10` : 'https://via.placeholder.com/240x135?text=Image+Not+Found'}
                       srcSet={imageSrc ? `
@@ -215,8 +195,20 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
                 </h1>
                 <div>
                   <span>By {post.author || 'Unknown'}</span>
-                  <span>| {formattedDate}</span>
-                  <span>| Read time: <span id="read-time">{readTime || '0'}</span> min</span>
+                  <span>
+                    {' | '}
+                    {post.date && !isNaN(new Date(post.date).getTime())
+                      ? new Date(post.date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })
+                      : 'Unknown Date'}
+                  </span>
+                  <span>
+                    {' | Read time: '}
+                    <span id="read-time">{readTime || '0'}</span> min
+                  </span>
                 </div>
               </header>
               <section
@@ -230,7 +222,6 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
                   willChange: 'contents',
                   margin: 0,
                   padding: '0.25rem 0',
-                  minHeight: contentHeight ? `${contentHeight}px` : 'auto'
                 }}
               >
                 <LCPContent lcpContent={post.lcpContent} preRenderedContent={post.preRenderedContent} />
