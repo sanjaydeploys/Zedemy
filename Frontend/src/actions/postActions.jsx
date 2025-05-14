@@ -4,202 +4,176 @@ import { toast } from 'react-toastify';
 const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
 
 export const fetchPostBySlug = (slug) => async (dispatch) => {
-  const viewport = window.innerWidth <= 360 ? 'small' : window.innerWidth <= 480 ? 'mobile' : window.innerWidth <= 768 ? 'tablet' : window.innerWidth <= 1200 ? 'desktop' : 'large';
-  try {
-    dispatch({ type: 'CLEAR_POST' });
+    const viewport = window.innerWidth <= 360 ? 'small' : window.innerWidth <= 480 ? 'mobile' : window.innerWidth <= 768 ? 'tablet' : window.innerWidth <= 1200 ? 'desktop' : 'large';
 
-    const cacheKey = `${API_BASE_URL}/post/${slug}?viewport=${viewport}`;
-    const cachedPost = await caches.match(cacheKey);
+    // Predictive preload for titleImage
+    const predictedImageUrl = `https://d2rq30ca0zyvzp.cloudfront.net/images/${slug}?w=240&format=avif&q=5`;
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'image';
+    link.href = predictedImageUrl;
+    link.setAttribute('fetchpriority', 'high');
+    link.onerror = () => console.error('[fetchPostBySlug] Predictive preload failed:', predictedImageUrl);
+    document.head.appendChild(link);
 
-    if (cachedPost) {
-      const post = await cachedPost.json();
-      if (!post.lcpContent || !post.preRenderedContent) {
-        console.log('[fetchPostBySlug] Skipping invalid cache: empty lcpContent or preRenderedContent');
-        const cache = await caches.open('api-cache');
-        await cache.delete(cacheKey);
-      } else {
-        if (post.titleImage) {
-          const link = document.createElement('link');
-          link.rel = 'preload';
-          link.as = 'image';
-          link.href = post.titleImage;
-          link.setAttribute('fetchpriority', 'high');
-          document.head.appendChild(link);
+    try {
+        dispatch({ type: 'CLEAR_POST' });
+
+        const cacheKey = `${API_BASE_URL}/post/${slug}?viewport=${viewport}`;
+        const cachedPost = await caches.match(cacheKey);
+
+        if (cachedPost) {
+            const post = await cachedPost.json();
+            if (!post.lcpContent || !post.preRenderedContent) {
+                console.log('[fetchPostBySlug] Skipping invalid cache: empty lcpContent or preRenderedContent');
+                const cache = await caches.open('api-cache');
+                await cache.delete(cacheKey);
+            } else {
+                dispatch({
+                    type: 'FETCH_POST_SUCCESS',
+                    payload: {
+                        ...post,
+                        preRenderedContent: post.preRenderedContent || '',
+                        lcpContent: post.lcpContent || '',
+                        contentHeight: post.contentHeight || 0,
+                        titleImageAspectRatio: post.titleImageAspectRatio || '16:9',
+                        author: post.author || 'Unknown',
+                        date: post.date || new Date().toISOString()
+                    },
+                });
+                console.log('[fetchPostBySlug] Cached post:', { preRenderedContent: post.preRenderedContent, lcpContent: post.lcpContent });
+                return;
+            }
         }
 
-        dispatch({
-          type: 'FETCH_POST_SUCCESS',
-          payload: {
-            ...post,
-            preRenderedContent: post.preRenderedContent || '',
-            lcpContent: post.lcpContent || '',
-            contentHeight: post.contentHeight || 0,
-            titleImageAspectRatio: post.titleImageAspectRatio || '16:9',
-            author: post.author || 'Unknown',
-            date: post.date || new Date().toISOString()
-          },
+        const response = await fetch(`${API_BASE_URL}/post/${slug}?viewport=${viewport}`, {
+            headers: {
+                'Accept': 'application/json',
+            },
         });
-        console.log('[fetchPostBySlug] Cached post:', { preRenderedContent: post.preRenderedContent, lcpContent: post.lcpContent });
-        return;
-      }
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        }
+        const data = await response.json();
+
+        if (!data || !data.lcpContent) {
+            throw new Error('Invalid API response: No data or empty lcpContent');
+        }
+
+        if (data.titleImage && data.titleImage !== predictedImageUrl) {
+            const link = document.createElement('link');
+            link.rel = 'preload';
+            link.as = 'image';
+            link.href = data.titleImage;
+            link.setAttribute('fetchpriority', 'high');
+            link.onerror = () => console.error('[fetchPostBySlug] Preload failed:', data.titleImage);
+            document.head.appendChild(link);
+        }
+
+        const preRenderedContent = data.preRenderedContent || '<p>No content available.</p>';
+        const lcpContent = data.lcpContent || '';
+
+        const post = {
+            ...data,
+            preRenderedContent,
+            lcpContent,
+            contentHeight: data.contentHeight || 0,
+            titleImageAspectRatio: data.titleImageAspectRatio || '16:9',
+            author: data.author || 'Unknown',
+            date: data.date || new Date().toISOString()
+        };
+
+        const cache = await caches.open('api-cache');
+        await cache.put(cacheKey, new Response(JSON.stringify(post), {
+            headers: { 'Cache-Control': 'public, max-age=86400, stale-while-revalidate=604800' },
+        }));
+
+        dispatch({ type: 'FETCH_POST_SUCCESS', payload: post });
+    } catch (error) {
+        console.error('[fetchPostBySlug] Fetch failed:', error.message, error.stack);
+        const cacheKey = `${API_BASE_URL}/post/${slug}?viewport=${viewport}`;
+        const cachedPost = await caches.match(cacheKey);
+        if (cachedPost) {
+            const post = await cachedPost.json();
+            if (post.lcpContent && post.preRenderedContent) {
+                dispatch({
+                    type: 'FETCH_POST_SUCCESS',
+                    payload: post
+                });
+                toast.warn('Using cached post due to network issue.', { position: 'top-right', autoClose: 3000 });
+            } else {
+                console.log('[fetchPostBySlug] Skipping invalid cache in error handler: empty lcpContent or preRenderedContent');
+                dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
+                toast.error('Failed to load post. Please check your connection.', { position: 'top-right', autoClose: 3000 });
+            }
+        } else {
+            dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
+            toast.error('Failed to load post. Please check your connection.', { position: 'top-right', autoClose: 3000 });
+        }
     }
-
-    const response = await fetch(`${API_BASE_URL}/post/${slug}?viewport=${viewport}`, {
-      headers: {
-        'Accept': 'application/json',
-        'Accept-Encoding': 'gzip, deflate, br',
-      },
-    });
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-    }
-    const data = await response.json();
-
-    if (!data || !data.lcpContent) {
-      throw new Error('Invalid API response: No data or empty lcpContent');
-    }
-
-    if (data.titleImage) {
-      const link = document.createElement('link');
-      link.rel = 'preload';
-      link.as = 'image';
-      link.href = data.titleImage;
-      link.setAttribute('fetchpriority', 'high');
-      document.head.appendChild(link);
-    }
-
-    const preRenderedContent = data.preRenderedContent || '<p>No content available.</p>';
-    const lcpContent = data.lcpContent || '';
-
-    console.log('[fetchPostBySlug] API response:', { preRenderedContent, lcpContent });
-
-    const post = {
-      ...data,
-      preRenderedContent,
-      lcpContent,
-      contentHeight: data.contentHeight || 0,
-      titleImageAspectRatio: data.titleImageAspectRatio || '16:9',
-      author: data.author || 'Unknown',
-      date: data.date || new Date().toISOString()
-    };
-
-    const cache = await caches.open('api-cache');
-    await cache.put(cacheKey, new Response(JSON.stringify(post), {
-      headers: { 'Cache-Control': 'public, max-age=86400, stale-while-revalidate=604800' },
-    }));
-
-    dispatch({ type: 'FETCH_POST_SUCCESS', payload: post });
-  } catch (error) {
-    console.error('[fetchPostBySlug] Fetch failed:', error.message, error.stack);
-    const cacheKey = `${API_BASE_URL}/post/${slug}?viewport=${viewport}`;
-    const cachedPost = await caches.match(cacheKey);
-    if (cachedPost) {
-      const post = await cachedPost.json();
-      if (post.lcpContent && post.preRenderedContent) {
-        dispatch({
-          type: 'FETCH_POST_SUCCESS',
-          payload: post
-        });
-        toast.warn('Using cached post due to network issue.', { position: 'top-right', autoClose: 3000 });
-      } else {
-        console.log('[fetchPostBySlug] Skipping invalid cache in error handler: empty lcpContent or preRenderedContent');
-        dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
-        toast.error('Failed to load post. Please check your connection.', { position: 'top-right', autoClose: 3000 });
-      }
-    } else {
-      dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
-      toast.error('Failed to load post. Please check your connection.', { position: 'top-right', autoClose: 3000 });
-    }
-  }
 };
 
 export const searchPosts = (slug) => async (dispatch) => {
-  try {
-    const res = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(slug)}`, {
-      headers: {
-        'Accept': 'application/json',
-        'Accept-Encoding': 'gzip, deflate, br',
-      },
-    });
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    const data = await res.json();
-    dispatch({ type: 'SEARCH_POSTS_SUCCESS', payload: data });
-  } catch (error) {
-    console.error('[searchPosts] Error:', error.message);
-    dispatch({ type: 'SEARCH_POSTS_FAILURE', payload: error.message });
-    toast.error('Failed to search posts.', { position: 'top-right', autoClose: 2000 });
-  }
+    try {
+        const res = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(slug)}`, {
+            headers: {
+                'Accept': 'application/json',
+            },
+        });
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
+        dispatch({ type: 'SEARCH_POSTS_SUCCESS', payload: data });
+    } catch (error) {
+        console.error('[searchPosts] Error:', error.message);
+        dispatch({ type: 'SEARCH_POSTS_FAILURE', payload: error.message });
+        toast.error('Failed to search posts.', { position: 'top-right', autoClose: 2000 });
+    }
 };
 
 export const fetchPosts = () => async (dispatch) => {
-  const token = localStorage.getItem('token');
-  try {
-    const headers = {
-      'Accept': 'application/json',
-      'Accept-Encoding': 'gzip, deflate, br',
-    };
-    if (token) {
-      setAuthToken(token);
-      headers['x-auth-token'] = token;
+    const token = localStorage.getItem('token');
+    try {
+        const headers = {
+            'Accept': 'application/json',
+        };
+        if (token) {
+            setAuthToken(token);
+            headers['x-auth-token'] = token;
+        }
+        const res = await fetch(API_BASE_URL, { headers });
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
+        dispatch({ type: 'FETCH_POSTS_SUCCESS', payload: data });
+    } catch (error) {
+        console.error('[fetchPosts] Error:', error.message);
+        dispatch({ type: 'FETCH_POSTS_FAILURE', payload: error.message });
+        toast.error('Failed to fetch posts.', { position: 'top-right', autoClose: 2000 });
     }
-    const res = await fetch(API_BASE_URL, { headers });
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    const data = await res.json();
-    dispatch({ type: 'FETCH_POSTS_SUCCESS', payload: data });
-  } catch (error) {
-    console.error('[fetchPosts] Error:', error.message);
-    dispatch({ type: 'FETCH_POSTS_FAILURE', payload: error.message });
-    toast.error('Failed to fetch posts.', { position: 'top-right', autoClose: 2000 });
-  }
 };
 
 export const fetchUserPosts = () => async (dispatch) => {
-  const token = localStorage.getItem('token');
-  if (!token) return;
-  dispatch({ type: 'FETCH_USER_POSTS_REQUEST' });
-  try {
-    setAuthToken(token);
-    const res = await fetch(`${API_BASE_URL}/userposts`, {
-      headers: {
-        'Accept': 'application/json',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'x-auth-token': token,
-      },
-    });
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    const data = await res.json();
-    dispatch({ type: 'FETCH_USER_POSTS_SUCCESS', payload: data });
-  } catch (error) {
-    console.error('[fetchUserPosts] Error:', error.message);
-    dispatch({ type: 'FETCH_USER_POSTS_FAILURE', payload: error.message });
-  }
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    dispatch({ type: 'FETCH_USER_POSTS_REQUEST' });
+    try {
+        setAuthToken(token);
+        const res = await fetch(`${API_BASE_URL}/userposts`, {
+            headers: {
+                'Accept': 'application/json',
+                'x-auth-token': token,
+            },
+        });
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
+        dispatch({ type: 'FETCH_USER_POSTS_SUCCESS', payload: data });
+    } catch (error) {
+        console.error('[fetchUserPosts] Error:', error.message);
+        dispatch({ type: 'FETCH_USER_POSTS_FAILURE', payload: error.message });
+    }
 };
 
 export const addPost = (
-  title,
-  content,
-  category,
-  subtitles,
-  summary,
-  titleImage,
-  superTitles,
-  titleVideo,
-  titleImageHash,
-  videoHash,
-  titleImageAspectRatio
-) => async (dispatch, getState) => {
-  const token = localStorage.getItem('token');
-  if (!token) {
-    console.error('[addPost] No auth token found');
-    return;
-  }
-  const { user } = getState().auth || JSON.parse(localStorage.getItem('user') || '{}');
-  if (!user) {
-    console.error('[addPost] User not found');
-    return;
-  }
-  const postData = {
     title,
     content,
     category,
@@ -210,102 +184,121 @@ export const addPost = (
     titleVideo,
     titleImageHash,
     videoHash,
-    author: user.name,
-    titleImageAspectRatio: titleImageAspectRatio || '16:9'
-  };
-  try {
-    setAuthToken(token);
-    const res = await fetch(API_BASE_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'x-auth-token': token,
-      },
-      body: JSON.stringify(postData),
-    });
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    const data = await res.json();
-    dispatch({ type: 'ADD_POST_SUCCESS', payload: data });
-    await fetch(`/api/users/category/${category}`, {
-      headers: {
-        'Accept': 'application/json',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'x-auth-token': token,
-      },
-    });
-    toast.success('Post added successfully!', { position: 'top-right', autoClose: 2000 });
-  } catch (error) {
-    console.error('[addPost] Error:', error.message);
-    toast.error('Failed to add post.', { position: 'top-right', autoClose: 2000 });
-  }
+    titleImageAspectRatio
+) => async (dispatch, getState) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        console.error('[addPost] No auth token found');
+        return;
+    }
+    const { user } = getState().auth || JSON.parse(localStorage.getItem('user') || '{}');
+    if (!user) {
+        console.error('[addPost] User not found');
+        return;
+    }
+    const postData = {
+        title,
+        content,
+        category,
+        subtitles,
+        summary,
+        titleImage,
+        superTitles,
+        titleVideo,
+        titleImageHash,
+        videoHash,
+        author: user.name,
+        titleImageAspectRatio: titleImageAspectRatio || '16:9'
+    };
+    try {
+        setAuthToken(token);
+        const res = await fetch(API_BASE_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'x-auth-token': token,
+            },
+            body: JSON.stringify(postData),
+        });
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
+        dispatch({ type: 'ADD_POST_SUCCESS', payload: data });
+        await fetch(`/api/users/category/${category}`, {
+            headers: {
+                'Accept': 'application/json',
+                'x-auth-token': token,
+            },
+        });
+        toast.success('Post added successfully!', { position: 'top-right', autoClose: 2000 });
+    } catch (error) {
+        console.error('[addPost] Error:', error.message);
+        toast.error('Failed to add post.', { position: 'top-right', autoClose: 2000 });
+    }
 };
 
 export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
-  if (!postId) {
-    console.error('[markPostAsCompleted] Invalid postId');
-    return;
-  }
-  const token = localStorage.getItem('token');
-  if (!token) {
-    console.error('[markPostAsCompleted] No auth token');
-    return;
-  }
-  const { completedPosts = [] } = getState().postReducer || {};
-  if (completedPosts.some((post) => post.postId === postId)) {
-    toast.info('This post is already completed.', { position: 'top-right', autoClose: 2000 });
-    return;
-  }
-  try {
-    setAuthToken(token);
-    const res = await fetch(`${API_BASE_URL}/complete/${postId}`, {
-      method: 'PUT',
-      headers: {
-        'Accept': 'application/json',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'x-auth-token': token,
-      },
-      body: JSON.stringify({}),
-    });
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    const data = await res.json();
-    dispatch({ type: 'MARK_POST_COMPLETED_SUCCESS', payload: { postId } });
-    if (data.certificateUrl) {
-      toast.success(`Category completed! Certificate: ${data.certificateUrl}`, {
-        position: 'top-right',
-        autoClose: 5000,
-        onClick: () => window.open(data.certificateUrl, '_blank'),
-      });
-      dispatch({ type: 'FETCH_CERTIFICATES' });
-    } else {
-      toast.success('Post marked as completed!', { position: 'top-right', autoClose: 2000 });
+    if (!postId) {
+        console.error('[markPostAsCompleted] Invalid postId');
+        return;
     }
-    dispatch({ type: 'FETCH_COMPLETED_POSTS' });
-  } catch (error) {
-    console.error('[markPostAsCompleted] Error:', error.message);
-    toast.error('Failed to mark post.', { position: 'top-right', autoClose: 2000 });
-  }
+    const token = localStorage.getItem('token');
+    if (!token) {
+        console.error('[markPostAsCompleted] No auth token');
+        return;
+    }
+    const { completedPosts = [] } = getState().postReducer || {};
+    if (completedPosts.some((post) => post.postId === postId)) {
+        toast.info('This post is already completed.', { position: 'top-right', autoClose: 2000 });
+        return;
+    }
+    try {
+        setAuthToken(token);
+        const res = await fetch(`${API_BASE_URL}/complete/${postId}`, {
+            method: 'PUT',
+            headers: {
+                'Accept': 'application/json',
+                'x-auth-token': token,
+            },
+            body: JSON.stringify({}),
+        });
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
+        dispatch({ type: 'MARK_POST_COMPLETED_SUCCESS', payload: { postId } });
+        if (data.certificateUrl) {
+            toast.success(`Category completed! Certificate: ${data.certificateUrl}`, {
+                position: 'top-right',
+                autoClose: 5000,
+                onClick: () => window.open(data.certificateUrl, '_blank'),
+            });
+            dispatch({ type: 'FETCH_CERTIFICATES' });
+        } else {
+            toast.success('Post marked as completed!', { position: 'top-right', autoClose: 2000 });
+        }
+        dispatch({ type: 'FETCH_COMPLETED_POSTS' });
+    } catch (error) {
+        console.error('[markPostAsCompleted] Error:', error.message);
+        toast.error('Failed to mark post.', { position: 'top-right', autoClose: 2000 });
+    }
 };
 
 export const fetchCompletedPosts = () => async (dispatch) => {
-  const token = localStorage.getItem('token');
-  if (!token) return;
-  setAuthToken(token);
-  try {
-    const res = await fetch(`${API_BASE_URL}/completed`, {
-      headers: {
-        'Accept': 'application/json',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'x-auth-token': token,
-      },
-    });
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    const data = await res.json();
-    dispatch({ type: 'FETCH_COMPLETED_POSTS_SUCCESS', payload: data });
-  } catch (error) {
-    console.error('[fetchCompletedPosts] Error:', error.message);
-    dispatch({ type: 'FETCH_COMPLETED_POSTS_FAILURE' });
-    toast.error('Failed to fetch completed posts.', { position: 'top-right', autoClose: 2000 });
-  }
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setAuthToken(token);
+    try {
+        const res = await fetch(`${API_BASE_URL}/completed`, {
+            headers: {
+                'Accept': 'application/json',
+                'x-auth-token': token,
+            },
+        });
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
+        dispatch({ type: 'FETCH_COMPLETED_POSTS_SUCCESS', payload: data });
+    } catch (error) {
+        console.error('[fetchCompletedPosts] Error:', error.message);
+        dispatch({ type: 'FETCH_COMPLETED_POSTS_FAILURE' });
+        toast.error('Failed to fetch completed posts.', { position: 'top-right', autoClose: 2000 });
+    }
 };
