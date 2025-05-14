@@ -70,7 +70,7 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
     lcpContent: '',
     contentHeight: 0,
     title: 'Loading...',
-    titleImage: 'https://via.placeholder.com/240x135?text=Loading+Image',
+    titleImage: null,
     titleImageAspectRatio: '16:9',
   };
   const [nonCriticalContent, setNonCriticalContent] = useState(null);
@@ -154,15 +154,13 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
                 {post.titleImage && (
                   <div>
                     <img
-                      src={post.titleImage ? `${post.titleImage}?w=${style.image.width}&format=avif&q=10` : 'https://via.placeholder.com/240x135?text=Image+Not+Found'}
-                      srcSet={post.titleImage ? `
-                        ${post.titleImage}?w=220&format=avif&q=10 220w,
-                        ${post.titleImage}?w=240&format=avif&q=10 240w,
-                        ${post.titleImage}?w=280&format=avif&q=10 280w,
-                        ${post.titleImage}?w=320&format=avif&q=10 320w,
-                        ${post.titleImage}?w=360&format=avif&q=10 360w
-                      ` : ''}
-                      sizes="(max-width: 360px) 220px, (max-width: 480px) 240px, (max-width: 768px) 280px, (max-width: 1200px) 320px, 360px"
+                      src={post.titleImage}
+                      srcSet={`
+                        ${post.titleImage.replace('w=240', 'w=220')} 220w,
+                        ${post.titleImage} 240w,
+                        ${post.titleImage.replace('w=240', 'w=280')} 280w
+                      `}
+                      sizes="(max-width: 360px) 220px, (max-width: 768px) 240px, 280px"
                       alt={post.title || 'Post image'}
                       width={style.image.width}
                       height={imageHeight}
