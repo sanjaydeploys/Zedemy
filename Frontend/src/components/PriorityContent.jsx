@@ -1,4 +1,4 @@
-import { memo, useEffect, useState, useRef } from 'react';
+import React, { memo, useEffect, useState, useRef } from 'react';
 import { minify } from 'csso';
 
 const criticalCss = minify(`
@@ -8,13 +8,14 @@ article,section{margin:0;padding:0;}
 header > h1{font-size:clamp(1.25rem, 3vw, 2rem);color:#011020;font-weight:800;line-height:1.2;margin:0;padding:0.5rem 0;}
 header > div:last-child{color:#666;font-size:clamp(0.7rem, 1.5vw, 0.875rem);padding:0.25rem 0;margin:0;}
 header > div:first-child{width:100%;max-width:min(100%, 360px);margin:0 auto;padding:0.5rem 0;}
-header > div:first-child > img{width:100%;height:auto;object-fit:contain;}
+header > div:first-child > img{width:100%;height:auto;object-fit:contain;aspect-ratio:16/9;}
 article{font-size:clamp(0.8125rem, 2vw, 1.125rem);line-height:clamp(1.3, 2vw, 1.6);width:100%;max-width:800px;padding:0.25rem 0;margin:0;word-break:break-word;}
 article > *:last-child{margin-bottom:0;}
 article p,article ul,article ol,article pre,article h2,article h3,article blockquote,article figure,article table{margin:0 0 0.5rem 0;padding:0;}
 article a{color:#0066cc;text-decoration:underline;}
-article img{max-width:min(100%, 360px);height:auto;object-fit:contain;}
+article img{max-width:min(100%, 360px);height:auto;object-fit:contain;aspect-ratio:16/9;}
 div[aria-hidden="true"]{background:linear-gradient(90deg,#e0e0e0 25%,#f0f0f0 50%,#e0e0e0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;}
+.non-critical-container{min-height:50px;}
 @keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
 `).css;
 
@@ -32,7 +33,6 @@ const LCPContent = ({ lcpContent, preRenderedContent }) => {
 
   return (
     <>
-      {lcpImage && <link rel="preload" href={`${lcpImage}?w=240&format=avif&q=10`} as="image" fetchpriority="high" />}
       {effectiveLcpContent?.startsWith('<p') ? (
         <div dangerouslySetInnerHTML={{ __html: effectiveLcpContent }} />
       ) : effectiveLcpContent?.startsWith('<img') ? (
@@ -44,7 +44,7 @@ const LCPContent = ({ lcpContent, preRenderedContent }) => {
           loading="eager"
           fetchpriority="high"
           decoding="sync"
-          style={{ width: '100%', height: 'auto', objectFit: 'contain' }}
+          style={{ width: '100%', height: 'auto', objectFit: 'contain', aspectRatio: '16/9' }}
           onError={(e) => console.error('LCP image failed:', e.target.src)}
         />
       ) : (
@@ -76,7 +76,6 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
     titleImageAspectRatio: '16:9',
   };
   const [nonCriticalContent, setNonCriticalContent] = useState(null);
-  const [imageSrc, setImageSrc] = useState(post.titleImage);
   const isLoading = !post || (!post.title && !post.lcpContent);
   const viewport = post.contentStyles?.viewport || 'mobile';
   const style = post.contentStyles?.[viewport] || {
@@ -107,11 +106,11 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
     const renderNonCritical = () => {
       try {
         const content = post.lcpContent ? post.preRenderedContent.replace(post.lcpContent, '') : post.preRenderedContent;
-        setNonCriticalContent(<div dangerouslySetInnerHTML={{ __html: content }} style={{ fetchPriority: 'low' }} />);
+        setNonCriticalContent(<div className="non-critical-container" dangerouslySetInnerHTML={{ __html: content }} style={{ fetchPriority: 'low' }} />);
         console.log('[PriorityContent] Non-critical content rendered');
       } catch (error) {
         console.error('[PriorityContent] Non-critical render failed:', error);
-        setNonCriticalContent(<div aria-hidden="true" style={{ height: '50px' }} />);
+        setNonCriticalContent(<div className="non-critical-container" aria-hidden="true" style={{ height: '50px' }} />);
       }
     };
 
@@ -122,12 +121,6 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
     }
   }, [post.preRenderedContent, post.lcpContent]);
 
-  useEffect(() => {
-    if (post.titleImage && post.titleImage !== imageSrc) {
-      setImageSrc(post.titleImage);
-    }
-  }, [post.titleImage]);
-
   const aspectRatio = post.titleImageAspectRatio || '16:9';
   const [aspectWidth, aspectHeight] = aspectRatio.split(':').map(Number);
   const imageHeight = Math.round((style.image.width / aspectWidth) * aspectHeight);
@@ -136,13 +129,6 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
     return (
       <>
         <style>{criticalCss}</style>
-        <link
-          rel="preload"
-          href={`${imageSrc}?w=${style.image.width}&format=avif&q=10`}
-          as="image"
-          fetchpriority="high"
-          crossorigin="anonymous"
-        />
         <article
           style={{
             width: '100%',
@@ -167,16 +153,16 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
           ) : (
             <>
               <header style={{ width: '100%', margin: 0, padding: 0 }}>
-                {imageSrc && (
+                {post.titleImage && (
                   <div>
                     <img
-                      src={imageSrc ? `${imageSrc}?w=${style.image.width}&format=avif&q=10` : 'https://via.placeholder.com/240x135?text=Image+Not+Found'}
-                      srcSet={imageSrc ? `
-                        ${imageSrc}?w=220&format=avif&q=10 220w,
-                        ${imageSrc}?w=240&format=avif&q=10 240w,
-                        ${imageSrc}?w=280&format=avif&q=10 280w,
-                        ${imageSrc}?w=320&format=avif&q=10 320w,
-                        ${imageSrc}?w=360&format=avif&q=10 360w
+                      src={post.titleImage ? `${post.titleImage}?w=${style.image.width}&format=avif&q=10` : 'https://via.placeholder.com/240x135?text=Image+Not+Found'}
+                      srcSet={post.titleImage ? `
+                        ${post.titleImage}?w=220&format=avif&q=10 220w,
+                        ${post.titleImage}?w=240&format=avif&q=10 240w,
+                        ${post.titleImage}?w=280&format=avif&q=10 280w,
+                        ${post.titleImage}?w=320&format=avif&q=10 320w,
+                        ${post.titleImage}?w=360&format=avif&q=10 360w
                       ` : ''}
                       sizes="(max-width: 360px) 220px, (max-width: 480px) 240px, (max-width: 768px) 280px, (max-width: 1200px) 320px, 360px"
                       alt={post.title || 'Post image'}
@@ -185,7 +171,7 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
                       decoding="sync"
                       loading="eager"
                       fetchpriority="high"
-                      style={{ width: '100%', height: 'auto', objectFit: 'contain' }}
+                      style={{ width: '100%', height: 'auto', objectFit: 'contain', aspectRatio: `${aspectWidth}/${aspectHeight}` }}
                       onError={(e) => console.error('Title image failed:', e.target.src)}
                     />
                   </div>
