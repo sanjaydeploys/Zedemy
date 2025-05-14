@@ -74,6 +74,7 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
         titleImageAspectRatio: '16:9',
     };
     const [nonCriticalContent, setNonCriticalContent] = useState(null);
+    const [imageSrc, setImageSrc] = useState('data:image/gif;base64,R0lGODlhAQABAIAAAMLCwgAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw=='); // 1x1 transparent GIF as LQIP
     const isLoading = !post || (!post.title && !post.lcpContent);
     const viewport = post.contentStyles?.viewport || 'mobile';
     const style = post.contentStyles?.[viewport] || {
@@ -83,6 +84,15 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
     };
     const contentHeight = post.contentHeight || 0;
     const contentRef = useRef(null);
+
+    useEffect(() => {
+        if (post.titleImage) {
+            const img = new Image();
+            img.src = post.titleImage;
+            img.onload = () => setImageSrc(post.titleImage);
+            img.onerror = () => console.error('Title image failed to load:', post.titleImage);
+        }
+    }, [post.titleImage]);
 
     useEffect(() => {
         if (contentRef.current && !isLoading) {
@@ -154,11 +164,11 @@ const PriorityContent = memo(({ post: rawPost, readTime }) => {
                                 {post.titleImage && (
                                     <div>
                                         <img
-                                            src={post.titleImage}
+                                            src={imageSrc}
                                             srcSet={`
-                                                ${post.titleImage.replace('w=240', 'w=220')} 220w,
-                                                ${post.titleImage} 240w,
-                                                ${post.titleImage.replace('w=240', 'w=280')} 280w
+                                                ${post.titleImage?.replace('w=240', 'w=220') || ''} 220w,
+                                                ${post.titleImage || ''} 240w,
+                                                ${post.titleImage?.replace('w=240', 'w=280') || ''} 280w
                                             `}
                                             sizes="(max-width: 360px) 220px, (max-width: 768px) 240px, 280px"
                                             alt={post.title || 'Post image'}
