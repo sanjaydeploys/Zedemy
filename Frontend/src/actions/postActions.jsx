@@ -3,26 +3,7 @@ import { toast } from 'react-toastify';
 
 const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
 
-// Minimal 1x1 base64 placeholder image to reduce Load Delay
-const placeholderImage = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
-
 export const fetchPostBySlug = (slug) => async (dispatch) => {
-  // Dispatch immediately to render LCP element ASAP
-  dispatch({
-    type: 'FETCH_POST_INITIAL',
-    payload: {
-      title: 'Loading...',
-      lcpContent: '<p>Loading content...</p>',
-      contentHeight: 0,
-      titleImage: placeholderImage,
-      titleImageAspectRatio: '16:9',
-      preRenderedContent: '',
-      author: 'Unknown',
-      date: new Date().toISOString(),
-      contentStyles: { viewport: 'mobile', mobile: { image: { width: 240, height: 135 } } }
-    }
-  });
-
   const viewport = window.innerWidth <= 360 ? 'small' : window.innerWidth <= 480 ? 'mobile' : window.innerWidth <= 768 ? 'tablet' : window.innerWidth <= 1200 ? 'desktop' : 'large';
   try {
     dispatch({ type: 'CLEAR_POST' });
@@ -37,6 +18,15 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
         const cache = await caches.open('api-cache');
         await cache.delete(cacheKey);
       } else {
+        if (post.titleImage) {
+          const link = document.createElement('link');
+          link.rel = 'preload';
+          link.as = 'image';
+          link.href = post.titleImage;
+          link.setAttribute('fetchpriority', 'high');
+          document.head.appendChild(link);
+        }
+
         dispatch({
           type: 'FETCH_POST_SUCCESS',
           payload: {
@@ -68,6 +58,15 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
 
     if (!data || !data.lcpContent) {
       throw new Error('Invalid API response: No data or empty lcpContent');
+    }
+
+    if (data.titleImage) {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = data.titleImage;
+      link.setAttribute('fetchpriority', 'high');
+      document.head.appendChild(link);
     }
 
     const preRenderedContent = data.preRenderedContent || '<p>No content available.</p>';
