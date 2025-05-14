@@ -15,7 +15,11 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
       lcpContent: '<p>Loading content...</p>',
       contentHeight: 0,
       titleImage: placeholderImage,
-      titleImageAspectRatio: '16:9'
+      titleImageAspectRatio: '16:9',
+      preRenderedContent: '',
+      author: 'Unknown',
+      date: new Date().toISOString(),
+      contentStyles: { viewport: 'mobile', mobile: { image: { width: 240, height: 135 } } }
     }
   });
 
@@ -40,7 +44,9 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
             preRenderedContent: post.preRenderedContent || '',
             lcpContent: post.lcpContent || '',
             contentHeight: post.contentHeight || 0,
-            titleImageAspectRatio: post.titleImageAspectRatio || '16:9'
+            titleImageAspectRatio: post.titleImageAspectRatio || '16:9',
+            author: post.author || 'Unknown',
+            date: post.date || new Date().toISOString()
           },
         });
         console.log('[fetchPostBySlug] Cached post:', { preRenderedContent: post.preRenderedContent, lcpContent: post.lcpContent });
@@ -74,7 +80,9 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
       preRenderedContent,
       lcpContent,
       contentHeight: data.contentHeight || 0,
-      titleImageAspectRatio: data.titleImageAspectRatio || '16:9'
+      titleImageAspectRatio: data.titleImageAspectRatio || '16:9',
+      author: data.author || 'Unknown',
+      date: data.date || new Date().toISOString()
     };
 
     const cache = await caches.open('api-cache');
