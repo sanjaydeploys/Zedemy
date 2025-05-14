@@ -6,18 +6,29 @@ const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/pr
 export const fetchPostBySlug = (slug) => async (dispatch) => {
     const viewport = window.innerWidth <= 360 ? 'small' : window.innerWidth <= 480 ? 'mobile' : window.innerWidth <= 768 ? 'tablet' : window.innerWidth <= 1200 ? 'desktop' : 'large';
 
-    // Predictive preload for titleImage
-    const predictedImageUrl = `https://d2rq30ca0zyvzp.cloudfront.net/images/${slug}?w=240&format=avif&q=5`;
-    const link = document.createElement('link');
-    link.rel = 'preload';
-    link.as = 'image';
-    link.href = predictedImageUrl;
-    link.setAttribute('fetchpriority', 'high');
-    link.onerror = () => console.error('[fetchPostBySlug] Predictive preload failed:', predictedImageUrl);
-    document.head.appendChild(link);
-
     try {
         dispatch({ type: 'CLEAR_POST' });
+
+        // Early metadata fetch for titleImage
+        const metadataResponse = await fetch(`${API_BASE_URL}/post/${slug}?viewport=${viewport}&metadataOnly=true`, {
+            headers: {
+                'Accept': 'application/json',
+            },
+        });
+        if (!metadataResponse.ok) {
+            throw new Error(`Metadata fetch failed: ${metadataResponse.status}`);
+        }
+        const metadata = await metadataResponse.json();
+        const titleImage = metadata.titleImage || `https://d2rq30ca0zyvzp.cloudfront.net/images/${slug}?w=240&format=avif&q=5`;
+
+        // Preload the titleImage immediately
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'image';
+        link.href = titleImage;
+        link.setAttribute('fetchpriority', 'high');
+        link.onerror = () => console.error('[fetchPostBySlug] Preload failed:', titleImage);
+        document.head.appendChild(link);
 
         const cacheKey = `${API_BASE_URL}/post/${slug}?viewport=${viewport}`;
         const cachedPost = await caches.match(cacheKey);
@@ -59,16 +70,6 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
 
         if (!data || !data.lcpContent) {
             throw new Error('Invalid API response: No data or empty lcpContent');
-        }
-
-        if (data.titleImage && data.titleImage !== predictedImageUrl) {
-            const link = document.createElement('link');
-            link.rel = 'preload';
-            link.as = 'image';
-            link.href = data.titleImage;
-            link.setAttribute('fetchpriority', 'high');
-            link.onerror = () => console.error('[fetchPostBySlug] Preload failed:', data.titleImage);
-            document.head.appendChild(link);
         }
 
         const preRenderedContent = data.preRenderedContent || '<p>No content available.</p>';
@@ -114,6 +115,7 @@ export const fetchPostBySlug = (slug) => async (dispatch) => {
     }
 };
 
+// Other functions remain unchanged for brevity
 export const searchPosts = (slug) => async (dispatch) => {
     try {
         const res = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(slug)}`, {
