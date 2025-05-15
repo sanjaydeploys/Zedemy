@@ -1,43 +1,89 @@
 import { toast } from 'react-toastify';
 
 const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
+const SSR_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
+
+export const fetchPostSSR = (slug) => async (dispatch) => {
+  try {
+    console.log('[fetchPostSSR] Fetching SSR HTML for slug:', slug);
+    const response = await fetch(`${SSR_BASE_URL}/post/${slug}?viewport=mobile`, {
+      headers: {
+        'Accept': 'text/html',
+        'Accept-Encoding': 'gzip, deflate, br'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`SSR fetch error: ${response.status}`);
+    }
+
+    const html = await response.text();
+    console.log('[fetchPostSSR] Received SSR HTML:', html.slice(0, 200));
+
+    // Parse window.__POST_DATA__ from HTML
+    const match = html.match(/window\.__POST_DATA__\s*=\s*({[\s\S]*?});/);
+    if (!match || !match[1]) {
+      console.error('[fetchPostSSR] window.__POST_DATA__ not found in SSR HTML');
+      throw new Error('Invalid SSR data');
+    }
+
+    let postData;
+    try {
+      postData = JSON.parse(match[1]);
+    } catch (err) {
+      console.error('[fetchPostSSR] Error parsing window.__POST_DATA__:', err.message);
+      throw new Error('Failed to parse SSR data');
+    }
+
+    console.log('[fetchPostSSR] Parsed postData:', JSON.stringify(postData, null, 2));
+
+    if (!postData.title || !postData.preRenderedContent || !postData.category || !postData.slug) {
+      console.error('[fetchPostSSR] Invalid SSR data:', {
+        hasTitle: !!postData.title,
+        hasPreRenderedContent: !!postData.preRenderedContent,
+        hasCategory: !!postData.category,
+        hasSlug: !!postData.slug
+      });
+      throw new Error('Missing critical SSR data');
+    }
+
+    // Set window.__POST_DATA__ for PriorityContent
+    window.__POST_DATA__ = postData;
+    console.log('[fetchPostSSR] Set window.__POST_DATA__:', JSON.stringify(postData, null, 2));
+
+    return postData; // Return for PriorityContent use
+  } catch (error) {
+    console.error('[fetchPostSSR] Error:', error.message);
+    toast.error('Failed to load SSR data.', { position: 'top-right', autoClose: 3000 });
+    throw error;
+  }
+};
 
 export const fetchPostBySlug = (slug) => async (dispatch, getState) => {
   try {
+    console.log('[fetchPostBySlug] Starting for slug:', slug);
     const currentPost = getState().postReducer.post;
-    if (currentPost?.slug === slug && currentPost.title && currentPost.preRenderedContent && currentPost.subtitles?.length) {
-      console.log('[fetchPostBySlug] Post already loaded for slug:', slug);
+    if (currentPost?.slug === slug && currentPost.subtitles && currentPost.references) {
+      console.log('[fetchPostBySlug] Using existing Redux post:', currentPost.title);
       return;
     }
 
-    const initialData = window.__POST_DATA__ && window.__POST_DATA__.slug === slug ? window.__POST_DATA__ : {};
-
-    if (initialData.preRenderedContent && initialData.title && initialData.subtitles?.length) {
-      console.log('[fetchPostBySlug] Using SSR data for slug:', slug);
-      dispatch({
-        type: 'FETCH_POST_SUCCESS',
-        payload: {
-          ...initialData,
-          slug,
-          postId: initialData.postId || '',
-          summary: initialData.summary || '',
-          category: initialData.category || '',
-          subtitles: initialData.subtitles || [],
-          superTitles: initialData.superTitles || [],
-          references: initialData.references || [],
-          content: initialData.content || initialData.preRenderedContent || '',
-          preRenderedContent: initialData.preRenderedContent || '',
-        },
-      });
-      return;
-    }
-
-    console.log('[fetchPostBySlug] Fetching from API for slug:', slug);
+    console.log('[fetchPostBySlug] Fetching non-critical data from API for slug:', slug);
     const apiRes = await fetch(`${API_BASE_URL}/${slug}?viewport=mobile`, {
-      headers: { 'Accept': 'application/json' },
+      headers: { 'Accept': 'application/json' }
     });
     if (!apiRes.ok) throw new Error(`API error: ${apiRes.status}`);
     const postData = await apiRes.json();
+    console.log('[fetchPostBySlug] API response:', JSON.stringify(postData, null, 2));
+
+    if (!postData.title || !postData.content || !postData.titleImage) {
+      console.warn('[fetchPostBySlug] Incomplete API data:', {
+        hasTitle: !!postData.title,
+        hasContent: !!postData.content,
+        hasTitleImage: !!postData.titleImage,
+        hasSubtitles: postData.subtitles?.length || 0
+      });
+    }
 
     dispatch({
       type: 'FETCH_POST_SUCCESS',
@@ -45,35 +91,36 @@ export const fetchPostBySlug = (slug) => async (dispatch, getState) => {
         ...postData,
         slug,
         postId: postData.postId || '',
-        title: postData.title || 'Untitled',
-        author: postData.author || 'Unknown',
+        title: postData.title || 'Untitled Post',
+        author: postData.author || 'Zedemy Team',
         date: postData.date || new Date().toISOString(),
         contentHeight: postData.contentHeight || 500,
         titleImageAspectRatio: postData.titleImageAspectRatio || '16:9',
-        summary: postData.summary || '',
-        category: postData.category || '',
+        titleImage: postData.titleImage || '',
+        category: postData.category || 'General',
         subtitles: postData.subtitles || [],
         superTitles: postData.superTitles || [],
         references: postData.references || [],
         content: postData.content || postData.preRenderedContent || '',
         preRenderedContent: postData.preRenderedContent || '',
-      },
+        summary: postData.summary || ''
+      }
     });
   } catch (error) {
     console.error('[fetchPostBySlug] Error:', error.message);
     dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
-    toast.error('Failed to load post.', { position: 'top-right', autoClose: 3000 });
+    toast.error('Failed to load post data.', { position: 'top-right', autoClose: 3000 });
   }
 };
 
-
 export const searchPosts = (slug) => async (dispatch) => {
   try {
+    console.log('[searchPosts] Searching for query:', slug);
     const res = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(slug)}`, {
       headers: {
         'Accept': 'application/json',
-        'Accept-Encoding': 'gzip, deflate, br',
-      },
+        'Accept-Encoding': 'gzip, deflate, br'
+      }
     });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const data = await res.json();
@@ -88,12 +135,12 @@ export const searchPosts = (slug) => async (dispatch) => {
 export const fetchPosts = () => async (dispatch) => {
   const token = localStorage.getItem('token');
   try {
+    console.log('[fetchPosts] Fetching posts');
     const headers = {
       'Accept': 'application/json',
-      'Accept-Encoding': 'gzip, deflate, br',
+      'Accept-Encoding': 'gzip, deflate, br'
     };
     if (token) {
-      setAuthToken(token);
       headers['x-auth-token'] = token;
     }
     const res = await fetch(API_BASE_URL, { headers });
@@ -112,13 +159,13 @@ export const fetchUserPosts = () => async (dispatch) => {
   if (!token) return;
   dispatch({ type: 'FETCH_USER_POSTS_REQUEST' });
   try {
-    setAuthToken(token);
+    console.log('[fetchUserPosts] Fetching user posts');
     const res = await fetch(`${API_BASE_URL}/userposts`, {
       headers: {
         'Accept': 'application/json',
         'Accept-Encoding': 'gzip, deflate, br',
-        'x-auth-token': token,
-      },
+        'x-auth-token': token
+      }
     });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const data = await res.json();
@@ -152,6 +199,7 @@ export const addPost = (
     console.error('[addPost] User not found');
     return;
   }
+  console.log('[addPost] Adding post:', title);
   const postData = {
     title,
     content,
@@ -167,16 +215,15 @@ export const addPost = (
     titleImageAspectRatio: titleImageAspectRatio || '16:9'
   };
   try {
-    setAuthToken(token);
     const res = await fetch(API_BASE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
         'Accept-Encoding': 'gzip, deflate, br',
-        'x-auth-token': token,
+        'x-auth-token': token
       },
-      body: JSON.stringify(postData),
+      body: JSON.stringify(postData)
     });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const data = await res.json();
@@ -185,8 +232,8 @@ export const addPost = (
       headers: {
         'Accept': 'application/json',
         'Accept-Encoding': 'gzip, deflate, br',
-        'x-auth-token': token,
-      },
+        'x-auth-token': token
+      }
     });
     toast.success('Post added successfully!', { position: 'top-right', autoClose: 2000 });
   } catch (error) {
@@ -210,16 +257,16 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
     toast.info('This post is already completed.', { position: 'top-right', autoClose: 2000 });
     return;
   }
+  console.log('[markPostAsCompleted] Marking post as completed:', postId);
   try {
-    setAuthToken(token);
     const res = await fetch(`${API_BASE_URL}/complete/${postId}`, {
       method: 'PUT',
       headers: {
         'Accept': 'application/json',
         'Accept-Encoding': 'gzip, deflate, br',
-        'x-auth-token': token,
+        'x-auth-token': token
       },
-      body: JSON.stringify({}),
+      body: JSON.stringify({})
     });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const data = await res.json();
@@ -228,7 +275,7 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
       toast.success(`Category completed! Certificate: ${data.certificateUrl}`, {
         position: 'top-right',
         autoClose: 5000,
-        onClick: () => window.open(data.certificateUrl, '_blank'),
+        onClick: () => window.open(data.certificateUrl, '_blank')
       });
       dispatch({ type: 'FETCH_CERTIFICATES' });
     } else {
@@ -244,14 +291,14 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
 export const fetchCompletedPosts = () => async (dispatch) => {
   const token = localStorage.getItem('token');
   if (!token) return;
-  setAuthToken(token);
+  console.log('[fetchCompletedPosts] Fetching completed posts');
   try {
     const res = await fetch(`${API_BASE_URL}/completed`, {
       headers: {
         'Accept': 'application/json',
         'Accept-Encoding': 'gzip, deflate, br',
-        'x-auth-token': token,
-      },
+        'x-auth-token': token
+      }
     });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const data = await res.json();
