@@ -1,34 +1,12 @@
-import React, { memo, Suspense, useState, useEffect } from 'react';
+import React, { memo, Suspense, useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchPostBySlug, fetchCompletedPosts, fetchPosts, fetchPostSSR } from '../actions/postActions';
+import { fetchPostSSR, fetchPostBySlug, fetchCompletedPosts, fetchPosts } from '../actions/postActions';
 import { useParams } from 'react-router-dom';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
-import PriorityContent from './PriorityContent';
 import Sidebar from './Sidebar';
 
 const PostContentNonCritical = React.lazy(() => import('./PostContentNonCritical'));
 const StructuredData = React.lazy(() => import('./StructuredData'));
-
-const criticalCss = `
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  .container { display: flex; flex-direction: column; min-height: 100vh; width: 100%; }
-  main { flex: 1; padding: 0; background: #f4f4f9; width: 100%; display: flex; flex-direction: column; min-height: 600px; contain-intrinsic-size: 100% 600px; }
-  .sidebar-wrapper { width: 250px; height: 100vh; position: sticky; top: 0; min-height: 600px; contain-intrinsic-size: 250px 600px; }
-  .error-message { color: #d32f2f; font-size: 0.875rem; text-align: center; padding: 0.5rem; background: #ffebee; border-radius: 0.25rem; margin: 0; min-height: 50px; }
-  .skeleton { background: #e0e0e0; border-radius: 0.375rem; width: 100%; animation: pulse 1.5s ease-in-out infinite; }
-  .skeleton-section { height: 600px; margin: 1rem 0; }
-  .skeleton-sidebar { height: 600px; width: 100%; }
-  @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-  @media (max-width: 767px) {
-    .sidebar-wrapper { width: min(100%, 300px); position: fixed; top: 0; left: -300px; height: calc(100vh - 0.5rem); z-index: 1000; }
-    .sidebar-wrapper.open { left: 0; }
-  }
-  @media (min-width: 768px) {
-    .container { flex-direction: row; }
-    .sidebar-wrapper { margin: 0; }
-    main { min-height: 900px; }
-  }
-`;
 
 const PostPage = memo(() => {
   const { slug } = useParams();
@@ -41,14 +19,45 @@ const PostPage = memo(() => {
   const completedPosts = useSelector((state) => state.postReducer.completedPosts || []);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('');
+  const [isSSRInjected, setIsSSRInjected] = useState(false);
+  const priorityContentRef = useRef(null);
 
-  console.log('[PostPage] postFromRedux:', JSON.stringify(postFromRedux, null, 2));
-
-  const readTime = Math.ceil((postFromRedux.content || '').split(/\s+/).filter(w => w).length / 200) || 1;
+  const readTime = window.__POST_DATA__?.readTime || postFromRedux.readTime || 1;
 
   useEffect(() => {
-    console.log('[PostPage] Dispatching fetchPostSSR for slug:', slug);
-    dispatch(fetchPostSSR(slug));
+    const injectSSRHTML = async () => {
+      // Check if SSR HTML is already present
+      const priorityContent = document.getElementById('priority-content');
+      if (priorityContent?.innerHTML.trim()) {
+        console.log('[PostPage] SSR HTML already present in #priority-content');
+        setIsSSRInjected(true);
+        return;
+      }
+
+      console.log('[PostPage] Fetching SSR HTML for slug:', slug);
+      try {
+        const { html } = await dispatch(fetchPostSSR(slug));
+        if (priorityContentRef.current) {
+          // Extract only the #priority-content portion
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          const ssrContent = doc.querySelector('#priority-content');
+          if (ssrContent) {
+            priorityContentRef.current.innerHTML = ssrContent.innerHTML;
+            setIsSSRInjected(true);
+            console.log('[PostPage] Injected SSR HTML into #priority-content');
+          } else {
+            console.error('[PostPage] #priority-content not found in SSR HTML');
+          }
+        }
+      } catch (err) {
+        console.error('[PostPage] Failed to inject SSR HTML:', err.message);
+      }
+    };
+
+    injectSSRHTML();
+
+    // Defer non-critical fetches
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
       window.requestIdleCallback(() => {
         dispatch(fetchPostBySlug(slug));
@@ -86,11 +95,12 @@ const PostPage = memo(() => {
           <meta name="robots" content="noindex" />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
           <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
-          <style>{criticalCss}</style>
         </Helmet>
         <div className="container">
           <main>
-            <div className="error-message">Failed to load the post: {error}. Please try again later.</div>
+            <div style={{ color: '#d32f2f', fontSize: '0.875rem', textAlign: 'center', padding: '0.5rem', background: '#ffebee', borderRadius: '0.25rem', margin: 0, minHeight: '50px' }}>
+              Failed to load the post: {error}. Please try again later.
+            </div>
           </main>
         </div>
       </HelmetProvider>
@@ -101,32 +111,35 @@ const PostPage = memo(() => {
     <HelmetProvider>
       <Helmet>
         <html lang="en" />
-        <title>{postFromRedux.title || 'Loading...'} | Zedemy</title>
-        <meta name="description" content={(postFromRedux.preRenderedContent || '').slice(0, 160)} />
-        <meta name="keywords" content={`${postFromRedux.category || 'General'}, Zedemy`} />
-        <meta name="author" content={postFromRedux.author || 'Zedemy Team'} />
+        <title>{postFromRedux.title || window.__POST_DATA__?.title || 'Loading...'} | Zedemy</title>
+        <meta name="description" content={(postFromRedux.preRenderedContent || window.__POST_DATA__?.preRenderedContent || '').slice(0, 160)} />
+        <meta name="keywords" content={`${postFromRedux.category || window.__POST_DATA__?.category || 'General'}, Zedemy`} />
+        <meta name="author" content={postFromRedux.author || window.__POST_DATA__?.author || 'Zedemy Team'} />
         <meta name="robots" content="index, follow, max-image-preview:large" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta property="og:type" content="article" />
-        <meta property="og:title" content={postFromRedux.title || 'Loading...'} />
-        <meta property="og:description" content={(postFromRedux.preRenderedContent || '').slice(0, 160)} />
+        <meta property="og:title" content={postFromRedux.title || window.__POST_DATA__?.title || 'Loading...'} />
+        <meta property="og:description" content={(postFromRedux.preRenderedContent || window.__POST_DATA__?.preRenderedContent || '').slice(0, 160)} />
         <meta property="og:url" content={`https://zedemy.vercel.app/post/${slug}`} />
-        {postFromRedux.titleImage && <meta property="og:image" content={`${postFromRedux.titleImage.replace('q=20', 'q=40')}`} />}
+        {postFromRedux.titleImage && <meta property="og:image" content={`${postFromRedux.titleImage.replace('q=30', 'q=50')}`} />}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={postFromRedux.title || 'Loading...'} />
-        <meta name="twitter:description" content={(postFromRedux.preRenderedContent || '').slice(0, 160)} />
-        {postFromRedux.titleImage && <meta name="twitter:image" content={`${postFromRedux.titleImage.replace('q=20', 'q=40')}`} />}
+        <meta name="twitter:title" content={postFromRedux.title || window.__POST_DATA__?.title || 'Loading...'} />
+        <meta name="twitter:description" content={(postFromRedux.preRenderedContent || window.__POST_DATA__?.preRenderedContent || '').slice(0, 160)} />
+        {postFromRedux.titleImage && <meta name="twitter:image" content={`${postFromRedux.titleImage.replace('q=30', 'q=50')}`} />}
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
         <link rel="preconnect" href="https://d2rq30ca0zyvzp.cloudfront.net" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
         {postFromRedux.titleImage && <link rel="preload" as="image" href={`${postFromRedux.titleImage}`} fetchPriority="high" media="(max-width: 767px)" />}
         {postFromRedux.titleImage && <link rel="preload" as="image" href={`${postFromRedux.titleImage.replace('w=240', 'w=280')}`} fetchPriority="high" media="(min-width: 768px)" />}
-        <style>{criticalCss}</style>
       </Helmet>
       <div className="container">
         <main role="main" aria-label="Main content">
-          <PriorityContent readTime={readTime} slug={slug} />
-          <Suspense fallback={<div className="skeleton-section skeleton" />}>
+          <div id="priority-content" ref={priorityContentRef} data-hydration="ssr" style={{ minHeight: '600px' }}>
+            {!isSSRInjected && (
+              <div style={{ background: '#e0e0e0', height: '600px', borderRadius: '0.375rem', width: '100%' }} />
+            )}
+          </div>
+          <Suspense fallback={<div style={{ height: '200px', background: '#e0e0e0', borderRadius: '0.375rem', width: '100%' }} />}>
             <PostContentNonCritical
               post={postFromRedux}
               relatedPosts={relatedPosts}
@@ -135,8 +148,8 @@ const PostPage = memo(() => {
             />
           </Suspense>
         </main>
-        <aside className={`sidebar-wrapper ${isSidebarOpen ? 'open' : ''}`}>
-          <Suspense fallback={<div className="skeleton-sidebar skeleton" />}>
+        <aside id="sidebar" className={`sidebar-wrapper ${isSidebarOpen ? 'open' : ''}`}>
+          <Suspense fallback={<div style={{ height: '600px', background: '#e0e0e0', borderRadius: '0.375rem', width: '100%' }} />}>
             <Sidebar
               post={postFromRedux}
               isSidebarOpen={isSidebarOpen}
