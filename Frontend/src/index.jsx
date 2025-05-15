@@ -3,6 +3,7 @@ import store from './store';
 import App from './App';
 import React, { lazy, Suspense } from 'react';
 import { createRoot, hydrateRoot } from 'react-dom/client';
+import PostPage from './components/PostPage';
 
 const ToastContainer = lazy(() => import('react-toastify').then(module => ({
   default: module.ToastContainer,
@@ -13,9 +14,23 @@ import 'react-toastify/dist/ReactToastify.css';
 const rootElement = document.getElementById('root');
 const sidebarElement = document.getElementById('sidebar');
 const nonCriticalElement = document.getElementById('non-critical-content');
+const priorityContent = document.getElementById('priority-content');
 
 if (rootElement.hasAttribute('data-hydration')) {
-  // Progressive hydration for non-critical components
+  // Hydrate priority-content
+  if (priorityContent?.innerHTML.trim() && priorityContent.querySelector('h1, img')) {
+    console.log('[index] Hydrating #priority-content with SSR HTML');
+    hydrateRoot(
+      priorityContent,
+      <Provider store={store}>
+        <PostPage hydrateTarget="priority-content" />
+      </Provider>
+    );
+  } else {
+    console.warn('[index] #priority-content is empty or invalid; relying on client-side SSR fetch');
+  }
+
+  // Hydrate non-critical components
   if (sidebarElement) {
     hydrateRoot(
       sidebarElement,
@@ -36,30 +51,42 @@ if (rootElement.hasAttribute('data-hydration')) {
       </Provider>
     );
   }
-  // Validate priority-content
-  const priorityContent = document.getElementById('priority-content');
-  if (!priorityContent?.innerHTML.trim() || !priorityContent.querySelector('h1, img')) {
-    console.warn('[index] #priority-content is empty or invalid; relying on client-side SSR fetch');
-  } else {
-    console.log('[index] #priority-content contains valid SSR HTML');
-  }
-  // Load main script using manifest
-  fetch('/manifest.json')
-    .then(res => res.json())
-    .then(manifest => {
-      const postChunk = manifest['src/components/PostPage.jsx']?.file;
-      if (postChunk) {
-        const script = document.createElement('script');
-        script.src = `/${postChunk}`;
-        script.async = true;
-        script.defer = true;
-        script.onerror = () => console.error(`[index] Failed to load post chunk: ${postChunk}`);
-        document.body.appendChild(script);
-      } else {
-        console.error('[index] PostPage chunk not found in manifest');
-      }
-    })
-    .catch(err => console.error('[index] Failed to load manifest:', err.message));
+
+  // Load PostPage chunk with retry
+  const loadChunk = (attempt = 1, maxAttempts = 3) => {
+    fetch('/manifest.json')
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then(manifest => {
+        const postChunk = manifest['src/components/PostPage.jsx']?.file;
+        if (postChunk) {
+          const script = document.createElement('script');
+          script.src = `/${postChunk}`;
+          script.async = true;
+          script.defer = true;
+          script.onerror = () => {
+            console.error(`[index] Failed to load post chunk: ${postChunk}, attempt ${attempt}`);
+            if (attempt < maxAttempts) {
+              setTimeout(() => loadChunk(attempt + 1, maxAttempts), 1000);
+            }
+          };
+          script.onload = () => console.log('[index] PostPage chunk loaded:', postChunk);
+          document.body.appendChild(script);
+        } else {
+          console.error('[index] PostPage chunk not found in manifest');
+        }
+      })
+      .catch(err => {
+        console.error('[index] Failed to load manifest:', err.message);
+        if (attempt < maxAttempts) {
+          setTimeout(() => loadChunk(attempt + 1, maxAttempts), 1000);
+        }
+      });
+  };
+
+  loadChunk();
 } else {
   createRoot(rootElement).render(
     <React.StrictMode>
