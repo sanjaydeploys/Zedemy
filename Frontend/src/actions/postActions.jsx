@@ -1,22 +1,11 @@
 import { toast } from 'react-toastify';
 
 const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
-const SSR_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
+const SSR_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod';
 
 export const fetchPostSSR = (slug) => async (dispatch) => {
   try {
     console.log('[fetchPostSSR] Fetching SSR HTML for slug:', slug);
-    const cacheKey = `ssr:${slug}`;
-    const cachedData = localStorage.getItem(cacheKey);
-    if (cachedData) {
-      console.log('[fetchPostSSR] Using cached SSR data');
-      const postData = JSON.parse(cachedData);
-      if (postData.title && postData.preRenderedContent && postData.category && postData.slug) {
-        window.__POST_DATA__ = postData;
-        return postData;
-      }
-    }
-
     const response = await fetch(`${SSR_BASE_URL}/post/${slug}?viewport=mobile`, {
       headers: {
         'Accept': 'text/html',
@@ -31,39 +20,35 @@ export const fetchPostSSR = (slug) => async (dispatch) => {
     const html = await response.text();
     console.log('[fetchPostSSR] Received SSR HTML:', html.slice(0, 200));
 
+    // Extract window.__POST_DATA__ for Redux and metadata
     const match = html.match(/window\.__POST_DATA__\s*=\s*({[\s\S]*?});/);
-    if (!match || !match[1]) {
-      console.error('[fetchPostSSR] window.__POST_DATA__ not found in SSR HTML');
-      throw new Error('Invalid SSR data');
+    let postData = {};
+    if (match && match[1]) {
+      try {
+        postData = JSON.parse(match[1]);
+      } catch (err) {
+        console.error('[fetchPostSSR] Error parsing window.__POST_DATA__:', err.message);
+      }
     }
-
-    let postData;
-    try {
-      postData = JSON.parse(match[1]);
-    } catch (err) {
-      console.error('[fetchPostSSR] Error parsing window.__POST_DATA__:', err.message);
-      throw new Error('Failed to parse SSR data');
-    }
-
-    console.log('[fetchPostSSR] Parsed postData:', JSON.stringify(postData, null, 2));
 
     if (!postData.title || !postData.preRenderedContent || !postData.category || !postData.slug) {
-      console.error('[fetchPostSSR] Invalid SSR data:', {
+      console.warn('[fetchPostSSR] Incomplete SSR data:', {
         hasTitle: !!postData.title,
         hasPreRenderedContent: !!postData.preRenderedContent,
         hasCategory: !!postData.category,
         hasSlug: !!postData.slug
       });
-      throw new Error('Missing critical SSR data');
     }
 
-    window.__POST_DATA__ = postData;
-    localStorage.setItem(cacheKey, JSON.stringify(postData));
-    console.log('[fetchPostSSR] Set window.__POST_DATA__ and cached:', JSON.stringify(postData, null, 2));
+    dispatch({
+      type: 'FETCH_POST_SUCCESS',
+      payload: postData
+    });
 
-    return postData;
+    return { html, postData };
   } catch (error) {
     console.error('[fetchPostSSR] Error:', error.message);
+    dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
     toast.error('Failed to load SSR data.', { position: 'top-right', autoClose: 3000 });
     throw error;
   }
