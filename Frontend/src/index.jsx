@@ -3,7 +3,6 @@ import store from './store';
 import App from './App';
 import React, { lazy, Suspense } from 'react';
 import { createRoot, hydrateRoot } from 'react-dom/client';
-import PostPage from './components/PostPage';
 
 const ToastContainer = lazy(() => import('react-toastify').then(module => ({
   default: module.ToastContainer,
@@ -17,15 +16,9 @@ const nonCriticalElement = document.getElementById('non-critical-content');
 const priorityContent = document.getElementById('priority-content');
 
 if (rootElement.hasAttribute('data-hydration')) {
-  // Hydrate priority-content
+  // Validate SSR HTML
   if (priorityContent?.innerHTML.trim() && priorityContent.querySelector('h1, img')) {
-    console.log('[index] Hydrating #priority-content with SSR HTML');
-    hydrateRoot(
-      priorityContent,
-      <Provider store={store}>
-        <PostPage hydrateTarget="priority-content" />
-      </Provider>
-    );
+    console.log('[index] Valid SSR HTML found in #priority-content');
   } else {
     console.warn('[index] #priority-content is empty or invalid; relying on client-side SSR fetch');
   }
