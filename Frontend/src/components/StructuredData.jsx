@@ -2,10 +2,10 @@ import React, { useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { truncateText } from './utils';
 
-const StructuredData = ({ post, readTime, slug }) => {
+const StructuredData = ({ post = {}, readTime = 0, slug = '' }) => {
   const structuredData = useMemo(() => {
-    const pageTitle = `${post.title} | Zedemy, India`;
-    const pageDescription = truncateText(post.summary || post.content, 160) || `Learn ${post.title?.toLowerCase() || ''} with Zedemy's tutorials.`;
+    const pageTitle = `${post.title || 'Untitled'} | Zedemy, India`;
+    const pageDescription = truncateText(post.summary || post.content || '', 160) || `Learn ${post.title?.toLowerCase() || 'tech tutorials'} with Zedemy's tutorials.`;
     const pageKeywords = post.keywords
       ? `${post.keywords}, Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`
       : `Zedemy, ${post.category || ''}, ${post.title?.toLowerCase() || ''}`;
@@ -13,11 +13,12 @@ const StructuredData = ({ post, readTime, slug }) => {
     const ogImage = post.titleImage
       ? `${post.titleImage}?w=1200&format=avif&q=1`
       : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
+
     return [
       {
         '@context': 'https://schema.org',
         '@type': 'BlogPosting',
-        headline: post.title || '',
+        headline: post.title || 'Untitled',
         description: pageDescription,
         keywords: pageKeywords.split(', ').filter(Boolean),
         articleSection: post.category || 'Tech Tutorials',
@@ -33,7 +34,7 @@ const StructuredData = ({ post, readTime, slug }) => {
         url: canonicalUrl,
         mainEntityOfPage: { '@type': 'WebPage', '@id': canonicalUrl },
         timeRequired: `PT${readTime}M`,
-        wordCount: 0,
+        wordCount: (post.content || '').split(/\s+/).filter(w => w).length,
         inLanguage: 'en',
         sameAs: ['https://x.com/zedemy', 'https://linkedin.com/company/zedemy'],
       },
@@ -56,7 +57,7 @@ const StructuredData = ({ post, readTime, slug }) => {
           {
             '@type': 'ListItem',
             position: 3,
-            name: post.title || '',
+            name: post.title || 'Untitled',
             item: canonicalUrl,
           },
         ],
