@@ -1,7 +1,7 @@
 import React, { memo, Suspense, useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPostSSR, fetchPostBySlug, fetchCompletedPosts, fetchPosts } from '../actions/postActions';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import Sidebar from './Sidebar';
 
@@ -10,6 +10,7 @@ const StructuredData = React.lazy(() => import('./StructuredData'));
 
 const PostPage = memo(() => {
   const { slug } = useParams();
+  const location = useLocation();
   const dispatch = useDispatch();
   const postFromRedux = useSelector((state) => state.postReducer.post || {});
   const error = useSelector((state) => state.postReducer.error);
@@ -26,10 +27,10 @@ const PostPage = memo(() => {
 
   useEffect(() => {
     const injectSSRHTML = async () => {
-      // Check if SSR HTML is already present
       const priorityContent = document.getElementById('priority-content');
-      if (priorityContent?.innerHTML.trim()) {
-        console.log('[PostPage] SSR HTML already present in #priority-content');
+      // Check if SSR HTML is valid and present
+      if (priorityContent?.innerHTML.trim() && priorityContent.querySelector('h1, img')) {
+        console.log('[PostPage] Valid SSR HTML found in #priority-content');
         setIsSSRInjected(true);
         return;
       }
@@ -38,7 +39,6 @@ const PostPage = memo(() => {
       try {
         const { html } = await dispatch(fetchPostSSR(slug));
         if (priorityContentRef.current) {
-          // Extract only the #priority-content portion
           const parser = new DOMParser();
           const doc = parser.parseFromString(html, 'text/html');
           const ssrContent = doc.querySelector('#priority-content');
@@ -57,21 +57,19 @@ const PostPage = memo(() => {
 
     injectSSRHTML();
 
-    // Defer non-critical fetches
+    // Ensure client-side data is fetched for lazy-loaded components
+    const fetchData = () => {
+      dispatch(fetchPostBySlug(slug));
+      dispatch(fetchPosts());
+      dispatch(fetchCompletedPosts());
+    };
+
     if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(() => {
-        dispatch(fetchPostBySlug(slug));
-        dispatch(fetchPosts());
-        dispatch(fetchCompletedPosts());
-      }, { timeout: 5000 });
+      window.requestIdleCallback(fetchData, { timeout: 2000 });
     } else {
-      setTimeout(() => {
-        dispatch(fetchPostBySlug(slug));
-        dispatch(fetchPosts());
-        dispatch(fetchCompletedPosts());
-      }, 1000);
+      setTimeout(fetchData, 500);
     }
-  }, [dispatch, slug]);
+  }, [dispatch, slug, location.pathname]);
 
   const scrollToSection = (sectionId) => {
     const element = document.getElementById(sectionId);
