@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { Provider, useDispatch, useSelector } from 'react-redux';
 import store from './store';
 import Layout from './components/Layout';
-import PostPage from './components/PostPage';
+import PostPage  from './components/PostPage';
 import SignInSignUp from './components/SignInSignUp';
 import Policy from './components/Policy';
 import { loadUser } from './actions/authActions';
@@ -62,7 +62,6 @@ const App = () => {
     }
   }, [dispatch, isPostPage]);
 
-  // Conditionally apply Redux Provider only for non-post pages
   const appContent = (
     <Router>
       <Layout>
@@ -93,7 +92,7 @@ const App = () => {
     </Router>
   );
 
-  return isPostPage ? appContent : <Provider store={store}>{appContent}</Provider>;
+  return <Provider store={store}>{appContent}</Provider>;
 };
 
 export default App;
