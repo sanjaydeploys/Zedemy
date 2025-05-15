@@ -6,6 +6,17 @@ const SSR_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/pr
 export const fetchPostSSR = (slug) => async (dispatch) => {
   try {
     console.log('[fetchPostSSR] Fetching SSR HTML for slug:', slug);
+    const cacheKey = `ssr:${slug}`;
+    const cachedData = localStorage.getItem(cacheKey);
+    if (cachedData) {
+      console.log('[fetchPostSSR] Using cached SSR data');
+      const postData = JSON.parse(cachedData);
+      if (postData.title && postData.preRenderedContent && postData.category && postData.slug) {
+        window.__POST_DATA__ = postData;
+        return postData;
+      }
+    }
+
     const response = await fetch(`${SSR_BASE_URL}/post/${slug}?viewport=mobile`, {
       headers: {
         'Accept': 'text/html',
@@ -20,7 +31,6 @@ export const fetchPostSSR = (slug) => async (dispatch) => {
     const html = await response.text();
     console.log('[fetchPostSSR] Received SSR HTML:', html.slice(0, 200));
 
-    // Parse window.__POST_DATA__ from HTML
     const match = html.match(/window\.__POST_DATA__\s*=\s*({[\s\S]*?});/);
     if (!match || !match[1]) {
       console.error('[fetchPostSSR] window.__POST_DATA__ not found in SSR HTML');
@@ -47,11 +57,11 @@ export const fetchPostSSR = (slug) => async (dispatch) => {
       throw new Error('Missing critical SSR data');
     }
 
-    // Set window.__POST_DATA__ for PriorityContent
     window.__POST_DATA__ = postData;
-    console.log('[fetchPostSSR] Set window.__POST_DATA__:', JSON.stringify(postData, null, 2));
+    localStorage.setItem(cacheKey, JSON.stringify(postData));
+    console.log('[fetchPostSSR] Set window.__POST_DATA__ and cached:', JSON.stringify(postData, null, 2));
 
-    return postData; // Return for PriorityContent use
+    return postData;
   } catch (error) {
     console.error('[fetchPostSSR] Error:', error.message);
     toast.error('Failed to load SSR data.', { position: 'top-right', autoClose: 3000 });
