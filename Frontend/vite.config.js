@@ -147,21 +147,17 @@ export default defineConfig({
   server: {
     fs: { allow: ['.'] },
     hmr: { overlay: true },
-    preload: [
-      path.resolve(__dirname, 'src/components/PriorityContent.jsx'),
-      path.resolve(__dirname, 'src/components/PostPage.jsx'),
-      path.resolve(__dirname, 'src/components/Layout.jsx'),
-    ],
+    port: 5173,
     proxy: {
       '/api': {
         target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+        rewrite: (path) => path.replace(/^\/api/, '/api/posts'),
       },
       '/post': {
         target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/post/, '/post'),
+        rewrite: (path) => path, // No rewrite needed, keep /post/:slug
       },
     },
   },
