@@ -36,10 +36,12 @@ if (rootElement.hasAttribute('data-hydration')) {
       </Provider>
     );
   }
-  // Log if priority-content is empty
+  // Validate priority-content
   const priorityContent = document.getElementById('priority-content');
-  if (!priorityContent?.innerHTML.trim()) {
-    console.warn('[index] #priority-content is empty; relying on client-side SSR fetch');
+  if (!priorityContent?.innerHTML.trim() || !priorityContent.querySelector('h1, img')) {
+    console.warn('[index] #priority-content is empty or invalid; relying on client-side SSR fetch');
+  } else {
+    console.log('[index] #priority-content contains valid SSR HTML');
   }
 } else {
   createRoot(rootElement).render(
