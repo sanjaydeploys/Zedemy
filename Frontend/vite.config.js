@@ -153,7 +153,16 @@ export default defineConfig({
       path.resolve(__dirname, 'src/components/Layout.jsx'),
     ],
     proxy: {
-      '/api': 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod'
-    }
+      '/api': {
+        target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
+      },
+      '/post': {
+        target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/post/, '/post'),
+      },
+    },
   },
 });
