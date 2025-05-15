@@ -117,6 +117,21 @@ export default defineConfig({
             path.resolve(__dirname, 'src/components/PriorityContent.jsx'),
           ],
           layout: [path.resolve(__dirname, 'src/components/Layout.jsx')],
+          home: [path.resolve(__dirname, 'src/pages/Home.jsx')],
+          register: [path.resolve(__dirname, 'src/pages/Register.jsx')],
+          dashboard: [path.resolve(__dirname, 'src/pages/Dashboard.jsx')],
+          adminDashboard: [path.resolve(__dirname, 'src/components/AdminDashboard.jsx')],
+          postList: [path.resolve(__dirname, 'src/components/PostList.jsx')],
+          categoryPage: [path.resolve(__dirname, 'src/components/CategoryPage.jsx')],
+          forgotPassword: [path.resolve(__dirname, 'src/pages/ForgotPassword.jsx')],
+          resetPassword: [path.resolve(__dirname, 'src/pages/ResetPassword.jsx')],
+          verifyCertificate: [path.resolve(__dirname, 'src/components/VerifyCertificate.jsx')],
+          category: [path.resolve(__dirname, 'src/pages/Category.jsx')],
+          footer: [path.resolve(__dirname, 'src/components/Footer.jsx')],
+          notification: [path.resolve(__dirname, 'src/components/Notification.jsx')],
+          codeEditor: [path.resolve(__dirname, 'src/components/CodeEditor.jsx')],
+          faqPage: [path.resolve(__dirname, 'src/components/FAQPage.jsx')],
+          addPostForm: [path.resolve(__dirname, 'src/components/AddPostForm.jsx')],
         },
         chunkFileNames: (chunkInfo) => {
           if (['post', 'layout'].includes(chunkInfo.name)) {
@@ -124,6 +139,13 @@ export default defineConfig({
           }
           if (['react', 'redux', 'router', 'uiLibs', 'utilities', 'syntax_highlighter', 'codemirror', 'parse5', 'lodash', 'toast'].includes(chunkInfo.name)) {
             return 'assets/[name]-[hash].async.js';
+          }
+          if ([
+            'home', 'register', 'dashboard', 'adminDashboard', 'postList', 'categoryPage',
+            'forgotPassword', 'resetPassword', 'verifyCertificate', 'category', 'footer',
+            'notification', 'codeEditor', 'faqPage', 'addPostForm'
+          ].includes(chunkInfo.name)) {
+            return 'assets/[name]-[hash].js';
           }
           return 'assets/[name]-[hash].js';
         },
@@ -141,6 +163,9 @@ export default defineConfig({
       path.resolve(__dirname, 'src/components/PostPage.jsx'),
       path.resolve(__dirname, 'src/components/PriorityContent.jsx'),
       path.resolve(__dirname, 'src/components/Layout.jsx'),
+      path.resolve(__dirname, 'src/pages/Home.jsx'),
+      path.resolve(__dirname, 'src/pages/Register.jsx'),
+      path.resolve(__dirname, 'src/pages/Dashboard.jsx'),
     ],
     exclude: ['react-toastify', 'redux', 'react-redux', 'axios', 'highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'react-syntax-highlighter'],
     force: true,
@@ -153,10 +178,11 @@ export default defineConfig({
       '/api': {
         target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
         changeOrigin: true,
+        rewrite彼此: true,
         rewrite: (path) => path.replace(/^\/api/, '/api/posts'),
       },
       '/post': {
-        target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts',
+        target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
         changeOrigin: true,
         rewrite: (path) => path,
       },
