@@ -43,6 +43,23 @@ if (rootElement.hasAttribute('data-hydration')) {
   } else {
     console.log('[index] #priority-content contains valid SSR HTML');
   }
+  // Load main script using manifest
+  fetch('/manifest.json')
+    .then(res => res.json())
+    .then(manifest => {
+      const postChunk = manifest['src/components/PostPage.jsx']?.file;
+      if (postChunk) {
+        const script = document.createElement('script');
+        script.src = `/${postChunk}`;
+        script.async = true;
+        script.defer = true;
+        script.onerror = () => console.error(`[index] Failed to load post chunk: ${postChunk}`);
+        document.body.appendChild(script);
+      } else {
+        console.error('[index] PostPage chunk not found in manifest');
+      }
+    })
+    .catch(err => console.error('[index] Failed to load manifest:', err.message));
 } else {
   createRoot(rootElement).render(
     <React.StrictMode>
