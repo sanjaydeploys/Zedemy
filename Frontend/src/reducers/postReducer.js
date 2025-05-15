@@ -15,8 +15,7 @@ import {
     MARK_POST_COMPLETED_SUCCESS,
     FETCH_COMPLETED_POSTS_SUCCESS,
     FETCH_COMPLETED_POSTS_FAILURE,
-    CLEAR_POST,
-    PARSE_SSR_DATA // Added for SSR handling
+    CLEAR_POST
 } from '../actions/types';
 
 const initialState = {
@@ -25,25 +24,16 @@ const initialState = {
     completedPosts: [],
     searchResults: [],
     post: null,
-    ssrData: {}, // Added for SSR data
     loading: false,
     error: null
 };
 
 const postReducer = (state = initialState, action) => {
     switch (action.type) {
-        case PARSE_SSR_DATA:
-            console.log('[postReducer] PARSE_SSR_DATA:', action.payload);
-            return {
-                ...state,
-                ssrData: action.payload,
-                error: null
-            };
         case CLEAR_POST:
             return {
                 ...state,
                 post: null,
-                ssrData: {}, // Clear ssrData when clearing post
                 error: null
             };
         case FETCH_POSTS_SUCCESS:
