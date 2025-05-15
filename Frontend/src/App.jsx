@@ -3,10 +3,11 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { Provider, useDispatch, useSelector } from 'react-redux';
 import store from './store';
 import Layout from './components/Layout';
-import PostPage  from './components/PostPage';
+import PostPage from './components/PostPage';
 import SignInSignUp from './components/SignInSignUp';
 import Policy from './components/Policy';
 import { loadUser } from './actions/authActions';
+import { fetchPostSSR } from './actions/postActions';
 
 // Lazy load non-critical components
 const Home = lazy(() => import('./pages/Home'));
@@ -54,8 +55,14 @@ const App = ({ hydrateTarget }) => {
   }
   if (hydrateTarget === 'non-critical') {
     return <PostContentNonCritical />;
-  }  const dispatch = useDispatch();
+  }
+  if (hydrateTarget === 'priority-content') {
+    return <PostPage />;
+  }
+
+  const dispatch = useDispatch();
   const isPostPage = window.location.pathname.startsWith('/post/');
+  const location = useLocation();
 
   useEffect(() => {
     // Defer loadUser for non-post pages
@@ -65,7 +72,19 @@ const App = ({ hydrateTarget }) => {
         dispatch(loadUser());
       });
     }
-  }, [dispatch, isPostPage]);
+
+    // Fetch SSR HTML for post pages during navigation
+    if (isPostPage) {
+      const slug = location.pathname.split('/post/')[1];
+      if (slug) {
+        const priorityContent = document.getElementById('priority-content');
+        if (!priorityContent?.innerHTML.trim() || !priorityContent.querySelector('h1, img')) {
+          console.log('[App] Fetching SSR HTML for navigation to slug:', slug);
+          dispatch(fetchPostSSR(slug));
+        }
+      }
+    }
+  }, [dispatch, isPostPage, location.pathname]);
 
   const appContent = (
     <Router>
