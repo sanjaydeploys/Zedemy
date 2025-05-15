@@ -28,13 +28,14 @@ const PostPage = memo(() => {
   useEffect(() => {
     const injectSSRHTML = async () => {
       const priorityContent = document.getElementById('priority-content');
-      // Check if SSR HTML is valid and present
+      // Preserve server-rendered SSR HTML
       if (priorityContent?.innerHTML.trim() && priorityContent.querySelector('h1, img')) {
         console.log('[PostPage] Valid SSR HTML found in #priority-content');
         setIsSSRInjected(true);
         return;
       }
 
+      // Fetch SSR HTML for navigation
       console.log('[PostPage] Fetching SSR HTML for slug:', slug);
       try {
         const { html } = await dispatch(fetchPostSSR(slug));
@@ -57,18 +58,10 @@ const PostPage = memo(() => {
 
     injectSSRHTML();
 
-    // Ensure client-side data is fetched for lazy-loaded components
-    const fetchData = () => {
-      dispatch(fetchPostBySlug(slug));
-      dispatch(fetchPosts());
-      dispatch(fetchCompletedPosts());
-    };
-
-    if (typeof window !== 'undefined' && window.requestIdleCallback) {
-      window.requestIdleCallback(fetchData, { timeout: 2000 });
-    } else {
-      setTimeout(fetchData, 500);
-    }
+    // Fetch client-side data immediately
+    dispatch(fetchPostBySlug(slug));
+    dispatch(fetchPosts());
+    dispatch(fetchCompletedPosts());
   }, [dispatch, slug, location.pathname]);
 
   const scrollToSection = (sectionId) => {
@@ -132,11 +125,7 @@ const PostPage = memo(() => {
       </Helmet>
       <div className="container">
         <main role="main" aria-label="Main content">
-          <div id="priority-content" ref={priorityContentRef} data-hydration="ssr" style={{ minHeight: '600px' }}>
-            {!isSSRInjected && (
-              <div style={{ background: '#e0e0e0', height: '600px', borderRadius: '0.375rem', width: '100%' }} />
-            )}
-          </div>
+          <div id="priority-content" ref={priorityContentRef} data-hydration="ssr" style={{ minHeight: '600px' }} />
           <Suspense fallback={<div style={{ height: '200px', background: '#e0e0e0', borderRadius: '0.375rem', width: '100%' }} />}>
             <PostContentNonCritical
               post={postFromRedux}
