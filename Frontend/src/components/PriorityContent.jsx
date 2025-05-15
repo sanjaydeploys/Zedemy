@@ -3,6 +3,20 @@ import { useDispatch } from 'react-redux';
 import { fetchPostSSR } from '../actions/postActions';
 import { parseLinks } from './utils';
 
+const criticalCss = `
+  article, section { margin: 0; padding: 0; }
+  header > h1 { font-size: clamp(1.25rem, 3vw, 2rem); color: #011020; font-weight: 800; line-height: 1.2; margin: 0; padding: 0.5rem 0; }
+  header > div:last-child { color: #666; font-size: clamp(0.7rem, 1.5vw, 0.875rem); padding: 0.25rem 0; margin: 0; }
+  header > div:first-child { width: 100%; max-width: min(100%, 360px); margin: 0 auto; padding: 0.5rem 0; }
+  header > div:first-child > img { width: 100%; height: auto; object-fit: contain; }
+  article { font-size: clamp(0.8125rem, 2vw, 1.125rem); line-height: clamp(1.3, 2vw, 1.6); width: 100%; max-width: 800px; padding: 0.25rem 0; margin: 0; word-break: break-word; }
+  article > *:last-child { margin-bottom: 0; }
+  article p, article ul, article ol, article pre, article h2, article h3, article blockquote, article figure, article table { margin: 0 0 0.5rem 0; padding: 0; }
+  article a { color: #0066cc; text-decoration: underline; }
+  article img { max-width: min(100%, 360px); height: auto; object-fit: contain; }
+  .non-critical-container { height: 100%; min-height: 50px; }
+`;
+
 const PriorityContent = memo(({ readTime, slug }) => {
   const [post, setPost] = useState(null);
   const [error, setError] = useState(null);
@@ -66,7 +80,7 @@ const PriorityContent = memo(({ readTime, slug }) => {
   if (!post) {
     console.warn('[PriorityContent] Rendering skeleton: waiting for SSR data');
     return (
-      <div id="priority-content-ssr" data-hydration="ssr" className="skeleton-section skeleton" style={{ minHeight: '600px' }} />
+      <div id="priority-content-ssr" data-hydration="ssr" style={{ minHeight: '600px', background: '#e0e0e0' }} />
     );
   }
 
@@ -95,47 +109,51 @@ const PriorityContent = memo(({ readTime, slug }) => {
   });
 
   return (
-    <article id="priority-content" data-hydration="ssr" style={{ width: '100%', maxWidth: '800px', display: 'flex', flexDirection: 'column', margin: '0 auto', padding: 0 }}>
-      <header style={{ width: '100%', margin: 0, padding: 0 }}>
-        {titleImage && (
+    <>
+      <style>{criticalCss}</style>
+      <article id="priority-content" data-hydration="ssr" style={{ width: '100%', maxWidth: '800px', display: 'flex', flexDirection: 'column', margin: '0 auto', padding: 0 }}>
+        <header style={{ width: '100%', margin: 0, padding: 0 }}>
+          {titleImage && (
+            <div style={{ width: '100%', maxWidth: '360px', height: `${imageHeight}px` }}>
+              <img
+                src={titleImage}
+                srcSet={`
+                  ${titleImage.replace('q=20', 'q=20&w=220')} 220w,
+                  ${titleImage} 240w,
+                  ${titleImage.replace('q=20', 'q=20&w=280')} 280w
+                `}
+                sizes="(max-width: 360px) 220px, (max-width: 768px) 240px, 280px"
+                alt={title}
+                width="240"
+                height={imageHeight}
+                decoding="sync"
+                loading="eager"
+                fetchPriority="high"
+                style={{ width: '100%', height: `${imageHeight}px`, objectFit: 'contain', aspectRatio: `${aspectWidth}/${aspectHeight}` }}
+              />
+            </div>
+          )}
+          <h1 style={{ willChange: 'contents', fetchPriority: 'high' }}>{title}</h1>
           <div>
-            <img
-              src={titleImage}
-              srcSet={`
-                ${titleImage.replace('w=240', 'w=220')} 220w,
-                ${titleImage} 240w,
-                ${titleImage.replace('w=240', 'w=280')} 280w
-              `}
-              sizes="(max-width: 360px) 220px, (max-width: 768px) 240px, 280px"
-              alt={title}
-              width="240"
-              height={imageHeight}
-              decoding="sync"
-              fetchPriority="high"
-              style={{ width: '100%', height: 'auto', objectFit: 'contain', aspectRatio: `${aspectWidth}/${aspectHeight}` }}
-            />
+            <span>By {author}</span>
+            <span> | {formattedDate}</span>
+            <span> | Read time: {readTime} min</span>
           </div>
-        )}
-        <h1 style={{ willChange: 'contents', fetchPriority: 'high' }}>{title}</h1>
-        <div>
-          <span>By {author}</span>
-          <span> | {formattedDate}</span>
-          <span> | Read time: {readTime} min</span>
-        </div>
-      </header>
-      <section
-        id="non-critical-section"
-        role="region"
-        aria-label="Priority content"
-        style={{ width: '100%', maxWidth: '800px', margin: '0 auto', padding: '0.25rem 0' }}
-      >
-        <div
-          className="non-critical-container"
-          style={{ fetchPriority: 'low' }}
-          dangerouslySetInnerHTML={{ __html: parseLinks(preRenderedContent, category || '') }}
-        />
-      </section>
-    </article>
+        </header>
+        <section
+          id="non-critical-section"
+          role="region"
+          aria-label="Priority content"
+          style={{ width: '100%', maxWidth: '800px', margin: '0 auto', padding: '0.25rem 0' }}
+        >
+          <div
+            className="non-critical-container"
+            style={{ fetchPriority: 'low' }}
+            dangerouslySetInnerHTML={{ __html: parseLinks(preRenderedContent, category || '') }}
+          />
+        </section>
+      </article>
+    </>
   );
 });
 
