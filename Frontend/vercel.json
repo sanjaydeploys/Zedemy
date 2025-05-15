@@ -85,11 +85,15 @@
   "rewrites": [
     {
       "source": "/post/:slug",
-      "destination": "/api/post/:slug"
+      "destination": "https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/post/:slug"
     },
     {
       "source": "/api/:path*",
       "destination": "https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/:path*"
+    },
+    {
+      "source": "/assets/:path*",
+      "destination": "/assets/:path*"
     },
     {
       "source": "/(.*)",
