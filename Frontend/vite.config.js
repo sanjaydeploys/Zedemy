@@ -52,6 +52,14 @@ export default defineConfig({
             },
           },
           {
+            urlPattern: /^https:\/\/se3fw2nzc2\.execute-api\.ap-south-1\.amazonaws\.com\/prod\/api\/posts\/post/,
+            handler: 'NetworkOnly',
+            options: {
+              cacheName: 'ssr-post',
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
             urlPattern: /^https:\/\/se3fw2nzc2\.execute-api\.ap-south-1\.amazonaws\.com/,
             handler: 'NetworkFirst',
             options: {
