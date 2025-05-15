@@ -97,6 +97,7 @@ export default defineConfig({
     modulePreload: {
       polyfill: true,
     },
+    manifest: true,
     rollupOptions: {
       output: {
         experimentalMinChunkSize: 10000,
@@ -157,7 +158,7 @@ export default defineConfig({
       '/post': {
         target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
         changeOrigin: true,
-        rewrite: (path) => path, // No rewrite needed, keep /post/:slug
+        rewrite: (path) => path,
       },
     },
   },
