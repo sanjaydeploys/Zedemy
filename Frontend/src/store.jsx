@@ -39,6 +39,7 @@ const initialState = {
         userPosts: persistedState.postReducer?.userPosts || [],
         completedPosts: persistedState.postReducer?.completedPosts || [],
         post: persistedState.postReducer?.post || null,
+        ssrData: {}, // Added for SSR data handling
         loading: persistedState.postReducer?.loading || false,
         searchResults: persistedState.postReducer?.searchResults || [],
         error: persistedState.postReducer?.error || null
@@ -116,7 +117,7 @@ initializeStore().catch(error => {
 store.subscribe(
     throttle(() => {
         const state = store.getState();
-        // Save only changed parts of the state
+        // Save only changed parts of the state, excluding ssrData
         const persistedData = {
             auth: {
                 user: state.auth.user,
@@ -132,7 +133,7 @@ store.subscribe(
                 post: state.postReducer.post,
                 loading: state.postReducer.loading,
                 error: state.postReducer.error
-                // Exclude posts, userPosts, completedPosts, searchResults to reduce size
+                // Exclude posts, userPosts, completedPosts, searchResults, ssrData to reduce size
             },
             certificates: {
                 loading: state.certificates.loading,
