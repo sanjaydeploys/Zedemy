@@ -1,7 +1,7 @@
 import React, { memo, Suspense, useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPostSSR, fetchPostBySlug, fetchCompletedPosts, fetchPosts } from '../actions/postActions';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import Sidebar from './Sidebar';
 
@@ -10,7 +10,6 @@ const StructuredData = React.lazy(() => import('./StructuredData'));
 
 const PostPage = memo(() => {
   const { slug } = useParams();
-  const location = useLocation();
   const dispatch = useDispatch();
   const postFromRedux = useSelector((state) => state.postReducer.post || {});
   const error = useSelector((state) => state.postReducer.error);
@@ -28,14 +27,12 @@ const PostPage = memo(() => {
   useEffect(() => {
     const injectSSRHTML = async () => {
       const priorityContent = document.getElementById('priority-content');
-      // Preserve server-rendered SSR HTML
       if (priorityContent?.innerHTML.trim() && priorityContent.querySelector('h1, img')) {
         console.log('[PostPage] Valid SSR HTML found in #priority-content');
         setIsSSRInjected(true);
         return;
       }
 
-      // Fetch SSR HTML for navigation
       console.log('[PostPage] Fetching SSR HTML for slug:', slug);
       try {
         const { html } = await dispatch(fetchPostSSR(slug));
@@ -56,13 +53,12 @@ const PostPage = memo(() => {
       }
     };
 
+    // Fetch SSR HTML and client-side data
     injectSSRHTML();
-
-    // Fetch client-side data immediately
     dispatch(fetchPostBySlug(slug));
     dispatch(fetchPosts());
     dispatch(fetchCompletedPosts());
-  }, [dispatch, slug, location.pathname]);
+  }, [dispatch, slug]);
 
   const scrollToSection = (sectionId) => {
     const element = document.getElementById(sectionId);
@@ -125,7 +121,7 @@ const PostPage = memo(() => {
       </Helmet>
       <div className="container">
         <main role="main" aria-label="Main content">
-          <div id="priority-content" ref={priorityContentRef} data-hydration="ssr" style={{ minHeight: '600px' }} />
+          <div id="priority-content" ref={priorityContentRef} style={{ minHeight: '600px' }} />
           <Suspense fallback={<div style={{ height: '200px', background: '#e0e0e0', borderRadius: '0.375rem', width: '100%' }} />}>
             <PostContentNonCritical
               post={postFromRedux}
