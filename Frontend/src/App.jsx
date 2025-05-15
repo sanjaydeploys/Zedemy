@@ -56,35 +56,28 @@ const App = ({ hydrateTarget }) => {
   if (hydrateTarget === 'non-critical') {
     return <PostContentNonCritical />;
   }
-  if (hydrateTarget === 'priority-content') {
-    return <PostPage />;
-  }
 
   const dispatch = useDispatch();
-  const isPostPage = window.location.pathname.startsWith('/post/');
   const location = useLocation();
 
   useEffect(() => {
-    // Defer loadUser for non-post pages
-    if (!isPostPage) {
-      const idleCallback = window.requestIdleCallback || ((cb) => setTimeout(cb, 0));
-      idleCallback(() => {
-        dispatch(loadUser());
-      });
+    // Load user for non-post pages
+    if (!location.pathname.startsWith('/post/')) {
+      dispatch(loadUser());
     }
 
-    // Fetch SSR HTML for post pages during navigation
-    if (isPostPage) {
+    // Fetch SSR HTML for post pages
+    if (location.pathname.startsWith('/post/')) {
       const slug = location.pathname.split('/post/')[1];
       if (slug) {
         const priorityContent = document.getElementById('priority-content');
         if (!priorityContent?.innerHTML.trim() || !priorityContent.querySelector('h1, img')) {
-          console.log('[App] Fetching SSR HTML for navigation to slug:', slug);
+          console.log('[App] Fetching SSR HTML for slug:', slug);
           dispatch(fetchPostSSR(slug));
         }
       }
     }
-  }, [dispatch, isPostPage, location.pathname]);
+  }, [dispatch, location.pathname]);
 
   const appContent = (
     <Router>
