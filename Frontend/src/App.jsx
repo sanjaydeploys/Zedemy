@@ -49,14 +49,7 @@ const PrivateRoute = ({ children }) => {
   return children;
 };
 
-const App = ({ hydrateTarget }) => {
-  if (hydrateTarget === 'sidebar') {
-    return <Sidebar />;
-  }
-  if (hydrateTarget === 'non-critical') {
-    return <PostContentNonCritical />;
-  }
-
+const AppContent = () => {
   const dispatch = useDispatch();
   const location = useLocation();
 
@@ -72,44 +65,57 @@ const App = ({ hydrateTarget }) => {
       if (slug) {
         const priorityContent = document.getElementById('priority-content');
         if (!priorityContent?.innerHTML.trim() || !priorityContent.querySelector('h1, img')) {
-          console.log('[App] Fetching SSR HTML for slug:', slug);
+          console.log('[AppContent] Fetching SSR HTML for slug:', slug);
           dispatch(fetchPostSSR(slug));
         }
       }
     }
   }, [dispatch, location.pathname]);
 
-  const appContent = (
-    <Router>
-      <Layout>
-        <ScrollToTop />
-        <Suspense fallback={<div style={{ minHeight: '100vh' }} />}>
-          <Routes>
-            <Route exact path="/" element={<Home />} />
-            <Route path="/category" element={<Category />} />
-            <Route exact path="/login" element={<SignInSignUp />} />
-            <Route exact path="/register" element={<Register />} />
-            <Route exact path="/dashboard" element={<Dashboard />} />
-            <Route path="/add-post" element={<PrivateRoute><AddPostForm /></PrivateRoute>} />
-            <Route exact path="/admin-dashboard" element={<AdminDashboard />} />
-            <Route path="/post/:slug" element={<PostPage />} />
-            <Route path="/category/:category" element={<CategoryPage />} />
-            <Route exact path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password/:token" element={<ResetPassword />} />
-            <Route exact path="/verify/:uniqueId" element={<VerifyCertificate />} />
-            <Route exact path="/explore" element={<PostList />} />
-            <Route exact path="/notifications" element={<Notification />} />
-            <Route exact path="/certificate-verification" element={<VerifyCertificate />} />
-            <Route exact path="/editor" element={<CodeEditor />} />
-            <Route exact path="/faq" element={<FAQPage />} />
-          </Routes>
-          <Footer />
-        </Suspense>
-      </Layout>
-    </Router>
+  return (
+    <Layout>
+      <ScrollToTop />
+      <Suspense fallback={<div style={{ minHeight: '100vh' }} />}>
+        <Routes>
+          <Route exact path="/" element={<Home />} />
+          <Route path="/category" element={<Category />} />
+          <Route exact path="/login" element={<SignInSignUp />} />
+          <Route exact path="/register" element={<Register />} />
+          <Route exact path="/dashboard" element={<Dashboard />} />
+          <Route path="/add-post" element={<PrivateRoute><AddPostForm /></PrivateRoute>} />
+          <Route exact path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route path="/post/:slug" element={<PostPage />} />
+          <Route path="/category/:category" element={<CategoryPage />} />
+          <Route exact path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
+          <Route exact path="/verify/:uniqueId" element={<VerifyCertificate />} />
+          <Route exact path="/explore" element={<PostList />} />
+          <Route exact path="/notifications" element={<Notification />} />
+          <Route exact path="/certificate-verification" element={<VerifyCertificate />} />
+          <Route exact path="/editor" element={<CodeEditor />} />
+          <Route exact path="/faq" element={<FAQPage />} />
+        </Routes>
+        <Footer />
+      </Suspense>
+    </Layout>
   );
+};
 
-  return <Provider store={store}>{appContent}</Provider>;
+const App = ({ hydrateTarget }) => {
+  if (hydrateTarget === 'sidebar') {
+    return <Sidebar />;
+  }
+  if (hydrateTarget === 'non-critical') {
+    return <PostContentNonCritical />;
+  }
+
+  return (
+    <Provider store={store}>
+      <Router>
+        <AppContent />
+      </Router>
+    </Provider>
+  );
 };
 
 export default App;
