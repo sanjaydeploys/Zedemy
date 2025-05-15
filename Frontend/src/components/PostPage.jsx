@@ -47,11 +47,21 @@ const PostPage = memo(() => {
   const readTime = Math.ceil((postFromRedux.content || '').split(/\s+/).filter(w => w).length / 200) || 1;
 
   useEffect(() => {
-    console.log('[PostPage] Dispatching fetchPostSSR and fetchPostBySlug for slug:', slug);
-    dispatch(fetchPostSSR(slug)); // Fetch SSR HTML
-    dispatch(fetchPostBySlug(slug)); // Fetch non-critical data
-    dispatch(fetchPosts());
-    dispatch(fetchCompletedPosts());
+    console.log('[PostPage] Dispatching fetchPostSSR for slug:', slug);
+    dispatch(fetchPostSSR(slug));
+    if (typeof window !== 'undefined' && window.requestIdleCallback) {
+      window.requestIdleCallback(() => {
+        dispatch(fetchPostBySlug(slug));
+        dispatch(fetchPosts());
+        dispatch(fetchCompletedPosts());
+      }, { timeout: 5000 });
+    } else {
+      setTimeout(() => {
+        dispatch(fetchPostBySlug(slug));
+        dispatch(fetchPosts());
+        dispatch(fetchCompletedPosts());
+      }, 1000);
+    }
   }, [dispatch, slug]);
 
   const scrollToSection = (sectionId) => {
@@ -101,17 +111,16 @@ const PostPage = memo(() => {
         <meta property="og:title" content={postFromRedux.title || 'Loading...'} />
         <meta property="og:description" content={(postFromRedux.preRenderedContent || '').slice(0, 160)} />
         <meta property="og:url" content={`https://zedemy.vercel.app/post/${slug}`} />
-        {postFromRedux.titleImage && <meta property="og:image" content={`${postFromRedux.titleImage.replace('q=5', 'q=40')}`} />}
+        {postFromRedux.titleImage && <meta property="og:image" content={`${postFromRedux.titleImage.replace('q=20', 'q=40')}`} />}
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={postFromRedux.title || 'Loading...'} />
         <meta name="twitter:description" content={(postFromRedux.preRenderedContent || '').slice(0, 160)} />
-        {postFromRedux.titleImage && <meta name="twitter:image" content={`${postFromRedux.titleImage.replace('q=5', 'q=40')}`} />}
+        {postFromRedux.titleImage && <meta name="twitter:image" content={`${postFromRedux.titleImage.replace('q=20', 'q=40')}`} />}
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
-        <link rel="preconnect" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://d2rq30ca0zyvzp.cloudfront.net" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
         {postFromRedux.titleImage && <link rel="preload" as="image" href={`${postFromRedux.titleImage}`} fetchPriority="high" media="(max-width: 767px)" />}
         {postFromRedux.titleImage && <link rel="preload" as="image" href={`${postFromRedux.titleImage.replace('w=240', 'w=280')}`} fetchPriority="high" media="(min-width: 768px)" />}
-        <link rel="preload" href="/dist/assets/index.js" as="script" fetchPriority="high" />
         <style>{criticalCss}</style>
       </Helmet>
       <div className="container">
