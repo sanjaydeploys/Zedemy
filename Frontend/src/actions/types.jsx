@@ -35,7 +35,7 @@ export const FETCH_POST_FAILURE = 'FETCH_POST_FAILURE';
 export const SEARCH_POSTS_FAILURE = 'SEARCH_POSTS_FAILURE';
 export const SEARCH_POSTS_CLEAR = 'SEARCH_POSTS_CLEAR';
 export const CLEAR_POST = 'CLEAR_POST';
-
+export const PARSE_SSR_DATA = 'PARSE_SSR_DATA'; // Added for SSR handling
 // Certificate Actions
 export const GET_CERTIFICATES = 'GET_CERTIFICATES';
 export const CERTIFICATES_ERROR = 'CERTIFICATES_ERROR';
