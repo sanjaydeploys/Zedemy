@@ -48,8 +48,13 @@ const PrivateRoute = ({ children }) => {
   return children;
 };
 
-const App = () => {
-  const dispatch = useDispatch();
+const App = ({ hydrateTarget }) => {
+  if (hydrateTarget === 'sidebar') {
+    return <Sidebar />;
+  }
+  if (hydrateTarget === 'non-critical') {
+    return <PostContentNonCritical />;
+  }  const dispatch = useDispatch();
   const isPostPage = window.location.pathname.startsWith('/post/');
 
   useEffect(() => {
