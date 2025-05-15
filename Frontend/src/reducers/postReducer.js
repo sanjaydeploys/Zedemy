@@ -15,36 +15,79 @@ import {
     MARK_POST_COMPLETED_SUCCESS,
     FETCH_COMPLETED_POSTS_SUCCESS,
     FETCH_COMPLETED_POSTS_FAILURE,
-    CLEAR_POST
+    CLEAR_POST,
+    PARSE_SSR_DATA // Added for SSR handling
 } from '../actions/types';
+
 const initialState = {
     posts: [],
     userPosts: [],
     completedPosts: [],
     searchResults: [],
     post: null,
+    ssrData: {}, // Added for SSR data
     loading: false,
     error: null
 };
 
 const postReducer = (state = initialState, action) => {
     switch (action.type) {
+        case PARSE_SSR_DATA:
+            console.log('[postReducer] PARSE_SSR_DATA:', action.payload);
+            return {
+                ...state,
+                ssrData: action.payload,
+                error: null
+            };
         case CLEAR_POST:
-            return { ...state, post: null, error: null };
+            return {
+                ...state,
+                post: null,
+                ssrData: {}, // Clear ssrData when clearing post
+                error: null
+            };
         case FETCH_POSTS_SUCCESS:
-            return { ...state, posts: action.payload.posts || action.payload, error: null };
+            return {
+                ...state,
+                posts: action.payload.posts || action.payload,
+                error: null
+            };
         case FETCH_POSTS_FAILURE:
-            return { ...state, error: action.payload };
+            return {
+                ...state,
+                error: action.payload
+            };
         case FETCH_COMPLETED_POSTS_SUCCESS:
-            return { ...state, completedPosts: action.payload, error: null };
+            return {
+                ...state,
+                completedPosts: action.payload,
+                error: null
+            };
         case FETCH_COMPLETED_POSTS_FAILURE:
-            return { ...state, completedPosts: [], error: action.payload };
+            return {
+                ...state,
+                completedPosts: [],
+                error: action.payload
+            };
         case FETCH_USER_POSTS_REQUEST:
-            return { ...state, loading: true, error: null };
+            return {
+                ...state,
+                loading: true,
+                error: null
+            };
         case FETCH_USER_POSTS_SUCCESS:
-            return { ...state, userPosts: action.payload, loading: false, error: null };
+            return {
+                ...state,
+                userPosts: action.payload,
+                loading: false,
+                error: null
+            };
         case FETCH_USER_POSTS_FAILURE:
-            return { ...state, loading: false, error: action.payload };
+            return {
+                ...state,
+                loading: false,
+                error: action.payload
+            };
         case ADD_POST_SUCCESS:
             return {
                 ...state,
@@ -67,15 +110,35 @@ const postReducer = (state = initialState, action) => {
                 error: null
             };
         case SEARCH_POSTS_SUCCESS:
-            return { ...state, searchResults: action.payload, error: null };
+            return {
+                ...state,
+                searchResults: action.payload,
+                error: null
+            };
         case SEARCH_POSTS_FAILURE:
-            return { ...state, searchResults: [], error: action.payload };
+            return {
+                ...state,
+                searchResults: [],
+                error: action.payload
+            };
         case SEARCH_POSTS_CLEAR:
-            return { ...state, searchResults: [], error: null };
+            return {
+                ...state,
+                searchResults: [],
+                error: null
+            };
         case FETCH_POST_SUCCESS:
-            return { ...state, post: action.payload, error: null };
+            return {
+                ...state,
+                post: action.payload,
+                error: null
+            };
         case FETCH_POST_FAILURE:
-            return { ...state, post: null, error: action.payload };
+            return {
+                ...state,
+                post: null,
+                error: action.payload
+            };
         case MARK_POST_COMPLETED_SUCCESS:
             const newCompletedPost = state.posts.find(post => post.postId === action.payload.postId) || { postId: action.payload.postId };
             return {
