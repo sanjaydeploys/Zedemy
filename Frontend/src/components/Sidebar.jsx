@@ -84,18 +84,27 @@ const ToggleButton = styled.button`
   }
 `;
 
-const Sidebar = ({ post, isSidebarOpen, setSidebarOpen, activeSection, scrollToSection, subtitlesListRef }) => {
+const FallbackMessage = styled.div`
+  padding: 1rem;
+  font-size: 0.875rem;
+  color: #ecf0f1;
+  text-align: center;
+`;
+
+const Sidebar = ({ post = {}, isSidebarOpen, setSidebarOpen, activeSection, scrollToSection }) => {
+  const subtitles = post.subtitles || [];
   const slugs = useMemo(() => {
-    return post?.subtitles?.reduce((acc, s, i) => {
-      acc[`subtitle-${i}`] = slugify(s.title);
+    const result = subtitles.reduce((acc, s, i) => {
+      acc[`subtitle-${i}`] = slugify(s.title || `Section ${i + 1}`);
       return acc;
     }, post.summary ? { summary: 'summary' } : {});
-  }, [post?.subtitles, post?.summary]);
+    return result;
+  }, [subtitles, post.summary]);
 
   const handleScrollToSection = (sectionId) => {
     if (typeof scrollToSection === 'function') {
       scrollToSection(sectionId);
-      if (slugs && slugs[sectionId]) {
+      if (slugs[sectionId]) {
         window.history.pushState(null, '', `#${slugs[sectionId]}`);
       }
     } else {
@@ -113,22 +122,26 @@ const Sidebar = ({ post, isSidebarOpen, setSidebarOpen, activeSection, scrollToS
       </ToggleButton>
       <SidebarContainer isOpen={isSidebarOpen} role="navigation" aria-label="Table of contents">
         <SidebarHeader>Contents</SidebarHeader>
-        <SubtitlesList ref={subtitlesListRef}>
-          {(post?.subtitles || []).map((subtitle, index) => (
-            <SubtitleItem
-              key={index}
-              isActive={activeSection === `subtitle-${index}`}
-              data-section={`subtitle-${index}`}
-            >
-              <Button
-                onClick={() => handleScrollToSection(`subtitle-${index}`)}
-                aria-label={`Navigate to ${subtitle.title || `Section ${index + 1}`}`}
+        <SubtitlesList>
+          {subtitles.length === 0 ? (
+            <FallbackMessage>No sections available</FallbackMessage>
+          ) : (
+            subtitles.map((subtitle, index) => (
+              <SubtitleItem
+                key={index}
+                isActive={activeSection === `subtitle-${index}`}
+                data-section={`subtitle-${index}`}
               >
-                {parseLinks(subtitle.title || `Section ${index + 1}`, post.category || '')}
-              </Button>
-            </SubtitleItem>
-          ))}
-          {post?.summary && (
+                <Button
+                  onClick={() => handleScrollToSection(`subtitle-${index}`)}
+                  aria-label={`Navigate to ${subtitle.title || `Section ${index + 1}`}`}
+                >
+                  {parseLinks(subtitle.title || `Section ${index + 1}`, post.category || '')}
+                </Button>
+              </SubtitleItem>
+            ))
+          )}
+          {post.summary && (
             <SubtitleItem isActive={activeSection === 'summary'} data-section="summary">
               <Button onClick={() => handleScrollToSection('summary')} aria-label="Navigate to summary">
                 Summary
