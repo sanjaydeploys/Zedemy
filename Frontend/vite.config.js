@@ -52,7 +52,7 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /^https:\/\/se3fw2nzc2\.execute-api\.ap-south-1\.amazonaws\.com\/prod\/api\/posts\/post/,
+            urlPattern: /^https:\/\/se3fw2nzc2\.execute-api\.ap-south-1\.amazonaws\.com\/prod\/post/,
             handler: 'NetworkOnly',
             options: {
               cacheName: 'ssr-post',
@@ -191,7 +191,7 @@ export default defineConfig({
       '/post': {
         target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/post/, '/api/posts/post'),
+        rewrite: (path) => path.replace(/^\/post/, '/post'),
       },
     },
   },
