@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useCallback, memo, Suspense, lazy } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import styled from 'styled-components';
@@ -28,7 +27,7 @@ const MainContainer = styled.main`
 
 const NavBar = styled.header`
   display: flex;
-  justify-content:center;
+  justify-content: center;
   gap: 1rem;
   padding: 0.5rem 1rem;
   border-radius: 5px;
@@ -44,7 +43,8 @@ const NavBar = styled.header`
     padding: 0.25rem 0.5rem;
     transition: color 0.2s ease;
 
-    &:hover, &:focus {
+    &:hover,
+    &:focus {
       color: #e76f51;
       outline: none;
     }
@@ -128,7 +128,8 @@ const ActionButton = styled.button`
   cursor: pointer;
   transition: background 0.2s ease, transform 0.1s ease;
 
-  &:hover, &:focus {
+  &:hover,
+  &:focus {
     background: #f4a261;
     transform: translateY(-2px);
     outline: none;
@@ -145,7 +146,8 @@ const BlogLink = styled.p`
     text-decoration: underline;
     transition: color 0.2s ease;
 
-    &:hover, &:focus {
+    &:hover,
+    &:focus {
       color: #e76f51;
       outline: none;
     }
@@ -164,7 +166,8 @@ const CertPreview = styled.article`
   margin-bottom: 1rem;
   transition: background 0.2s ease;
 
-  &:hover, &:focus {
+  &:hover,
+  &:focus {
     background: #3a3a4e;
     outline: none;
   }
@@ -220,7 +223,8 @@ const FaqLink = styled(Link)`
   margin-top: 1rem;
   transition: color 0.2s ease;
 
-  &:hover, &:focus {
+  &:hover,
+  &:focus {
     color: #e76f51;
     outline: none;
   }
@@ -245,7 +249,8 @@ const FooterSection = styled.footer`
     text-decoration: underline;
     transition: color 0.2s ease;
 
-    &:hover, &:focus {
+    &:hover,
+    &:focus {
       color: #e76f51;
       outline: none;
     }
@@ -307,9 +312,12 @@ const Home = memo(() => {
   const navigate = useNavigate();
   const typedRef = useRef(null);
 
-  // Initialize Typed.js
+  console.log('[Home.jsx] Rendering Home component');
+
+  // Initialize Typed.js with SSR safety
   useEffect(() => {
-    if (typedRef.current) {
+    if (typeof window !== 'undefined' && typedRef.current) {
+      console.log('[Home.jsx] Initializing Typed.js');
       const typed = new Typed(typedRef.current, {
         strings: [
           'AI-Powered Learning',
@@ -326,12 +334,16 @@ const Home = memo(() => {
       });
 
       return () => {
+        console.log('[Home.jsx] Destroying Typed.js');
         typed.destroy();
       };
+    } else {
+      console.warn('[Home.jsx] Typed.js not initialized: window or typedRef unavailable');
     }
   }, []);
 
   const handleCertificatePreview = useCallback(() => {
+    console.log('[Home.jsx] Opening certificate preview');
     window.open(
       'https://Zedemy-media-2025.s3.ap-south-1.amazonaws.com/certificates/Zedemy_by_HogwartsEdx_VS%20Code_2025-04-20_5c0f2f41-57cb-46ce-89ef-0a89298b002a.pdf',
       '_blank',
