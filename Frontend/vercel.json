@@ -65,10 +65,6 @@
         {
           "key": "Content-Type",
           "value": "text/html"
-        },
-        {
-          "key": "Content-Encoding",
-          "value": "gzip"
         }
       ]
     },
