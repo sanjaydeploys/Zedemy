@@ -12,14 +12,29 @@ import 'react-toastify/dist/ReactToastify.css';
 
 const rootElement = document.getElementById('root');
 
-hydrateRoot(
-  rootElement,
-  <React.StrictMode>
-    <Provider store={store}>
-      <App />
-      <Suspense fallback={null}>
-        <ToastContainer />
-      </Suspense>
-    </Provider>
-  </React.StrictMode>
-);
+if (rootElement.hasAttribute('data-hydration')) {
+  hydrateRoot(
+    rootElement,
+    <React.StrictMode>
+      <Provider store={store}>
+        <App />
+        <Suspense fallback={null}>
+          <ToastContainer />
+        </Suspense>
+      </Provider>
+    </React.StrictMode>
+  );
+} else {
+  console.warn('No SSR content detected, falling back to client-side rendering');
+  hydrateRoot(
+    rootElement,
+    <React.StrictMode>
+      <Provider store={store}>
+        <App />
+        <Suspense fallback={null}>
+          <ToastContainer />
+        </Suspense>
+      </Provider>
+    </React.StrictMode>
+  );
+}
