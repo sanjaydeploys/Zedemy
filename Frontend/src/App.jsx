@@ -7,7 +7,6 @@ import PostPage from './components/PostPage';
 import SignInSignUp from './components/SignInSignUp';
 import Policy from './components/Policy';
 import { loadUser } from './actions/authActions';
-import { fetchPostSSR } from './actions/postActions';
 
 // Lazy load non-critical components
 const Home = lazy(() => import('./pages/Home'));
@@ -54,23 +53,9 @@ const AppContent = () => {
   const location = useLocation();
 
   useEffect(() => {
-    // Load user for non-post pages
-    if (!location.pathname.startsWith('/post/')) {
-      dispatch(loadUser());
-    }
-
-    // Fetch SSR HTML for post pages
-    if (location.pathname.startsWith('/post/')) {
-      const slug = location.pathname.split('/post/')[1];
-      if (slug) {
-        const priorityContent = document.getElementById('priority-content');
-        if (!priorityContent?.innerHTML.trim() || !priorityContent.querySelector('h1, img')) {
-          console.log('[AppContent] Fetching SSR HTML for slug:', slug);
-          dispatch(fetchPostSSR(slug));
-        }
-      }
-    }
-  }, [dispatch, location.pathname]);
+    // Load user for all pages
+    dispatch(loadUser());
+  }, [dispatch]);
 
   return (
     <Layout>
