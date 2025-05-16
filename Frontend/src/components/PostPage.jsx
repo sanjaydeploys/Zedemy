@@ -71,7 +71,7 @@ const PostPage = memo(() => {
         {postData.titleImage && <link rel="preload" as="image" href={`${postData.titleImage}`} fetchPriority="high" media="(max-width: 767px)" />}
         {postData.titleImage && <link rel="preload" as="image" href={`${postData.titleImage.replace('w=240', 'w=280')}`} fetchPriority="high" media="(min-width: 768px)" />}
       </Helmet>
-      <div id="root" dangerouslySetInnerHTML={{ __html: ssrHtml || document.getElementById('root')?.innerHTML || '' }} />
+      <div className="post-content" dangerouslySetInnerHTML={{ __html: ssrHtml || postData.preRenderedContent || '' }} />
     </HelmetProvider>
   );
 });
