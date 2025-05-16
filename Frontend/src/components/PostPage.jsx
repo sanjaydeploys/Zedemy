@@ -6,7 +6,7 @@ import { fetchPostSSR, markPostAsCompleted, fetchCompletedPosts } from '../actio
 import styled from 'styled-components';
 import { toast } from 'react-toastify';
 import LazyLoad from 'react-lazyload';
-import { RelatedPosts } from './RelatedPosts';
+import  RelatedPosts  from './RelatedPosts';
 import { truncateText, slugify, parseLinks, escapeHTML } from './utils';
 
 const Container = styled.div`
