@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useCallback, memo, Suspense, lazy } from 'rea
 import { useNavigate, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { Helmet } from 'react-helmet';
-import Typed from 'typed.js';
+// import Typed from 'typed.js'; // Temporarily disabled
 import LazyLoad from 'react-lazyload';
 
 // Lazy-loaded components
@@ -12,7 +12,7 @@ const FAQ = lazy(() => import('../components/FAQ'));
 // Assets
 import CreaTeaImage from '../assets/tea.gif';
 
-// Styled Components (Optimized for minimal CSS and CLS prevention)
+// Styled Components
 const MainContainer = styled.main`
   display: flex;
   flex-direction: column;
@@ -191,15 +191,15 @@ const TypedSection = styled.section`
   text-align: center;
   padding: 1rem 0;
   margin-top: 1rem;
-  min-height: 2rem; /* Reserve space for Typed.js to prevent CLS */
+  min-height: 2rem;
 `;
 
 const TypedContent = styled.span`
   font-size: 1.2rem;
   font-weight: 600;
   color: #e76f51;
-  display: inline-block; /* Ensure proper rendering */
-  min-width: 200px; /* Prevent text wrapping issues */
+  display: inline-block;
+  min-width: 200px;
   text-align: center;
 
   @media (max-width: 768px) {
@@ -314,7 +314,8 @@ const Home = memo(() => {
 
   console.log('[Home.jsx] Rendering Home component');
 
-  // Initialize Typed.js with SSR safety
+  // Temporarily disabled Typed.js to isolate issue
+  /*
   useEffect(() => {
     if (typeof window !== 'undefined' && typedRef.current) {
       console.log('[Home.jsx] Initializing Typed.js');
@@ -341,6 +342,7 @@ const Home = memo(() => {
       console.warn('[Home.jsx] Typed.js not initialized: window or typedRef unavailable');
     }
   }, []);
+  */
 
   const handleCertificatePreview = useCallback(() => {
     console.log('[Home.jsx] Opening certificate preview');
@@ -547,7 +549,7 @@ const Home = memo(() => {
         </MainContent>
         <TypedSection>
           <TypedContent>
-            <span ref={typedRef} aria-live="polite" />
+            <span ref={typedRef} aria-live="polite">AI-Powered Learning</span> {/* Static fallback */}
           </TypedContent>
         </TypedSection>
         <FaqSection>
