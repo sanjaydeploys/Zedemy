@@ -19,17 +19,16 @@ const PostPage = memo(() => {
   const completedPosts = useSelector((state) => state.postReducer.completedPosts || []);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('');
-  const [isSSRInjected, setIsSSRInjected] = useState(false);
   const priorityContentRef = useRef(null);
 
-  const readTime = window.__POST_DATA__?.readTime || postFromRedux.readTime || 1;
+  const readTime = postFromRedux.readTime || 1;
+  const initialPostData = window.__POST_DATA__ || postFromRedux;
 
   useEffect(() => {
     const injectSSRHTML = async () => {
       const priorityContent = document.getElementById('priority-content');
       if (priorityContent?.innerHTML.trim() && priorityContent.querySelector('h1, img')) {
         console.log('[PostPage] Valid SSR HTML found in #priority-content');
-        setIsSSRInjected(true);
         return;
       }
 
@@ -42,7 +41,6 @@ const PostPage = memo(() => {
           const ssrContent = doc.querySelector('#priority-content');
           if (ssrContent) {
             priorityContentRef.current.innerHTML = ssrContent.innerHTML;
-            setIsSSRInjected(true);
             console.log('[PostPage] Injected SSR HTML into #priority-content');
           } else {
             console.error('[PostPage] #priority-content not found in SSR HTML');
@@ -53,7 +51,6 @@ const PostPage = memo(() => {
       }
     };
 
-    // Fetch SSR HTML and client-side data
     injectSSRHTML();
     dispatch(fetchPostBySlug(slug));
     dispatch(fetchPosts());
@@ -98,52 +95,56 @@ const PostPage = memo(() => {
     <HelmetProvider>
       <Helmet>
         <html lang="en" />
-        <title>{postFromRedux.title || window.__POST_DATA__?.title || 'Loading...'} | Zedemy</title>
-        <meta name="description" content={(postFromRedux.preRenderedContent || window.__POST_DATA__?.preRenderedContent || '').slice(0, 160)} />
-        <meta name="keywords" content={`${postFromRedux.category || window.__POST_DATA__?.category || 'General'}, Zedemy`} />
-        <meta name="author" content={postFromRedux.author || window.__POST_DATA__?.author || 'Zedemy Team'} />
+        <title>{initialPostData.title || 'Loading...'} | Zedemy</title>
+        <meta name="description" content={(initialPostData.preRenderedContent || '').slice(0, 160)} />
+        <meta name="keywords" content={`${initialPostData.category || 'General'}, Zedemy`} />
+        <meta name="author" content={initialPostData.author || 'Zedemy Team'} />
         <meta name="robots" content="index, follow, max-image-preview:large" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta property="og:type" content="article" />
-        <meta property="og:title" content={postFromRedux.title || window.__POST_DATA__?.title || 'Loading...'} />
-        <meta property="og:description" content={(postFromRedux.preRenderedContent || window.__POST_DATA__?.preRenderedContent || '').slice(0, 160)} />
+        <meta property="og:title" content={initialPostData.title || 'Loading...'} />
+        <meta property="og:description" content={(initialPostData.preRenderedContent || '').slice(0, 160)} />
         <meta property="og:url" content={`https://zedemy.vercel.app/post/${slug}`} />
-        {postFromRedux.titleImage && <meta property="og:image" content={`${postFromRedux.titleImage.replace('q=30', 'q=50')}`} />}
+        {initialPostData.titleImage && <meta property="og:image" content={`${initialPostData.titleImage.replace('q=30', 'q=50')}`} />}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={postFromRedux.title || window.__POST_DATA__?.title || 'Loading...'} />
-        <meta name="twitter:description" content={(postFromRedux.preRenderedContent || window.__POST_DATA__?.preRenderedContent || '').slice(0, 160)} />
-        {postFromRedux.titleImage && <meta name="twitter:image" content={`${postFromRedux.titleImage.replace('q=30', 'q=50')}`} />}
+        <meta name="twitter:title" content={initialPostData.title || 'Loading...'} />
+        <meta name="twitter:description" content={(initialPostData.preRenderedContent || '').slice(0, 160)} />
+        {initialPostData.titleImage && <meta name="twitter:image" content={`${initialPostData.titleImage.replace('q=30', 'q=50')}`} />}
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
         <link rel="preconnect" href="https://d2rq30ca0zyvzp.cloudfront.net" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
-        {postFromRedux.titleImage && <link rel="preload" as="image" href={`${postFromRedux.titleImage}`} fetchPriority="high" media="(max-width: 767px)" />}
-        {postFromRedux.titleImage && <link rel="preload" as="image" href={`${postFromRedux.titleImage.replace('w=240', 'w=280')}`} fetchPriority="high" media="(min-width: 768px)" />}
+        {initialPostData.titleImage && <link rel="preload" as="image" href={`${initialPostData.titleImage}`} fetchPriority="high" media="(max-width: 767px)" />}
+        {initialPostData.titleImage && <link rel="preload" as="image" href={`${initialPostData.titleImage.replace('w=240', 'w=280')}`} fetchPriority="high" media="(min-width: 768px)" />}
       </Helmet>
       <div className="container">
         <main role="main" aria-label="Main content">
           <div id="priority-content" ref={priorityContentRef} style={{ minHeight: '600px' }} />
           <Suspense fallback={<div style={{ height: '200px', background: '#e0e0e0', borderRadius: '0.375rem', width: '100%' }} />}>
-            <PostContentNonCritical
-              post={postFromRedux}
-              relatedPosts={relatedPosts}
-              completedPosts={completedPosts}
-              dispatch={dispatch}
-            />
+            {initialPostData.title && (
+              <PostContentNonCritical
+                post={initialPostData}
+                relatedPosts={relatedPosts}
+                completedPosts={completedPosts}
+                dispatch={dispatch}
+              />
+            )}
           </Suspense>
         </main>
         <aside id="sidebar" className={`sidebar-wrapper ${isSidebarOpen ? 'open' : ''}`}>
           <Suspense fallback={<div style={{ height: '600px', background: '#e0e0e0', borderRadius: '0.375rem', width: '100%' }} />}>
-            <Sidebar
-              post={postFromRedux}
-              isSidebarOpen={isSidebarOpen}
-              setSidebarOpen={setSidebarOpen}
-              activeSection={activeSection}
-              scrollToSection={scrollToSection}
-            />
+            {initialPostData.title && (
+              <Sidebar
+                post={initialPostData}
+                isSidebarOpen={isSidebarOpen}
+                setSidebarOpen={setSidebarOpen}
+                activeSection={activeSection}
+                scrollToSection={scrollToSection}
+              />
+            )}
           </Suspense>
         </aside>
         <Suspense fallback={null}>
-          <StructuredData post={postFromRedux} readTime={readTime} slug={slug} />
+          {initialPostData.title && <StructuredData post={initialPostData} readTime={readTime} slug={slug} />}
         </Suspense>
       </div>
     </HelmetProvider>
