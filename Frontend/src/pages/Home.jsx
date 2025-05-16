@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useCallback, memo, Suspense, lazy } from 'rea
 import { useNavigate, Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { Helmet } from 'react-helmet';
-// import Typed from 'typed.js'; // Temporarily disabled
+import Typed from 'typed.js';
 import LazyLoad from 'react-lazyload';
 
 // Lazy-loaded components
@@ -13,7 +13,7 @@ const FAQ = lazy(() => import('../components/FAQ'));
 import CreaTeaImage from '../assets/tea.gif';
 
 // Styled Components
-const MainContainer = styled.main`
+const MainContainer = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -314,8 +314,6 @@ const Home = memo(() => {
 
   console.log('[Home.jsx] Rendering Home component');
 
-  // Temporarily disabled Typed.js to isolate issue
-  /*
   useEffect(() => {
     if (typeof window !== 'undefined' && typedRef.current) {
       console.log('[Home.jsx] Initializing Typed.js');
@@ -332,6 +330,8 @@ const Home = memo(() => {
         backSpeed: 25,
         backDelay: 1500,
         loop: true,
+        // Ensure server-rendered content matches initial client render
+        startDelay: 500,
       });
 
       return () => {
@@ -342,7 +342,6 @@ const Home = memo(() => {
       console.warn('[Home.jsx] Typed.js not initialized: window or typedRef unavailable');
     }
   }, []);
-  */
 
   const handleCertificatePreview = useCallback(() => {
     console.log('[Home.jsx] Opening certificate preview');
@@ -494,7 +493,7 @@ const Home = memo(() => {
         <meta name="twitter:image:alt" content="Zedemy tech learning platform logo" />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
-      <MainContainer role="main" aria-label="Zedemy Homepage">
+      <MainContainer aria-label="Zedemy Homepage">
         <NavBar aria-label="Main navigation">
           <Link to="/" aria-current="page">Home</Link>
           <Link to="/explore">Explore Blogs</Link>
@@ -542,14 +541,14 @@ const Home = memo(() => {
               <h2>Certificate Preview</h2>
               <p>Earn your HogWartsEdx certificate in courses like Wizarding VS Code Mastery!</p>
             </CertPreview>
-            <Suspense fallback={<PlaceholderBox aria-hidden="true">Loading...</PlaceholderBox>}>
+            <Suspense fallback={<PlaceholderBox aria-hidden="true">Loading Share Button...</PlaceholderBox>}>
               <ShareButton url="https://zedemy.vercel.app/" title="Zedemy | Online Tech Education Platform" />
             </Suspense>
           </TextSection>
         </MainContent>
         <TypedSection>
           <TypedContent>
-            <span ref={typedRef} aria-live="polite">AI-Powered Learning</span> {/* Static fallback */}
+            <span ref={typedRef} aria-live="polite">AI-Powered Learning</span>
           </TypedContent>
         </TypedSection>
         <FaqSection>
