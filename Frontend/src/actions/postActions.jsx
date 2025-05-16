@@ -1,12 +1,12 @@
 import { toast } from 'react-toastify';
 
 const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
-const SSR_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
+const SSR_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod';
 
 export const fetchPostSSR = (slug) => async (dispatch) => {
   try {
     console.log('[fetchPostSSR] Fetching SSR HTML for slug:', slug);
-    const response = await fetch(`${SSR_BASE_URL}/post/${slug}?viewport=mobile`, {
+    const response = await fetch(`${SSR_BASE_URL}/post/${slug}`, {
       headers: {
         'Accept': 'text/html',
         'Accept-Encoding': 'gzip, deflate, br'
@@ -20,7 +20,6 @@ export const fetchPostSSR = (slug) => async (dispatch) => {
     const html = await response.text();
     console.log('[fetchPostSSR] Received SSR HTML:', html.slice(0, 200));
 
-    // Extract window.__POST_DATA__ for Redux and metadata
     const match = html.match(/window\.__POST_DATA__\s*=\s*({[\s\S]*?});/);
     let postData = {};
     if (match && match[1]) {
@@ -29,15 +28,6 @@ export const fetchPostSSR = (slug) => async (dispatch) => {
       } catch (err) {
         console.error('[fetchPostSSR] Error parsing window.__POST_DATA__:', err.message);
       }
-    }
-
-    if (!postData.title || !postData.preRenderedContent || !postData.category || !postData.slug) {
-      console.warn('[fetchPostSSR] Incomplete SSR data:', {
-        hasTitle: !!postData.title,
-        hasPreRenderedContent: !!postData.preRenderedContent,
-        hasCategory: !!postData.category,
-        hasSlug: !!postData.slug
-      });
     }
 
     dispatch({
@@ -54,6 +44,7 @@ export const fetchPostSSR = (slug) => async (dispatch) => {
   }
 };
 
+// Other actions remain unchanged
 export const fetchPostBySlug = (slug) => async (dispatch, getState) => {
   try {
     console.log('[fetchPostBySlug] Starting for slug:', slug);
@@ -70,15 +61,6 @@ export const fetchPostBySlug = (slug) => async (dispatch, getState) => {
     if (!apiRes.ok) throw new Error(`API error: ${apiRes.status}`);
     const postData = await apiRes.json();
     console.log('[fetchPostBySlug] API response:', JSON.stringify(postData, null, 2));
-
-    if (!postData.title || !postData.content || !postData.titleImage) {
-      console.warn('[fetchPostBySlug] Incomplete API data:', {
-        hasTitle: !!postData.title,
-        hasContent: !!postData.content,
-        hasTitleImage: !!postData.titleImage,
-        hasSubtitles: postData.subtitles?.length || 0
-      });
-    }
 
     dispatch({
       type: 'FETCH_POST_SUCCESS',
