@@ -44,3 +44,13 @@ export const truncateText = (text, max) => {
   if (!text || text.length <= max) return text || '';
   return text.slice(0, max) + '...';
 };
+
+export const escapeHTML = (str) => {
+  if (!str) return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
