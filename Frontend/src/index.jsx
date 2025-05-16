@@ -12,7 +12,13 @@ import 'react-toastify/dist/ReactToastify.css';
 
 const rootElement = document.getElementById('root');
 
+console.log('[index.jsx] Root element found:', !!rootElement);
+console.log('[index.jsx] Data-hydration attribute:', rootElement?.hasAttribute('data-hydration'));
+console.log('[index.jsx] Root innerHTML length:', rootElement?.innerHTML.length);
+console.log('[index.jsx] Root innerHTML snippet (first 500 chars):', rootElement?.innerHTML.slice(0, 500));
+
 if (rootElement.hasAttribute('data-hydration')) {
+  console.log('[index.jsx] Hydrating SSR content');
   hydrateRoot(
     rootElement,
     <React.StrictMode>
@@ -25,7 +31,7 @@ if (rootElement.hasAttribute('data-hydration')) {
     </React.StrictMode>
   );
 } else {
-  console.warn('No SSR content detected, falling back to client-side rendering');
+  console.warn('[index.jsx] No SSR content detected, falling back to client-side rendering');
   hydrateRoot(
     rootElement,
     <React.StrictMode>
