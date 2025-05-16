@@ -53,7 +53,6 @@ const AppContent = () => {
   const location = useLocation();
 
   useEffect(() => {
-    // Load user for all pages
     dispatch(loadUser());
   }, [dispatch]);
 
@@ -86,14 +85,7 @@ const AppContent = () => {
   );
 };
 
-const App = ({ hydrateTarget }) => {
-  if (hydrateTarget === 'sidebar') {
-    return <Sidebar />;
-  }
-  if (hydrateTarget === 'non-critical') {
-    return <PostContentNonCritical />;
-  }
-
+const App = () => {
   return (
     <Provider store={store}>
       <Router>
