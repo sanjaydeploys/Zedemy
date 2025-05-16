@@ -11,8 +11,6 @@ const ToastContainer = lazy(() => import('react-toastify').then(module => ({
 import 'react-toastify/dist/ReactToastify.css';
 
 const rootElement = document.getElementById('root');
-const sidebarElement = document.getElementById('sidebar');
-const nonCriticalElement = document.getElementById('non-critical-content');
 const priorityContent = document.getElementById('priority-content');
 
 if (rootElement.hasAttribute('data-hydration')) {
@@ -23,27 +21,18 @@ if (rootElement.hasAttribute('data-hydration')) {
     console.warn('[index] #priority-content is empty or invalid; relying on client-side SSR fetch');
   }
 
-  // Hydrate non-critical components
-  if (sidebarElement) {
-    hydrateRoot(
-      sidebarElement,
+  // Hydrate root
+  hydrateRoot(
+    rootElement,
+    <React.StrictMode>
       <Provider store={store}>
-        <Suspense fallback={<div style={{ height: '600px', background: '#e0e0e0', borderRadius: '0.375rem', width: '100%' }} />}>
-          <App hydrateTarget="sidebar" />
+        <App />
+        <Suspense fallback={null}>
+          <ToastContainer />
         </Suspense>
       </Provider>
-    );
-  }
-  if (nonCriticalElement) {
-    hydrateRoot(
-      nonCriticalElement,
-      <Provider store={store}>
-        <Suspense fallback={<div style={{ height: '200px', background: '#e0e0e0', borderRadius: '0.375rem', width: '100%' }} />}>
-          <App hydrateTarget="non-critical" />
-        </Suspense>
-      </Provider>
-    );
-  }
+    </React.StrictMode>
+  );
 
   // Load PostPage chunk with retry
   const loadChunk = (attempt = 1, maxAttempts = 3) => {
