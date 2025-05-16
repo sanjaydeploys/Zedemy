@@ -6,7 +6,8 @@ import { fetchPostSSR, markPostAsCompleted, fetchCompletedPosts } from '../actio
 import styled from 'styled-components';
 import { toast } from 'react-toastify';
 import LazyLoad from 'react-lazyload';
-import RelatedPosts  from './RelatedPosts';
+import { RelatedPosts } from './RelatedPosts';
+import { truncateText, slugify, parseLinks, escapeHTML } from './utils';
 
 const Container = styled.div`
   max-width: 1200px;
@@ -128,11 +129,13 @@ const PostPage = memo(() => {
   useEffect(() => {
     dispatch(fetchCompletedPosts());
     if (!window.__POST_DATA__) {
-      dispatch(fetchPostSSR(slug)).then(({ html }) => {
-        setSsrHtml(html);
-      }).catch(() => {
-        setSsrHtml('');
-      });
+      dispatch(fetchPostSSR(slug))
+        .then(({ html }) => {
+          setSsrHtml(html);
+        })
+        .catch(() => {
+          setSsrHtml('');
+        });
     }
   }, [slug, dispatch]);
 
@@ -161,7 +164,18 @@ const PostPage = memo(() => {
         </Helmet>
         <div className="container">
           <main>
-            <div style={{ color: '#d32f2f', fontSize: '0.875rem', textAlign: 'center', padding: '0.5rem', background: '#ffebee', borderRadius: '0.25rem', margin: 0, minHeight: '50px' }}>
+            <div
+              style={{
+                color: '#d32f2f',
+                fontSize: '0.875rem',
+                textAlign: 'center',
+                padding: '0.5rem',
+                background: '#ffebee',
+                borderRadius: '0.25rem',
+                margin: 0,
+                minHeight: '50px',
+              }}
+            >
               Failed to load the post: {error || 'Not found'}. Please try again later.
             </div>
           </main>
@@ -175,36 +189,89 @@ const PostPage = memo(() => {
       <Helmet>
         <html lang="en" />
         <title>{postData.title || 'Loading...'} | Zedemy</title>
-        <meta name="description" content={truncateText(postData.summary || postData.preRenderedContent || '', 160)} />
-        <meta name="keywords" content={postData.keywords || `${postData.category || 'General'}, Zedemy, ${postData.title?.toLowerCase() || 'tech tutorials'}`} />
+        <meta
+          name="description"
+          content={truncateText(postData.summary || postData.preRenderedContent || '', 160)}
+        />
+        <meta
+          name="keywords"
+          content={
+            postData.keywords ||
+            `${postData.category || 'General'}, Zedemy, ${postData.title?.toLowerCase() || 'tech tutorials'}`
+          }
+        />
         <meta name="author" content={postData.author || 'Zedemy Team'} />
         <meta name="robots" content="index, follow, max-image-preview:large" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta property="og:type" content="article" />
         <meta property="og:title" content={postData.title || 'Loading...'} />
-        <meta property="og:description" content={truncateText(postData.summary || postData.preRenderedContent || '', 160)} />
+        <meta
+          property="og:description"
+          content={truncateText(postData.summary || postData.preRenderedContent || '', 160)}
+        />
         <meta property="og:url" content={`https://zedemy.vercel.app/post/${slug}`} />
-        <meta property="og:image" content={postData.titleImage ? `${postData.titleImage}?w=1200&format=avif&q=50` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'} />
+        <meta
+          property="og:image"
+          content={
+            postData.titleImage
+              ? `${postData.titleImage}?w=1200&format=avif&q=50`
+              : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'
+          }
+        />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={postData.title || 'Loading...'} />
-        <meta name="twitter:description" content={truncateText(postData.summary || postData.preRenderedContent || '', 160)} />
-        <meta name="twitter:image" content={postData.titleImage ? `${postData.titleImage}?w=1200&format=avif&q=50` : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'} />
+        <meta
+          name="twitter:description"
+          content={truncateText(postData.summary || postData.preRenderedContent || '', 160)}
+        />
+        <meta
+          name="twitter:image"
+          content={
+            postData.titleImage
+              ? `${postData.titleImage}?w=1200&format=avif&q=50`
+              : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png'
+          }
+        />
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
         <link rel="preconnect" href="https://d2rq30ca0zyvzp.cloudfront.net" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com" crossOrigin="anonymous" />
+        <link
+          rel="preconnect"
+          href="https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com"
+          crossOrigin="anonymous"
+        />
         {postData.titleImage && (
           <>
-            <link rel="preload" as="image" href={`${postData.titleImage}?w=280&format=avif&q=50`} fetchPriority="high" media="(max-width: 767px)" />
-            <link rel="preload" as="image" href={`${postData.titleImage}?w=480&format=avif&q=50`} fetchPriority="high" media="(min-width: 768px)" />
+            <link
+              rel="preload"
+              as="image"
+              href={`${postData.titleImage}?w=280&format=avif&q=50`}
+              fetchPriority="high"
+              media="(max-width: 767px)"
+            />
+            <link
+              rel="preload"
+              as="image"
+              href={`${postData.titleImage}?w=480&format=avif&q=50`}
+              fetchPriority="high"
+              media="(min-width: 768px)"
+            />
           </>
         )}
       </Helmet>
       <Container>
         <MainContent role="main" aria-label="Main content">
           <nav className="breadcrumbs" aria-label="Breadcrumb">
-            <a href="/" aria-label="Home">Home</a> &gt;
-            <a href={`/category/${postData.category?.toLowerCase() || 'blog'}`} aria-label={`Explore ${postData.category || 'Blog'}`}>{postData.category || 'Blog'}</a> &gt;
-            <span>{postData.title || 'Untitled'}</span>
+            <a href="/" aria-label="Home">
+              Home
+            </a>{' '}
+            &gt;{' '}
+            <a
+              href={`/category/${postData.category?.toLowerCase() || 'blog'}`}
+              aria-label={`Explore ${postData.category || 'Blog'}`}
+            >
+              {postData.category || 'Blog'}
+            </a>{' '}
+            &gt; <span>{postData.title || 'Untitled'}</span>
           </nav>
           <h1>{postData.title || 'Untitled'}</h1>
           {postData.titleImage && (
@@ -220,10 +287,11 @@ const PostPage = memo(() => {
               />
             </LazyLoad>
           )}
-          <div className="post-content" dangerouslySetInnerHTML={{ __html: ssrHtml || postData.preRenderedContent || '' }} />
-          {postData.relatedPosts?.length > 0 && (
-            <RelatedPosts relatedPosts={postData.relatedPosts} />
-          )}
+          <div
+            className="post-content"
+            dangerouslySetInnerHTML={{ __html: ssrHtml || postData.preRenderedContent || '' }}
+          />
+          {postData.relatedPosts?.length > 0 && <RelatedPosts relatedPosts={postData.relatedPosts} />}
           <CompleteButton
             className={isCompleted ? 'completed' : ''}
             onClick={handleMarkAsCompleted}
@@ -234,7 +302,9 @@ const PostPage = memo(() => {
           </CompleteButton>
         </MainContent>
         <SidebarWrapper id="sidebar-wrapper" className={isSidebarOpen ? 'open' : ''}>
-          <ToggleButton onClick={toggleSidebar} aria-label="Toggle sidebar">Menu</ToggleButton>
+          <ToggleButton onClick={toggleSidebar} aria-label="Toggle sidebar">
+            Menu
+          </ToggleButton>
           <div className="sidebar" dangerouslySetInnerHTML={{ __html: renderSidebar(postData) }} />
         </SidebarWrapper>
       </Container>
@@ -253,18 +323,32 @@ const renderSidebar = (post) => {
     <aside id="sidebar" class="sidebar">
       <div class="sidebar-header">Contents</div>
       <ul class="sidebar-list">
-        ${subtitles.length === 0 ? `
+        ${
+          subtitles.length === 0
+            ? `
           <div class="sidebar-empty">No sections available</div>
-        ` : subtitles.map((subtitle, index) => `
+        `
+            : subtitles
+                .map(
+                  (subtitle, index) => `
           <li class="sidebar-item" data-section="subtitle-${index}">
-            <a href="#${slugs[`subtitle-${index}`]}" class="sidebar-link" onclick="scrollToSection('subtitle-${index}'); return false;" aria-label="Navigate to ${escapeHTML(subtitle.title || `Section ${index + 1}`)}">${parseLinks(escapeHTML(subtitle.title || `Section ${index + 1}`), post.category || '')}</a>
+            <a href="#${slugs[`subtitle-${index}`]}" class="sidebar-link" onclick="scrollToSection('subtitle-${index}'); return false;" aria-label="Navigate to ${escapeHTML(
+              subtitle.title || `Section ${index + 1}`,
+            )}">${parseLinks(escapeHTML(subtitle.title || `Section ${index + 1}`), post.category || '')}</a>
           </li>
-        `).join('')}
-        ${post.summary ? `
+        `,
+                )
+                .join('')
+        }
+        ${
+          post.summary
+            ? `
           <li class="sidebar-item" data-section="summary">
             <a href="#summary" class="sidebar-link" onclick="scrollToSection('summary'); return false;" aria-label="Navigate to summary">Summary</a>
           </li>
-        ` : ''}
+        `
+            : ''
+        }
       </ul>
     </aside>
   `;
