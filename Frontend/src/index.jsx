@@ -17,8 +17,7 @@ console.log('[index.jsx] Data-hydration attribute:', rootElement?.hasAttribute('
 console.log('[index.jsx] Root innerHTML length:', rootElement?.innerHTML.length);
 console.log('[index.jsx] Root innerHTML snippet (first 500 chars):', rootElement?.innerHTML.slice(0, 500));
 
-if (rootElement.hasAttribute('data-hydration')) {
-  console.log('[index.jsx] Hydrating SSR content');
+if (rootElement) {
   hydrateRoot(
     rootElement,
     <React.StrictMode>
@@ -31,16 +30,5 @@ if (rootElement.hasAttribute('data-hydration')) {
     </React.StrictMode>
   );
 } else {
-  console.warn('[index.jsx] No SSR content detected, falling back to client-side rendering');
-  hydrateRoot(
-    rootElement,
-    <React.StrictMode>
-      <Provider store={store}>
-        <App />
-        <Suspense fallback={null}>
-          <ToastContainer />
-        </Suspense>
-      </Provider>
-    </React.StrictMode>
-  );
+  console.error('[index.jsx] Root element not found');
 }
