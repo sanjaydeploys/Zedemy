@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaHome, FaBook, FaCertificate, FaUserPlus, FaFileUpload, FaCog, FaFileCode } from 'react-icons/fa';
 import CategoryCarousel from '../components/CategoryCarousel';
-import SettingComponent grijhfrom './SettingComponent.jsx';
+import SettingComponent from './SettingComponent.jsx';
 import { useSelector } from 'react-redux';
 import Notification from '../components/Notification';
 
