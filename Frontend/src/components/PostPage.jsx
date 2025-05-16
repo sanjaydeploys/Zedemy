@@ -1,6 +1,6 @@
 import React, { memo, Suspense, useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchPostSSR, fetchPostBySlug, fetchCompletedPosts, fetchPosts } from '../actions/postActions';
+import { fetchPosts, fetchCompletedPosts } from '../actions/postActions';
 import { useParams } from 'react-router-dom';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import Sidebar from './Sidebar';
@@ -13,49 +13,40 @@ const PostPage = memo(() => {
   const dispatch = useDispatch();
   const postFromRedux = useSelector((state) => state.postReducer.post || {});
   const error = useSelector((state) => state.postReducer.error);
-  const relatedPosts = useSelector((state) => state.postReducer.posts || []).filter(
+  const relatedPosts = useSelector((state) => state.postReducer.posts || window.__RELATED_POSTS__ || []).filter(
     (p) => p.postId !== postFromRedux.postId && p.category?.toLowerCase() === postFromRedux.category?.toLowerCase()
   ).slice(0, 3);
-  const completedPosts = useSelector((state) => state.postReducer.completedPosts || []);
+  const completedPosts = useSelector((state) => state.postReducer.completedPosts || window.__COMPLETED_POSTS__ || []).slice(0, 2);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('');
   const priorityContentRef = useRef(null);
 
-  const readTime = postFromRedux.readTime || 1;
   const initialPostData = window.__POST_DATA__ || postFromRedux;
+  const readTime = initialPostData.readTime || 1;
 
   useEffect(() => {
-    const injectSSRHTML = async () => {
-      const priorityContent = document.getElementById('priority-content');
-      if (priorityContent?.innerHTML.trim() && priorityContent.querySelector('h1, img')) {
-        console.log('[PostPage] Valid SSR HTML found in #priority-content');
-        return;
+    const priorityContent = document.getElementById('priority-content');
+    const nonCriticalContent = document.getElementById('non-critical-content');
+    const sidebar = document.getElementById('sidebar');
+    if (priorityContent?.innerHTML.trim() && priorityContent.querySelector('h1, img')) {
+      console.log('[PostPage] Valid SSR HTML found in #priority-content');
+      if (nonCriticalContent?.innerHTML.trim() && sidebar?.innerHTML.trim()) {
+        console.log('[PostPage] SSR non-critical and sidebar content found');
+      } else {
+        console.warn('[PostPage] Missing SSR non-critical or sidebar content');
       }
+    } else {
+      console.warn('[PostPage] Invalid or empty #priority-content; client-side rendering may be needed');
+    }
 
-      console.log('[PostPage] Fetching SSR HTML for slug:', slug);
-      try {
-        const { html } = await dispatch(fetchPostSSR(slug));
-        if (priorityContentRef.current) {
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, 'text/html');
-          const ssrContent = doc.querySelector('#priority-content');
-          if (ssrContent) {
-            priorityContentRef.current.innerHTML = ssrContent.innerHTML;
-            console.log('[PostPage] Injected SSR HTML into #priority-content');
-          } else {
-            console.error('[PostPage] #priority-content not found in SSR HTML');
-          }
-        }
-      } catch (err) {
-        console.error('[PostPage] Failed to inject SSR HTML:', err.message);
-      }
-    };
-
-    injectSSRHTML();
-    dispatch(fetchPostBySlug(slug));
-    dispatch(fetchPosts());
-    dispatch(fetchCompletedPosts());
-  }, [dispatch, slug]);
+    // Fetch additional data only if not provided by SSR
+    if (!window.__RELATED_POSTS__?.length) {
+      dispatch(fetchPosts());
+    }
+    if (!window.__COMPLETED_POSTS__?.length) {
+      dispatch(fetchCompletedPosts());
+    }
+  }, [dispatch]);
 
   const scrollToSection = (sectionId) => {
     const element = document.getElementById(sectionId);
@@ -120,14 +111,16 @@ const PostPage = memo(() => {
         <main role="main" aria-label="Main content">
           <div id="priority-content" ref={priorityContentRef} style={{ minHeight: '600px' }} />
           <Suspense fallback={<div style={{ height: '200px', background: '#e0e0e0', borderRadius: '0.375rem', width: '100%' }} />}>
-            {initialPostData.title && (
-              <PostContentNonCritical
-                post={initialPostData}
-                relatedPosts={relatedPosts}
-                completedPosts={completedPosts}
-                dispatch={dispatch}
-              />
-            )}
+            <div id="non-critical-content">
+              {initialPostData.title && (
+                <PostContentNonCritical
+                  post={initialPostData}
+                  relatedPosts={relatedPosts}
+                  completedPosts={completedPosts}
+                  dispatch={dispatch}
+                />
+              )}
+            </div>
           </Suspense>
         </main>
         <aside id="sidebar" className={`sidebar-wrapper ${isSidebarOpen ? 'open' : ''}`}>
