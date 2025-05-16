@@ -95,7 +95,7 @@ export default defineConfig({
       '@pages': path.resolve(__dirname, 'src/pages'),
       '@actions': path.resolve(__dirname, 'src/actions'),
     },
-    dedupe: ['popper.js'],
+    dedupe: ['popper.js', 'styled-components'],
   },
   build: {
     minify: 'esbuild',
@@ -113,7 +113,7 @@ export default defineConfig({
           react: ['react', 'react-dom'],
           redux: ['redux', 'react-redux'],
           router: ['react-router-dom'],
-          uiLibs: ['framer-motion'],
+          uiLibs: ['framer-motion', 'styled-components'],
           utilities: ['react-helmet-async', 'dompurify', 'react-copy-to-clipboard'],
           syntax_highlighter: ['react-syntax-highlighter', 'highlight.js'],
           codemirror: ['@codemirror/view', '@codemirror/state'],
@@ -168,6 +168,7 @@ export default defineConfig({
     include: [
       'react',
       'react-dom',
+      'styled-components',
       path.resolve(__dirname, 'src/components/PostPage.jsx'),
       path.resolve(__dirname, 'src/components/PriorityContent.jsx'),
       path.resolve(__dirname, 'src/components/Layout.jsx'),
@@ -177,6 +178,9 @@ export default defineConfig({
     ],
     exclude: ['react-toastify', 'redux', 'react-redux', 'axios', 'highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'react-syntax-highlighter'],
     force: true,
+  },
+  ssr: {
+    noExternal: ['styled-components'],
   },
   server: {
     fs: { allow: ['.'] },
