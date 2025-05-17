@@ -202,6 +202,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/posts/, '/api/posts'),
       },
+      '/get-presigned-url': {
+        target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/get-presigned-url/, '/get-presigned-url'),
+      },
       '/api': {
         target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
         changeOrigin: true,
