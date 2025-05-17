@@ -187,6 +187,11 @@ export default defineConfig({
     hmr: { overlay: true },
     port: 5173,
     proxy: {
+      '/api/posts/complete/:postId': {
+        target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/posts\/complete/, '/api/posts/complete'),
+      },
       '/api': {
         target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
         changeOrigin: true,
