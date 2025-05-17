@@ -99,7 +99,7 @@ const Icon = styled.div`
 
 const MainContent = styled.div`
   margin-left: 40px;
-  padding: 20px;
+  padding: 0px;
   display: flex;
   flex-direction: column;
   color: ${({ color }) => color};
@@ -109,7 +109,6 @@ const MainContent = styled.div`
   background-image: ${({ backgroundImage }) => `url(${backgroundImage})`};
   border-radius: ${({ borderRadius }) => `${borderRadius}px`};
   box-shadow: ${({ boxShadow }) => boxShadow};
-  min-height: 100vh;
 `;
 
 const Layout = ({ children }) => {
@@ -125,17 +124,6 @@ const Layout = ({ children }) => {
     boxShadow,
   } = useSelector((state) => state.settings);
 
-  console.log('[Layout.jsx] Rendering Layout component', {
-    color,
-    fontFamily,
-    fontSize,
-    lineHeight,
-    iconColor,
-    backgroundImage,
-    borderRadius,
-    boxShadow,
-  });
-
   const toggleSettingPanel = () => {
     setIsSettingOpen(!isSettingOpen);
   };
@@ -148,28 +136,46 @@ const Layout = ({ children }) => {
     <>
       <Sidebar color={color}>
         <NavContainer>
-          <SidebarItem to="/" aria-label="Home" data-toast="Home">
+          <SidebarItem to="/" 
+            aria-label="Home"
+            data-toast="Home">
             <Icon iconColor={iconColor}><FaHome /></Icon>
+            
           </SidebarItem>
-          <SidebarItem to="/category" aria-label="Courses" data-toast="Courses">
+          <SidebarItem to="/category" 
+               aria-label="Courses" 
+
+            data-toast="Courses">
             <Icon iconColor={iconColor}><FaBook /></Icon>
+            
           </SidebarItem>
-          <SidebarItem to="/add-post" aria-label="Add Post" data-toast="Add Post">
+          <SidebarItem to="/add-post" 
+                      aria-label="Add Post" 
+
+            data-toast="Add Post">
             <Icon iconColor={iconColor}><FaFileUpload /></Icon>
+            
           </SidebarItem>
-          <SidebarItem to="/login" aria-label="User Login" data-toast="User Login">
+          <SidebarItem to="/login"
+                        aria-label="User Login" 
+data-toast="User Login">
             <Icon iconColor={iconColor}><FaUserPlus /></Icon>
           </SidebarItem>
-          <SidebarItem to="/certificate-verification" aria-label="Certificate Verification" data-toast="Certificate Verification">
+          
+          <SidebarItem to="/certificate-verification"
+            aria-label="Certificate Verification" 
+            data-toast="Certificate Verification">
             <Icon iconColor={iconColor}><FaCertificate /></Icon>
           </SidebarItem>
-          <SidebarItem to="/editor" aria-label="Code Editor" data-toast="Code Editor">
+          <SidebarItem to="/editor" 
+            aria-label="Code Editor" data-toast="Code Editor">
             <Icon iconColor={iconColor}><FaFileCode /></Icon>
           </SidebarItem>
 
           <CategoryCarousel />
 
-          <SidebarButton onClick={toggleSettingPanel} aria-label="Settings" data-toast="Settings">
+          <SidebarButton onClick={toggleSettingPanel} aria-label="Settings"
+            data-toast="Settings">
             <Icon iconColor={iconColor}><FaCog /></Icon>
           </SidebarButton>
         </NavContainer>
