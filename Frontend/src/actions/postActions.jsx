@@ -3,6 +3,30 @@ import { toast } from 'react-toastify';
 const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
 const SSR_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod';
 
+// Utility function for retrying fetch requests
+const fetchWithRetry = async (url, options, retries = 3, delay = 1000) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const res = await fetch(url, options);
+      if (res.ok) return res;
+      const errorText = await res.text().catch(() => 'No error details available');
+      console.warn(`[fetchWithRetry] Attempt ${i + 1} failed: ${res.status} - ${errorText}`);
+      if (i < retries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw new Error(`HTTP error! status: ${res.status}, details: ${errorText}`);
+      }
+    } catch (error) {
+      if (i < retries - 1) {
+        console.warn(`[fetchWithRetry] Attempt ${i + 1} error: ${error.message}`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        throw error;
+      }
+    }
+  }
+};
+
 export const fetchPostSSR = (slug) => async (dispatch) => {
   try {
     const response = await fetch(`${SSR_BASE_URL}/post/${slug}`, {
@@ -41,7 +65,6 @@ export const fetchPostSSR = (slug) => async (dispatch) => {
   }
 };
 
-// Other actions remain unchanged
 export const fetchPostBySlug = (slug) => async (dispatch, getState) => {
   try {
     console.log('[fetchPostBySlug] Starting for slug:', slug);
@@ -223,7 +246,7 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
   }
   console.log('[markPostAsCompleted] Marking post as completed:', postId);
   try {
-    const res = await fetch(`${API_BASE_URL}/complete/${postId}`, {
+    const res = await fetchWithRetry(`${API_BASE_URL}/complete/${postId}`, {
       method: 'PUT',
       headers: {
         'Accept': 'application/json',
@@ -231,11 +254,7 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
         'x-auth-token': token
       },
       body: JSON.stringify({})
-    });
-    if (!res.ok) {
-      const errorText = await res.text().catch(() => 'No error details available');
-      throw new Error(`HTTP error! status: ${res.status}, details: ${errorText}`);
-    }
+    }, 3, 1000);
     const data = await res.json();
     dispatch({ type: 'MARK_POST_COMPLETED_SUCCESS', payload: { postId } });
     if (data.certificateUrl) {
@@ -255,24 +274,26 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
   }
 };
 
-export const fetchCompletedPosts = () => async (dispatch) => {
+export const fetchCompletedPosts = ({ retries = 3, delay = 1000 } = {}) => async (dispatch) => {
   const token = localStorage.getItem('token');
-  if (!token) return;
+  if (!token) {
+    console.log('[fetchCompletedPosts] No token found');
+    return;
+  }
   console.log('[fetchCompletedPosts] Fetching completed posts');
   try {
-    const res = await fetch(`${API_BASE_URL}/completed`, {
+    const res = await fetchWithRetry(`${API_BASE_URL}/completed`, {
       headers: {
         'Accept': 'application/json',
         'Accept-Encoding': 'gzip, deflate, br',
         'x-auth-token': token
       }
-    });
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    }, retries, delay);
     const data = await res.json();
     dispatch({ type: 'FETCH_COMPLETED_POSTS_SUCCESS', payload: data });
   } catch (error) {
     console.error('[fetchCompletedPosts] Error:', error.message);
-    dispatch({ type: 'FETCH_COMPLETED_POSTS_FAILURE' });
-    toast.error('Failed to fetch completed posts.', { position: 'top-right', autoClose: 2000 });
+    dispatch({ type: 'FETCH_COMPLETED_POSTS_FAILURE', payload: error.message });
+    toast.error(`Failed to fetch completed posts: ${error.message}`, { position: 'top-right', autoClose: 3000 });
   }
 };
