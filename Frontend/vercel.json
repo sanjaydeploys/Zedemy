@@ -92,6 +92,10 @@
       "destination": "https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed"
     },
     {
+      "source": "/api/posts",
+      "destination": "https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/:path*"
     },
