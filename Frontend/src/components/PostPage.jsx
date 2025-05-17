@@ -38,7 +38,6 @@ const PostPage = memo(() => {
   // Fetch SSR HTML
   useEffect(() => {
     if (!window.__POST_DATA__ || !postData.title) {
-      console.log('[PostPage.jsx] Fetching post SSR for slug:', slug);
       dispatch(fetchPostSSR(slug))
         .then(({ html, postData: fetchedPostData }) => {
           setSsrHtml(html);
