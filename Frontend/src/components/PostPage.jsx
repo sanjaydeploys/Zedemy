@@ -60,7 +60,7 @@ const PostPage = memo(() => {
         </Helmet>
         <div className="container">
           <main>
-            <div style={{ color: '#d32f2f', fontSize: '0.875rem', text-align: 'center', padding: '0.5rem', background: '#ffebee', borderRadius: '0.25rem' }}>
+            <div style={{ color: '#d32f2f', fontSize: '0.875rem', textAlign: 'center', padding: '0.5rem', background: '#ffebee', borderRadius: '0.25rem' }}>
               Failed to load the post: {error || 'Not found'}. Please try again later.
             </div>
           </main>
