@@ -4,29 +4,19 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import styled from 'styled-components';
 import { fetchPostSSR } from '../actions/postActions';
-
-// Styled Components
 const Layout = styled.div`
   display: flex;
   min-height: 100vh;
 `;
-
 const PostContent = styled.div`
   flex: 1;
 `;
-
 const PostPage = memo(() => {
   const { slug } = useParams();
   const dispatch = useDispatch();
   const [ssrHtml, setSsrHtml] = useState('');
   const postData = useSelector((state) => state.postReducer.post) || window.__POST_DATA__ || {};
   const error = useSelector((state) => state.postReducer.error);
-
-  console.log('[PostPage.jsx] window.__POST_DATA__:', window.__POST_DATA__);
-  console.log('[PostPage.jsx] Redux postData:', postData);
-  console.log('[PostPage.jsx] Slug:', slug);
-  console.log('[PostPage.jsx] Error:', error);
-
   // Load sidebar.js dynamically to ensure toggleSidebar and scrollToSection are defined
   useEffect(() => {
     const loadSidebarScript = () => {
@@ -43,34 +33,27 @@ const PostPage = memo(() => {
         console.log('[PostPage.jsx] sidebar.js already loaded');
       }
     };
-
     loadSidebarScript();
   }, []);
-
   // Fetch SSR HTML
   useEffect(() => {
     if (!window.__POST_DATA__ || !postData.title) {
       console.log('[PostPage.jsx] Fetching post SSR for slug:', slug);
       dispatch(fetchPostSSR(slug))
         .then(({ html, postData: fetchedPostData }) => {
-          console.log('[PostPage.jsx] SSR fetched, html length:', html?.length);
           setSsrHtml(html);
           if (fetchedPostData.title) {
             dispatch({ type: 'FETCH_POST_SUCCESS', payload: fetchedPostData });
           }
         })
         .catch((err) => {
-          console.error('[PostPage.jsx] Error fetching SSR:', err);
           setSsrHtml('');
         });
     } else {
-      console.log('[PostPage.jsx] Using SSR HTML from document');
       setSsrHtml(document.documentElement.outerHTML);
     }
   }, [slug, dispatch, postData]);
-
   if (error || (!postData.title && !ssrHtml)) {
-    console.log('[PostPage.jsx] Rendering error state');
     return (
       <HelmetProvider>
         <Helmet>
@@ -89,9 +72,6 @@ const PostPage = memo(() => {
       </HelmetProvider>
     );
   }
-
-  console.log('[PostPage.jsx] Rendering SSR HTML, ssrHtml length:', ssrHtml?.length);
-
   return (
     <HelmetProvider>
       <Helmet>
@@ -104,5 +84,4 @@ const PostPage = memo(() => {
     </HelmetProvider>
   );
 });
-
 export default PostPage;
