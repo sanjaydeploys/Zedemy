@@ -96,6 +96,10 @@
       "destination": "https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts"
     },
     {
+      "source": "/get-presigned-url",
+      "destination": "https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/get-presigned-url"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/:path*"
     },
