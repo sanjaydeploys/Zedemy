@@ -77,30 +77,17 @@ const initializeStore = async () => {
         try {
             await store.dispatch(loadUser());
             await store.dispatch(fetchFollowedCategories());
-            // Defer non-critical actions to after initial render
-            if (typeof window !== 'undefined' && window.requestIdleCallback) {
-                window.requestIdleCallback(() => {
-                    Promise.all([
-                        store.dispatch(fetchUserPosts()),
-                        store.dispatch(fetchCompletedPosts()),
-                        store.dispatch(fetchNotifications()),
-                        store.dispatch(fetchCertificates())
-                    ]).catch(error => {
-                        console.error('[initializeStore] Error in deferred fetches:', error);
-                    });
-                }, { timeout: 10000 }); // Increased timeout to 10s
-            } else {
-                setTimeout(() => {
-                    Promise.all([
-                        store.dispatch(fetchUserPosts()),
-                        store.dispatch(fetchCompletedPosts()),
-                        store.dispatch(fetchNotifications()),
-                        store.dispatch(fetchCertificates())
-                    ]).catch(error => {
-                        console.error('[initializeStore] Error in deferred fetches:', error);
-                    });
-                }, 5000); // Deferred to 5s
-            }
+            // Defer non-critical actions with setTimeout
+            setTimeout(() => {
+                Promise.all([
+                    store.dispatch(fetchUserPosts()),
+                    store.dispatch(fetchCompletedPosts({ retries: 3, delay: 1000 })),
+                    store.dispatch(fetchNotifications()),
+                    store.dispatch(fetchCertificates())
+                ]).catch(error => {
+                    console.error('[initializeStore] Error in deferred fetches:', error);
+                });
+            }, 2000); // Defer by 2 seconds
         } catch (error) {
             console.error('[initializeStore] Error:', error);
         }
@@ -116,7 +103,6 @@ initializeStore().catch(error => {
 store.subscribe(
     throttle(() => {
         const state = store.getState();
-        // Save only changed parts of the state
         const persistedData = {
             auth: {
                 user: state.auth.user,
@@ -126,24 +112,21 @@ store.subscribe(
             },
             notifications: {
                 followedCategories: state.notifications.followedCategories
-                // Exclude notifications to reduce size
             },
             postReducer: {
                 post: state.postReducer.post,
                 loading: state.postReducer.loading,
                 error: state.postReducer.error
-                // Exclude posts, userPosts, completedPosts, searchResults to reduce size
             },
             certificates: {
                 loading: state.certificates.loading,
                 error: state.certificates.error
-                // Exclude certificates to reduce size
             },
             settings: state.settings
         };
         saveState(persistedData);
         console.log('[store.subscribe] Saved to localStorage:', persistedData);
-    }, 2000) // Increased throttle to 2s
+    }, 2000)
 );
 
 export default store;
