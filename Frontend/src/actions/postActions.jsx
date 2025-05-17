@@ -5,7 +5,6 @@ const SSR_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/pr
 
 export const fetchPostSSR = (slug) => async (dispatch) => {
   try {
-    console.log('[fetchPostSSR] Fetching SSR HTML for slug:', slug);
     const response = await fetch(`${SSR_BASE_URL}/post/${slug}`, {
       headers: {
         'Accept': 'text/html',
@@ -18,7 +17,6 @@ export const fetchPostSSR = (slug) => async (dispatch) => {
     }
 
     const html = await response.text();
-    console.log('[fetchPostSSR] Received SSR HTML:', html.slice(0, 200));
 
     const match = html.match(/window\.__POST_DATA__\s*=\s*({[\s\S]*?});/);
     let postData = {};
@@ -37,7 +35,6 @@ export const fetchPostSSR = (slug) => async (dispatch) => {
 
     return { html, postData };
   } catch (error) {
-    console.error('[fetchPostSSR] Error:', error.message);
     dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
     toast.error('Failed to load SSR data.', { position: 'top-right', autoClose: 3000 });
     throw error;
@@ -50,17 +47,14 @@ export const fetchPostBySlug = (slug) => async (dispatch, getState) => {
     console.log('[fetchPostBySlug] Starting for slug:', slug);
     const currentPost = getState().postReducer.post;
     if (currentPost?.slug === slug && currentPost.subtitles && currentPost.references) {
-      console.log('[fetchPostBySlug] Using existing Redux post:', currentPost.title);
       return;
     }
 
-    console.log('[fetchPostBySlug] Fetching non-critical data from API for slug:', slug);
     const apiRes = await fetch(`${API_BASE_URL}/${slug}?viewport=mobile`, {
       headers: { 'Accept': 'application/json' }
     });
     if (!apiRes.ok) throw new Error(`API error: ${apiRes.status}`);
     const postData = await apiRes.json();
-    console.log('[fetchPostBySlug] API response:', JSON.stringify(postData, null, 2));
 
     dispatch({
       type: 'FETCH_POST_SUCCESS',
@@ -84,7 +78,6 @@ export const fetchPostBySlug = (slug) => async (dispatch, getState) => {
       }
     });
   } catch (error) {
-    console.error('[fetchPostBySlug] Error:', error.message);
     dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
     toast.error('Failed to load post data.', { position: 'top-right', autoClose: 3000 });
   }
@@ -92,7 +85,6 @@ export const fetchPostBySlug = (slug) => async (dispatch, getState) => {
 
 export const searchPosts = (slug) => async (dispatch) => {
   try {
-    console.log('[searchPosts] Searching for query:', slug);
     const res = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(slug)}`, {
       headers: {
         'Accept': 'application/json',
@@ -103,7 +95,6 @@ export const searchPosts = (slug) => async (dispatch) => {
     const data = await res.json();
     dispatch({ type: 'SEARCH_POSTS_SUCCESS', payload: data });
   } catch (error) {
-    console.error('[searchPosts] Error:', error.message);
     dispatch({ type: 'SEARCH_POSTS_FAILURE', payload: error.message });
     toast.error('Failed to search posts.', { position: 'top-right', autoClose: 2000 });
   }
@@ -112,7 +103,6 @@ export const searchPosts = (slug) => async (dispatch) => {
 export const fetchPosts = () => async (dispatch) => {
   const token = localStorage.getItem('token');
   try {
-    console.log('[fetchPosts] Fetching posts');
     const headers = {
       'Accept': 'application/json',
       'Accept-Encoding': 'gzip, deflate, br'
@@ -125,7 +115,6 @@ export const fetchPosts = () => async (dispatch) => {
     const data = await res.json();
     dispatch({ type: 'FETCH_POSTS_SUCCESS', payload: data });
   } catch (error) {
-    console.error('[fetchPosts] Error:', error.message);
     dispatch({ type: 'FETCH_POSTS_FAILURE', payload: error.message });
     toast.error('Failed to fetch posts.', { position: 'top-right', autoClose: 2000 });
   }
@@ -136,7 +125,6 @@ export const fetchUserPosts = () => async (dispatch) => {
   if (!token) return;
   dispatch({ type: 'FETCH_USER_POSTS_REQUEST' });
   try {
-    console.log('[fetchUserPosts] Fetching user posts');
     const res = await fetch(`${API_BASE_URL}/userposts`, {
       headers: {
         'Accept': 'application/json',
@@ -148,7 +136,6 @@ export const fetchUserPosts = () => async (dispatch) => {
     const data = await res.json();
     dispatch({ type: 'FETCH_USER_POSTS_SUCCESS', payload: data });
   } catch (error) {
-    console.error('[fetchUserPosts] Error:', error.message);
     dispatch({ type: 'FETCH_USER_POSTS_FAILURE', payload: error.message });
   }
 };
