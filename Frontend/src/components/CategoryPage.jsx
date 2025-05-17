@@ -1,35 +1,58 @@
 import React, { useEffect, useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchPosts } from '../actions/postActions';
+import { fetchPosts, markPostAsCompleted, fetchCompletedPosts } from '../actions/postActions';
 import { Link, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Helmet } from 'react-helmet';
+import { toast } from 'react-toastify';
 import '../styles/CategoryPage.css';
 
 // Lazy-load ChatWindow
 const ChatWindow = lazy(() => import('./ChatWindow'));
 
 // Memoized PostItem
-const PostItem = React.memo(({ post, fallbackImage }) => (
-  <motion.div
-    className="post-item"
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5 }}
-  >
-    <Link to={`/post/${post.slug}`} className="post-link">
-      <div className="post-title-container">
-        <img
-          src={post.titleImage || fallbackImage}
-          alt={`${post.title} thumbnail`}
-          className="post-image"
-          loading="lazy"
-        />
-        <h3 className="post-title">{post.title}</h3>
+const PostItem = React.memo(({ post, fallbackImage }) => {
+  const dispatch = useDispatch();
+  const completedPosts = useSelector(state => state.postReducer.completedPosts || []);
+  const isCompleted = completedPosts.some(cp => cp.postId === post.postId);
+
+  const handleMarkAsCompleted = () => {
+    if (!isCompleted && post?.postId) {
+      dispatch(markPostAsCompleted(post.postId));
+    }
+  };
+
+  return (
+    <motion.div
+      className="post-item"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <div className="post-content">
+        <Link to={`/post/${post.slug}`} className="post-link">
+          <div className="post-title-container">
+            <img
+              src={post.titleImage || fallbackImage}
+              alt={`${post.title} thumbnail`}
+              className="post-image"
+              loading="lazy"
+            />
+            <h3 className="post-title">{post.title}</h3>
+          </div>
+        </Link>
+        <button
+          className={`complete-button ${isCompleted ? 'completed' : ''}`}
+          onClick={handleMarkAsCompleted}
+          disabled={isCompleted}
+          aria-label={isCompleted ? 'Post already marked as completed' : 'Mark post as completed'}
+        >
+          {isCompleted ? 'Completed' : 'Mark as Completed'}
+        </button>
       </div>
-    </Link>
-  </motion.div>
-));
+    </motion.div>
+  );
+});
 
 const CategoryPage = () => {
   const { category } = useParams();
@@ -39,6 +62,7 @@ const CategoryPage = () => {
 
   useEffect(() => {
     dispatch(fetchPosts());
+    dispatch(fetchCompletedPosts());
   }, [dispatch]);
 
   const filteredPosts = useMemo(() => {
