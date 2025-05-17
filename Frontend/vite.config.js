@@ -192,6 +192,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/posts\/complete/, '/api/posts/complete'),
       },
+      '/api/posts/completed': {
+        target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/posts\/completed/, '/api/posts/completed'),
+      },
       '/api': {
         target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
         changeOrigin: true,
