@@ -1,177 +1,203 @@
-import { useRef, useEffect, Suspense } from 'react';
-import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
+import { FaHome, FaBook, FaCertificate, FaUserPlus, FaFileUpload, FaCog, FaFileCode } from 'react-icons/fa';
+import CategoryCarousel from '../components/CategoryCarousel';
+import SettingComponent from './SettingComponent.jsx';
+import { useSelector } from 'react-redux';
+import Notification from '../components/Notification';
 
-const ZoomContainer = styled.div`
-  width: 100%;
-  max-width: 280px;
-  margin: 0.5rem 0;
-  min-height: 209.5px;
-  contain-intrinsic-size: 280px 209.5px;
-  box-sizing: border-box;
-  contain: layout;
-  @media (min-width: 769px) {
-    max-width: 480px;
-    min-height: 322px;
-    contain-intrinsic-size: 480px 322px;
-  }
-  @media (max-width: 480px) {
-    max-width: 240px;
-    min-height: 187px;
-    contain-intrinsic-size: 240px 187px;
-  }
-  @media (max-width: 320px) {
-    max-width: 200px;
-    min-height: 164.5px;
-    contain-intrinsic-size: 200px 164.5px;
-  }
-`;
-
-const ButtonContainer = styled.div`
+// Sidebar styles
+const Sidebar = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 40px;
+  background-color: ${({ color }) => color};
+  z-index: 999;
   display: flex;
-  gap: 0.5rem;
-  justify-content: center;
-  margin-top: 0.25rem;
-  min-height: 36px;
-  contain-intrinsic-size: 100% 36px;
-  box-sizing: border-box;
-  contain: layout;
+  flex-direction: column;
+  align-items: center;
 `;
 
-const ZoomButton = styled.button`
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  background: #0069d9;
-  color: #ffffff;
-  border: none;
-  border-radius: 0.25rem;
-  cursor: pointer;
-  min-height: 24px;
-  contain-intrinsic-size: 60px 24px;
-  box-sizing: border-box;
-  contain: layout;
-`;
-
-const Caption = styled.figcaption`
-  font-size: 0.75rem;
-  color: #666;
-  text-align: center;
-  margin-top: 0.25rem;
-  min-height: 16px;
-  contain-intrinsic-size: 100% 16px;
-  box-sizing: border-box;
-  contain: layout;
-`;
-
-const Placeholder = styled.div`
+const NavContainer = styled.div`
+  margin-top: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
-  max-width: 280px;
-  min-height: 157.5px;
-  aspect-ratio: 16 / 9;
-  background: #f0f0f0;
+`;
+
+const SidebarItem = styled(Link)`
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666;
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  contain-intrinsic-size: 280px 157.5px;
-  box-sizing: border-box;
-  contain: layout;
-  @media (min-width: 769px) {
-    max-width: 480px;
-    min-height: 270px;
-    contain-intrinsic-size: 480px 270px;
-  }
-  @media (max-width: 480px) {
-    max-width: 240px;
-    min-height: 135px;
-    contain-intrinsic-size: 240px 135px;
-  }
-  @media (max-width: 320px) {
-    max-width: 200px;
-    min-height: 112.5px;
-    contain-intrinsic-size: 200px 112.5px;
-  }
-`;
-
-const TransformContent = styled.div`
+  color: #fff;
+  text-decoration: none;
   width: 100%;
-  max-width: 280px;
-  min-height: 157.5px;
-  contain-intrinsic-size: 280px 157.5px;
-  box-sizing: border-box;
-  contain: layout;
-  @media (min-width: 769px) {
-    max-width: 480px;
-    min-height: 270px;
-    contain-intrinsic-size: 480px 270px;
+  padding: 12px 0;
+  transition: background-color 0.3s ease;
+  position: relative;
+
+  &:hover {
+    background-color: #555;
   }
-  @media (max-width: 480px) {
-    max-width: 240px;
-    min-height: 135px;
-    contain-intrinsic-size: 240px 135px;
-  }
-  @media (max-width: 320px) {
-    max-width: 200px;
-    min-height: 112.5px;
-    contain-intrinsic-size: 200px 112.5px;
+
+  &:hover::after {
+    content: attr(data-toast);
+    position: absolute;
+    top: 50%;
+    left: 50px;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    white-space: nowrap;
   }
 `;
 
-const AccessibleZoom = ({ children, caption, ...props }) => {
-  const wrapperRef = useRef(null);
+const SidebarButton = styled.button`
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  width: 100%;
+  padding: 12px 0;
+  cursor: pointer;
+  position: relative;
 
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === 'Escape') {
-        wrapperRef.current?.instance?.resetTransform();
-      }
-    };
+  &:hover {
+    background-color: #555;
+  }
 
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  &:hover::after {
+    content: attr(data-toast);
+    position: absolute;
+    top: 50%;
+    left: 50px;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+`;
+
+const Icon = styled.div`
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: ${({ iconColor }) => iconColor || '#4d9f0c'};
+`;
+
+const MainContent = styled.div`
+  margin-left: 40px;
+  padding: 0px;
+  display: flex;
+  flex-direction: column;
+  color: ${({ color }) => color};
+  font-family: ${({ fontFamily }) => fontFamily};
+  font-size: ${({ fontSize }) => `${fontSize}px`};
+  line-height: ${({ lineHeight }) => lineHeight};
+  background-image: ${({ backgroundImage }) => `url(${backgroundImage})`};
+  border-radius: ${({ borderRadius }) => `${borderRadius}px`};
+  box-shadow: ${({ boxShadow }) => boxShadow};
+`;
+
+const Layout = ({ children }) => {
+  const [isSettingOpen, setIsSettingOpen] = useState(false);
+  const {
+    color,
+    fontFamily,
+    fontSize,
+    lineHeight,
+    iconColor,
+    backgroundImage,
+    borderRadius,
+    boxShadow,
+  } = useSelector((state) => state.settings);
+
+  const toggleSettingPanel = () => {
+    setIsSettingOpen(!isSettingOpen);
+  };
+
+  const handleCloseSetting = () => {
+    setIsSettingOpen(false);
+  };
 
   return (
-    <ZoomContainer role="figure" aria-label={caption || 'Zoomable image'}>
-      <Suspense fallback={<Placeholder>Loading image...</Placeholder>}>
-        <TransformWrapper
-          initialScale={1}
-          minScale={1}
-          maxScale={3}
-          wheel={{ disabled: true }}
-          pinch={{ step: 5 }}
-          doubleClick={{ step: 0.5 }}
-          ref={wrapperRef}
-          {...props}
-        >
-          {({ zoomIn, zoomOut, resetTransform }) => (
-            <>
-              <TransformContent>
-                <TransformComponent>{children}</TransformComponent>
-              </TransformContent>
-              <ButtonContainer>
-                <ZoomButton onClick={() => zoomIn()} aria-label="Zoom in">
-                  +
-                </ZoomButton>
-                <ZoomButton onClick={() => zoomOut()} aria-label="Zoom out">
-                  -
-                </ZoomButton>
-                <ZoomButton
-                  onClick={() => resetTransform()}
-                  aria-label="Reset zoom"
-                >
-                  Reset
-                </ZoomButton>
-              </ButtonContainer>
-            </>
-          )}
-        </TransformWrapper>
-        {caption && <Caption>{caption}</Caption>}
-      </Suspense>
-    </ZoomContainer>
+    <>
+      <Sidebar color={color}>
+        <NavContainer>
+          <SidebarItem to="/" 
+            aria-label="Home"
+            data-toast="Home">
+            <Icon iconColor={iconColor}><FaHome /></Icon>
+            
+          </SidebarItem>
+          <SidebarItem to="/category" 
+               aria-label="Courses" 
+
+            data-toast="Courses">
+            <Icon iconColor={iconColor}><FaBook /></Icon>
+            
+          </SidebarItem>
+          <SidebarItem to="/add-post" 
+                      aria-label="Add Post" 
+
+            data-toast="Add Post">
+            <Icon iconColor={iconColor}><FaFileUpload /></Icon>
+            
+          </SidebarItem>
+          <SidebarItem to="/login"
+                        aria-label="User Login" 
+data-toast="User Login">
+            <Icon iconColor={iconColor}><FaUserPlus /></Icon>
+          </SidebarItem>
+          
+          <SidebarItem to="/certificate-verification"
+            aria-label="Certificate Verification" 
+            data-toast="Certificate Verification">
+            <Icon iconColor={iconColor}><FaCertificate /></Icon>
+          </SidebarItem>
+          <SidebarItem to="/editor" 
+            aria-label="Code Editor" data-toast="Code Editor">
+            <Icon iconColor={iconColor}><FaFileCode /></Icon>
+          </SidebarItem>
+
+          <CategoryCarousel />
+
+          <SidebarButton onClick={toggleSettingPanel} aria-label="Settings"
+            data-toast="Settings">
+            <Icon iconColor={iconColor}><FaCog /></Icon>
+          </SidebarButton>
+        </NavContainer>
+
+        <Notification />
+      </Sidebar>
+
+      <MainContent
+        color={color}
+        fontFamily={fontFamily}
+        fontSize={fontSize}
+        lineHeight={lineHeight}
+        backgroundImage={backgroundImage}
+        borderRadius={borderRadius}
+        boxShadow={boxShadow}
+      >
+        {children}
+      </MainContent>
+
+      {isSettingOpen && <SettingComponent onClose={handleCloseSetting} />}
+    </>
   );
 };
 
-export default AccessibleZoom;
+export default Layout;
