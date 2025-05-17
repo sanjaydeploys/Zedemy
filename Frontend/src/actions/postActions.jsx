@@ -232,7 +232,10 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
       },
       body: JSON.stringify({})
     });
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    if (!res.ok) {
+      const errorText = await res.text().catch(() => 'No error details available');
+      throw new Error(`HTTP error! status: ${res.status}, details: ${errorText}`);
+    }
     const data = await res.json();
     dispatch({ type: 'MARK_POST_COMPLETED_SUCCESS', payload: { postId } });
     if (data.certificateUrl) {
@@ -248,7 +251,7 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
     dispatch({ type: 'FETCH_COMPLETED_POSTS' });
   } catch (error) {
     console.error('[markPostAsCompleted] Error:', error.message);
-    toast.error('Failed to mark post.', { position: 'top-right', autoClose: 2000 });
+    toast.error(`Failed to mark post: ${error.message}`, { position: 'top-right', autoClose: 3000 });
   }
 };
 
