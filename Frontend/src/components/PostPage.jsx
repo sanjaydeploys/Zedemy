@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import styled from 'styled-components';
-import Sidebar from './Sidebar';
 import { fetchPostSSR } from '../actions/postActions';
 
 // Styled Components
@@ -19,8 +18,6 @@ const PostContent = styled.div`
 const PostPage = memo(() => {
   const { slug } = useParams();
   const dispatch = useDispatch();
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState('');
   const [ssrHtml, setSsrHtml] = useState('');
   const postData = useSelector((state) => state.postReducer.post) || window.__POST_DATA__ || {};
   const error = useSelector((state) => state.postReducer.error);
@@ -49,35 +46,7 @@ const PostPage = memo(() => {
       console.log('[PostPage.jsx] Using SSR HTML from document');
       setSsrHtml(document.documentElement.outerHTML);
     }
-
-    // Handle scroll to set active section
-    const handleScroll = () => {
-      const sections = postData.subtitles?.map((_, i) => `subtitle-${i}`) || [];
-      if (postData.summary) sections.push('summary');
-      let currentSection = '';
-      for (const section of sections) {
-        const element = document.getElementById(section);
-        if (element && element.getBoundingClientRect().top <= 100) {
-          currentSection = section;
-        }
-      }
-      setActiveSection(currentSection);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
   }, [slug, dispatch, postData]);
-
-  const scrollToSection = (sectionId) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-      setActiveSection(sectionId);
-      if (isSidebarOpen) {
-        setSidebarOpen(false);
-      }
-    }
-  };
 
   if (error || (!postData.title && !ssrHtml)) {
     console.log('[PostPage.jsx] Rendering error state');
@@ -91,7 +60,7 @@ const PostPage = memo(() => {
         </Helmet>
         <div className="container">
           <main>
-            <div style={{ color: '#d32f2f', fontSize: '0.875rem', textAlign: 'center', padding: '0.5rem', background: '#ffebee', borderRadius: '0.25rem' }}>
+            <div style={{ color: '#d32f2f', fontSize: '0.875rem', text-align: 'center', padding: '0.5rem', background: '#ffebee', borderRadius: '0.25rem' }}>
               Failed to load the post: {error || 'Not found'}. Please try again later.
             </div>
           </main>
@@ -110,13 +79,6 @@ const PostPage = memo(() => {
       </Helmet>
       <Layout>
         <PostContent dangerouslySetInnerHTML={{ __html: ssrHtml }} />
-        <Sidebar
-          post={postData}
-          isSidebarOpen={isSidebarOpen}
-          setSidebarOpen={setSidebarOpen}
-          activeSection={activeSection}
-          scrollToSection={scrollToSection}
-        />
       </Layout>
     </HelmetProvider>
   );
