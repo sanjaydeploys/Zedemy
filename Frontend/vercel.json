@@ -60,11 +60,11 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800"
+          "value": "public, max-age=86400, s-maxage=86400, must-revalidate, stale-while-revalidate=604800"
         },
         {
           "key": "Content-Type",
-          "value": "text/html"
+          "value": "text/html; charset=utf-8"
         }
       ]
     },
@@ -106,6 +106,10 @@
     {
       "source": "/assets/:path*",
       "destination": "/assets/:path*"
+    },
+    {
+      "source": "/error",
+      "destination": "/error.html"
     },
     {
       "source": "/",
