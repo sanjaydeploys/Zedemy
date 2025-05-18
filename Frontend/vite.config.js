@@ -31,4 +31,192 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['**/*.{js,css,html,png,jpg,jpeg,gif,webp,mp4,webm}'],
       workbox: {
-        globPatterns: ['**/*.{js,
+        globPatterns: ['**/*.{js,css,html,png,jpg,jpeg,gif,webp,mp4,webm}'],
+        runtimeCaching: [
+          {
+            urlPattern: /\.(?:js|css)$/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'static-assets',
+              expiration: { maxEntries: 50, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /\.(?:png|jpg|jpeg|gif|webp|mp4|webm)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'media-assets',
+              expiration: { maxEntries: 50, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/se3fw2nzc2\.execute-api\.ap-south-1\.amazonaws\.com\/prod\/post/,
+            handler: 'NetworkOnly',
+            options: {
+              cacheName: 'ssr-post',
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/se3fw2nzc2\.execute-api\.ap-south-1\.amazonaws\.com/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              expiration: { maxEntries: 100, maxAgeSeconds: 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+              networkTimeoutSeconds: 5,
+            },
+          },
+          {
+            urlPattern: /^https:\/\/zedemy-media-2025\.s3\.ap-south-1\.amazonaws\.com/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'media-cache',
+              expiration: { maxEntries: 50, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
+      },
+      manifest: {
+        name: 'LearnX',
+        short_name: 'LearnX',
+        description: 'Tech tutorials for Indian students',
+        theme_color: '#2c3e50',
+        icons: [],
+      },
+    }),
+  ],
+  resolve: {
+    alias: {
+      '@components': path.resolve(__dirname, 'src/components'),
+      '@pages': path.resolve(__dirname, 'src/pages'),
+      '@actions': path.resolve(__dirname, 'src/actions'),
+    },
+    dedupe: ['popper.js', 'styled-components'],
+  },
+  build: {
+    minify: 'esbuild',
+    sourcemap: true,
+    target: 'esnext',
+    treeshake: 'recommended',
+    modulePreload: {
+      polyfill: true,
+    },
+    manifest: true,
+    rollupOptions: {
+      output: {
+        experimentalMinChunkSize: 10000,
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          redux: ['redux', 'react-redux'],
+          router: ['react-router-dom'],
+          uiLibs: ['framer-motion', 'styled-components'],
+          utilities: ['react-helmet-async', 'dompurify', 'react-copy-to-clipboard'],
+          syntax_highlighter: ['react-syntax-highlighter', 'highlight.js'],
+          codemirror: ['@codemirror/view', '@codemirror/state'],
+          parse5: ['parse5'],
+          lodash: ['lodash'],
+          toast: ['react-toastify'],
+          post: [
+            path.resolve(__dirname, 'src/components/PostPage.jsx'),
+            path.resolve(__dirname, 'src/components/PriorityContent.jsx'),
+          ],
+          layout: [path.resolve(__dirname, 'src/components/Layout.jsx')],
+          home: [path.resolve(__dirname, 'src/pages/Home.jsx')],
+          register: [path.resolve(__dirname, 'src/pages/Register.jsx')],
+          dashboard: [path.resolve(__dirname, 'src/pages/Dashboard.jsx')],
+          adminDashboard: [path.resolve(__dirname, 'src/components/AdminDashboard.jsx')],
+          postList: [path.resolve(__dirname, 'src/components/PostList.jsx')],
+          categoryPage: [path.resolve(__dirname, 'src/components/CategoryPage.jsx')],
+          forgotPassword: [path.resolve(__dirname, 'src/pages/ForgotPassword.jsx')],
+          resetPassword: [path.resolve(__dirname, 'src/pages/ResetPassword.jsx')],
+          verifyCertificate: [path.resolve(__dirname, 'src/components/VerifyCertificate.jsx')],
+          category: [path.resolve(__dirname, 'src/pages/Category.jsx')],
+          footer: [path.resolve(__dirname, 'src/components/Footer.jsx')],
+          notification: [path.resolve(__dirname, 'src/components/Notification.jsx')],
+          codeEditor: [path.resolve(__dirname, 'src/components/CodeEditor.jsx')],
+          faqPage: [path.resolve(__dirname, 'src/components/FAQPage.jsx')],
+          addPostForm: [path.resolve(__dirname, 'src/components/AddPostForm.jsx')],
+        },
+        chunkFileNames: (chunkInfo) => {
+          if (['post', 'layout'].includes(chunkInfo.name)) {
+            return 'assets/priority-[name]-[hash].js';
+          }
+          if (['react', 'redux', 'router', 'uiLibs', 'utilities', 'syntax_highlighter', 'codemirror', 'parse5', 'lodash', 'toast'].includes(chunkInfo.name)) {
+            return 'assets/[name]-[hash].async.js';
+          }
+          if ([
+            'home', 'register', 'dashboard', 'adminDashboard', 'postList', 'categoryPage',
+            'forgotPassword', 'resetPassword', 'verifyCertificate', 'category', 'footer',
+            'notification', 'codeEditor', 'faqPage', 'addPostForm'
+          ].includes(chunkInfo.name)) {
+            return 'assets/[name]-[hash].js';
+          }
+          return 'assets/[name]-[hash].js';
+        },
+      },
+    },
+    outDir: 'dist',
+    assetsDir: 'assets',
+    assetsInlineLimit: 16384,
+    chunkSizeWarningLimit: 250,
+  },
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'styled-components',
+      path.resolve(__dirname, 'src/components/PostPage.jsx'),
+      path.resolve(__dirname, 'src/components/PriorityContent.jsx'),
+      path.resolve(__dirname, 'src/components/Layout.jsx'),
+      path.resolve(__dirname, 'src/pages/Home.jsx'),
+      path.resolve(__dirname, 'src/pages/Register.jsx'),
+      path.resolve(__dirname, 'src/pages/Dashboard.jsx'),
+    ],
+    exclude: ['react-toastify', 'redux', 'react-redux', 'axios', 'highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'react-syntax-highlighter'],
+    force: true,
+  },
+  ssr: {
+    noExternal: ['styled-components'],
+  },
+  server: {
+    fs: { allow: ['.'] },
+    hmr: { overlay: true },
+    port: 5173,
+    proxy: {
+      '/api/posts/complete/:postId': {
+        target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/posts\/complete/, '/api/posts/complete'),
+      },
+      '/api/posts/completed': {
+        target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/posts\/completed/, '/api/posts/completed'),
+      },
+      '/api/posts': {
+        target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/posts/, '/api/posts'),
+      },
+      '/get-presigned-url': {
+        target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/get-presigned-url/, '/get-presigned-url'),
+      },
+      '/api': {
+        target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '/api/posts'),
+      },
+      '/post': {
+        target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/post/, '/post'),
+      },
+    },
+  },
+});
