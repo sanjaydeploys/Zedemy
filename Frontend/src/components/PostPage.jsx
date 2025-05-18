@@ -58,7 +58,6 @@ const PostPage = memo(() => {
         <Helmet>
           <title>Error | Zedemy</title>
           <meta name="description" content="An error occurred while loading the post." />
-          <meta name="robots" content="noindex" />
           <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
         </Helmet>
         <div className="container">
