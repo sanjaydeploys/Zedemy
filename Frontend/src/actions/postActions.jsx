@@ -1,6 +1,5 @@
 import { toast } from 'react-toastify';
 const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
-const SSR_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod';
 
 // Utility function for retrying fetch requests
 const fetchWithRetry = async (url, options, retries = 3, delay = 1000) => {
@@ -26,45 +25,6 @@ const fetchWithRetry = async (url, options, retries = 3, delay = 1000) => {
   }
 };
 
-export const fetchPostSSR = (slug) => async (dispatch) => {
-  try {
-    const response = await fetch(`${SSR_BASE_URL}/post/${slug}`, {
-      headers: {
-        'Accept': 'text/html',
-        'Accept-Encoding': 'gzip, deflate, br'
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`SSR fetch error: ${response.status}`);
-    }
-
-    const html = await response.text();
-
-    const match = html.match(/window\.__POST_DATA__\s*=\s*({[\s\S]*?});/);
-    let postData = {};
-    if (match && match[1]) {
-      try {
-        postData = JSON.parse(match[1]);
-      } catch (err) {
-        console.error('[fetchPostSSR] Error parsing window.__POST_DATA__:', err.message);
-      }
-    }
-
-    dispatch({
-      type: 'FETCH_POST_SUCCESS',
-      payload: postData
-    });
-
-    return { html, postData };
-  } catch (error) {
-    dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
-    toast.error('Failed to load SSR data.', { position: 'top-right', autoClose: 3000 });
-    throw error;
-  }
-};
-
-// Add date to the fields
 export const fetchPosts = () => async (dispatch) => {
   const token = localStorage.getItem('token');
   try {
@@ -85,7 +45,6 @@ export const fetchPosts = () => async (dispatch) => {
   }
 };
 
-// Add date to the fields
 export const fetchUserPosts = () => async (dispatch) => {
   const token = localStorage.getItem('token');
   if (!token) return;
@@ -123,13 +82,13 @@ export const searchPosts = (query) => async (dispatch) => {
   }
 };
 
-// Reintroduce fetchPostBySlug for preloading
 export const fetchPostBySlug = (slug) => async (dispatch, getState) => {
   try {
     console.log('[fetchPostBySlug] Starting for slug:', slug);
     const currentPost = getState().postReducer.post;
     if (currentPost?.slug === slug) {
-      return; // Post already in state, no need to fetch
+      console.log('[fetchPostBySlug] Post already in state, skipping fetch');
+      return;
     }
 
     const apiRes = await fetch(`${API_BASE_URL}/${slug}?fields=postId,slug,title,titleImage,category,author,date`, {
@@ -152,8 +111,9 @@ export const fetchPostBySlug = (slug) => async (dispatch, getState) => {
       }
     });
   } catch (error) {
+    console.error('[fetchPostBySlug] Error:', error.message);
     dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
-    toast.error('Failed to preload post data.', { position: 'top-right', autoClose: 2000 });
+    toast.error('Failed to load post data.', { position: 'top-right', autoClose: 2000 });
   }
 };
 
