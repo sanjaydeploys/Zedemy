@@ -1,6 +1,7 @@
 import { toast } from 'react-toastify';
 const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
 const SSR_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod';
+
 // Utility function for retrying fetch requests
 const fetchWithRetry = async (url, options, retries = 3, delay = 1000) => {
   for (let i = 0; i < retries; i++) {
@@ -24,6 +25,7 @@ const fetchWithRetry = async (url, options, retries = 3, delay = 1000) => {
     }
   }
 };
+
 export const fetchPostSSR = (slug) => async (dispatch) => {
   try {
     const response = await fetch(`${SSR_BASE_URL}/post/${slug}`, {
@@ -61,6 +63,7 @@ export const fetchPostSSR = (slug) => async (dispatch) => {
     throw error;
   }
 };
+
 export const fetchPosts = () => async (dispatch) => {
   const token = localStorage.getItem('token');
   try {
@@ -81,9 +84,15 @@ export const fetchPosts = () => async (dispatch) => {
   }
 };
 
-export const fetchUserPosts = () => async (dispatch) => {
+export const fetchUserPosts = () => async (dispatch, getState) => {
   const token = localStorage.getItem('token');
-  if (!token) return;
+  const user = getState().auth.user;
+  if (!token || !user?._id) {
+    console.warn('[fetchUserPosts] No token or user ID found');
+    dispatch({ type: 'FETCH_USER_POSTS_FAILURE', payload: 'Authentication required' });
+    return;
+  }
+  console.log('[fetchUserPosts] Fetching posts for user:', user._id);
   dispatch({ type: 'FETCH_USER_POSTS_REQUEST' });
   try {
     const res = await fetch(`${API_BASE_URL}/userposts?fields=postId,slug,title,titleImage,category,author,date`, {
@@ -93,11 +102,17 @@ export const fetchUserPosts = () => async (dispatch) => {
         'x-auth-token': token
       }
     });
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`HTTP error! status: ${res.status}, details: ${errorText}`);
+    }
     const data = await res.json();
+    console.log('[fetchUserPosts] Fetched posts:', data);
     dispatch({ type: 'FETCH_USER_POSTS_SUCCESS', payload: data });
   } catch (error) {
+    console.error('[fetchUserPosts] Error:', error.message);
     dispatch({ type: 'FETCH_USER_POSTS_FAILURE', payload: error.message });
+    toast.error('Failed to fetch user posts.', { position: 'top-right', autoClose: 2000 });
   }
 };
 
@@ -167,16 +182,13 @@ export const addPost = (
   titleImageAspectRatio
 ) => async (dispatch, getState) => {
   const token = localStorage.getItem('token');
-  if (!token) {
-    console.error('[addPost] No auth token found');
+  const user = getState().auth.user || JSON.parse(localStorage.getItem('user') || '{}');
+  if (!token || !user._id) {
+    console.error('[addPost] No auth token or user found');
+    toast.error('Authentication required to add post.', { position: 'top-right', autoClose: 2000 });
     return;
   }
-  const { user } = getState().auth || JSON.parse(localStorage.getItem('user') || '{}');
-  if (!user) {
-    console.error('[addPost] User not found');
-    return;
-  }
-  console.log('[addPost] Adding post:', title);
+  console.log('[addPost] Adding post:', title, 'by user:', user._id);
   const postData = {
     title,
     content,
@@ -189,6 +201,7 @@ export const addPost = (
     titleImageHash,
     videoHash,
     author: user.name,
+    userId: user._id, // Ensure userId is included
     titleImageAspectRatio: titleImageAspectRatio || '16:9'
   };
   try {
@@ -202,7 +215,10 @@ export const addPost = (
       },
       body: JSON.stringify(postData)
     });
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`HTTP error! status: ${res.status}, details: ${errorText}`);
+    }
     const data = await res.json();
     dispatch({ type: 'ADD_POST_SUCCESS', payload: data });
     await fetch(`/api/users/category/${category}`, {
@@ -215,28 +231,30 @@ export const addPost = (
     toast.success('Post added successfully!', { position: 'top-right', autoClose: 2000 });
   } catch (error) {
     console.error('[addPost] Error:', error.message);
-    toast.error('Failed to add post.', { position: 'top-right', autoClose: 2000 });
+    toast.error(`Failed to add post: ${error.message}`, { position: 'top-right', autoClose: 2000 });
   }
 };
 
 export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
   if (!postId) {
     console.error('[markPostAsCompleted] Invalid postId:', postId);
-    toast.error('Invalid post ID.', { position: 'top-right', autoClose: 3000 });
+    toast.error('Invalid post ID.', { position: 'top-right', autoClose: 2000 });
     return;
   }
   const token = localStorage.getItem('token');
-  if (!token) {
-    console.error('[markPostAsCompleted] No auth token');
-    toast.error('Please log in to mark posts as completed.', { position: 'top-right', autoClose: 3000 });
+  const user = getState().auth.user;
+  if (!token || !user?._id) {
+    console.error('[markPostAsCompleted] No auth token or user ID');
+    toast.error('Authentication required.', { position: 'top-right', autoClose: 2000 });
     return;
   }
-  const { completedPosts = [] } = getState().postReducer || {};
+  const { completedPosts = [] } = getState().postReducer;
   if (completedPosts.some((post) => post.postId === postId)) {
+    console.log('[markPostAsCompleted] Post already completed:', postId);
     toast.info('This post is already completed.', { position: 'top-right', autoClose: 2000 });
     return;
   }
-  console.log('[markPostAsCompleted] Attempting to mark post as completed:', { postId });
+  console.log('[markPostAsCompleted] Marking post as completed:', postId, 'for user:', user._id);
   try {
     const res = await fetchWithRetry(`${API_BASE_URL}/complete/${postId}`, {
       method: 'PUT',
@@ -248,7 +266,6 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
       body: JSON.stringify({})
     }, 3, 1000);
     const data = await res.json();
-    console.log('[markPostAsCompleted] Success:', data);
     dispatch({ type: 'MARK_POST_COMPLETED_SUCCESS', payload: { postId } });
     if (data.certificateUrl) {
       toast.success(`Category completed! Certificate: ${data.certificateUrl}`, {
@@ -260,21 +277,22 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
     } else {
       toast.success('Post marked as completed!', { position: 'top-right', autoClose: 2000 });
     }
-    dispatch({ type: 'FETCH_COMPLETED_POSTS' });
+    dispatch(fetchCompletedPosts()); // Refresh completed posts
   } catch (error) {
-    console.error('[markPostAsCompleted] Error:', error.message);
+    console.error('[markPostAsCompleted] Error:', error.message, 'postId:', postId);
     toast.error(`Failed to mark post as completed: ${error.message}`, { position: 'top-right', autoClose: 3000 });
   }
 };
 
-export const fetchCompletedPosts = ({ retries = 3, delay = 1000 } = {}) => async (dispatch) => {
+export const fetchCompletedPosts = ({ retries = 3, delay = 1000 } = {}) => async (dispatch, getState) => {
   const token = localStorage.getItem('token');
-  if (!token) {
-    console.log('[fetchCompletedPosts] No token found');
-    dispatch({ type: 'FETCH_COMPLETED_POSTS_SUCCESS', payload: [] });
+  const user = getState().auth.user;
+  if (!token || !user?._id) {
+    console.log('[fetchCompletedPosts] No token or user ID found');
+    dispatch({ type: 'FETCH_COMPLETED_POSTS_FAILURE', payload: 'Authentication required' });
     return;
   }
-  console.log('[fetchCompletedPosts] Fetching completed posts');
+  console.log('[fetchCompletedPosts] Fetching completed posts for user:', user._id);
   try {
     const res = await fetchWithRetry(`${API_BASE_URL}/completed`, {
       headers: {
@@ -284,8 +302,8 @@ export const fetchCompletedPosts = ({ retries = 3, delay = 1000 } = {}) => async
       }
     }, retries, delay);
     const data = await res.json();
-    console.log('[fetchCompletedPosts] Success:', data);
-    dispatch({ type: 'FETCH_COMPLETED_POSTS_SUCCESS', payload: data || [] });
+    console.log('[fetchCompletedPosts] Fetched completed posts:', data);
+    dispatch({ type: 'FETCH_COMPLETED_POSTS_SUCCESS', payload: data });
   } catch (error) {
     console.error('[fetchCompletedPosts] Error:', error.message);
     dispatch({ type: 'FETCH_COMPLETED_POSTS_FAILURE', payload: error.message });
