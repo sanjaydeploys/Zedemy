@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import styled, { keyframes } from 'styled-components';
 const SearchBlog = lazy(() => import('./SearchBlog'));
-import { fetchPostBySlug } from '../actions/postActions';
+import { fetchPosts } from '../actions/postActions';
 
 import { debounce } from 'lodash'; // Install lodash for debouncing
 // Styled Components
@@ -245,7 +245,7 @@ const PostList = () => {
     setLoadingMore(false);
   }, [posts]);
 const handlePreload = debounce((slug) => {
-    dispatch(fetchPostBySlug(slug)); // Fetch and cache in Redux
+    dispatch(fetchPosts(slug)); // Fetch and cache in Redux
   }, 200);
   // Use searchResults if available, otherwise use posts
   const displayedPosts = searchResults.length > 0 ? searchResults : posts;
