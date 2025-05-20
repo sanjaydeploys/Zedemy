@@ -106,10 +106,9 @@ export const fetchUserPosts = () => async (dispatch) => {
   }
 };
 
-// Add date to the fields
-export const searchPosts = (query) => async (dispatch) => {
+export const searchPosts = (slug) => async (dispatch) => {
   try {
-    const res = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(query)}&fields=postId,slug,title,titleImage,category,author,date`, {
+    const res = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(slug)}`, {
       headers: {
         'Accept': 'application/json',
         'Accept-Encoding': 'gzip, deflate, br'
