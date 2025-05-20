@@ -221,12 +221,14 @@ export const addPost = (
 
 export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
   if (!postId) {
-    console.error('[markPostAsCompleted] Invalid postId');
+    console.error('[markPostAsCompleted] Invalid postId:', postId);
+    toast.error('Invalid post ID.', { position: 'top-right', autoClose: 3000 });
     return;
   }
   const token = localStorage.getItem('token');
   if (!token) {
     console.error('[markPostAsCompleted] No auth token');
+    toast.error('Please log in to mark posts as completed.', { position: 'top-right', autoClose: 3000 });
     return;
   }
   const { completedPosts = [] } = getState().postReducer || {};
@@ -234,7 +236,7 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
     toast.info('This post is already completed.', { position: 'top-right', autoClose: 2000 });
     return;
   }
-  console.log('[markPostAsCompleted] Marking post as completed:', postId);
+  console.log('[markPostAsCompleted] Attempting to mark post as completed:', { postId });
   try {
     const res = await fetchWithRetry(`${API_BASE_URL}/complete/${postId}`, {
       method: 'PUT',
@@ -246,6 +248,7 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
       body: JSON.stringify({})
     }, 3, 1000);
     const data = await res.json();
+    console.log('[markPostAsCompleted] Success:', data);
     dispatch({ type: 'MARK_POST_COMPLETED_SUCCESS', payload: { postId } });
     if (data.certificateUrl) {
       toast.success(`Category completed! Certificate: ${data.certificateUrl}`, {
@@ -260,7 +263,7 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
     dispatch({ type: 'FETCH_COMPLETED_POSTS' });
   } catch (error) {
     console.error('[markPostAsCompleted] Error:', error.message);
-    toast.error(`Failed to mark post: ${error.message}`, { position: 'top-right', autoClose: 3000 });
+    toast.error(`Failed to mark post as completed: ${error.message}`, { position: 'top-right', autoClose: 3000 });
   }
 };
 
@@ -268,6 +271,7 @@ export const fetchCompletedPosts = ({ retries = 3, delay = 1000 } = {}) => async
   const token = localStorage.getItem('token');
   if (!token) {
     console.log('[fetchCompletedPosts] No token found');
+    dispatch({ type: 'FETCH_COMPLETED_POSTS_SUCCESS', payload: [] });
     return;
   }
   console.log('[fetchCompletedPosts] Fetching completed posts');
@@ -280,7 +284,8 @@ export const fetchCompletedPosts = ({ retries = 3, delay = 1000 } = {}) => async
       }
     }, retries, delay);
     const data = await res.json();
-    dispatch({ type: 'FETCH_COMPLETED_POSTS_SUCCESS', payload: data });
+    console.log('[fetchCompletedPosts] Success:', data);
+    dispatch({ type: 'FETCH_COMPLETED_POSTS_SUCCESS', payload: data || [] });
   } catch (error) {
     console.error('[fetchCompletedPosts] Error:', error.message);
     dispatch({ type: 'FETCH_COMPLETED_POSTS_FAILURE', payload: error.message });
