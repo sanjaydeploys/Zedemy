@@ -75,16 +75,22 @@ const initializeStore = async () => {
     if (token) {
         console.log('[initializeStore] Token found, restoring auth');
         try {
+            const state = store.getState();
             await store.dispatch(loadUser());
-            await store.dispatch(fetchFollowedCategories());
+
+            // Only fetch if data is not already present
+            if (!state.notifications.followedCategories.length) {
+                await store.dispatch(fetchFollowedCategories());
+            }
+
             // Defer non-critical actions with setTimeout
             setTimeout(() => {
                 Promise.all([
-                    store.dispatch(fetchUserPosts()),
-                    store.dispatch(fetchCompletedPosts({ retries: 3, delay: 1000 })),
-                    store.dispatch(fetchNotifications()),
-                    store.dispatch(fetchCertificates())
-                ]).catch(error => {
+                    !state.postReducer.userPosts.length && store.dispatch(fetchUserPosts()),
+                    !state.postReducer.completedPosts.length && store.dispatch(fetchCompletedPosts({ retries: 3, delay: 1000 })),
+                    !state.notifications.notifications.length && store.dispatch(fetchNotifications()),
+                    !state.certificates.certificates.length && store.dispatch(fetchCertificates())
+                ].filter(Boolean)).catch(error => {
                     console.error('[initializeStore] Error in deferred fetches:', error);
                 });
             }, 2000); // Defer by 2 seconds
@@ -107,25 +113,25 @@ store.subscribe(
             auth: {
                 user: state.auth.user,
                 token: state.auth.token,
-                isAuthenticated: state.auth.isAuthenticated,
-                loading: state.auth.loading
+                isAuthenticated: state.auth.isAuthenticated
             },
             notifications: {
                 followedCategories: state.notifications.followedCategories
             },
             postReducer: {
                 post: state.postReducer.post,
-                loading: state.postReducer.loading,
-                error: state.postReducer.error
+                userPosts: state.postReducer.userPosts,
+                completedPosts: state.postReducer.completedPosts
             },
             certificates: {
-                loading: state.certificates.loading,
-                error: state.certificates.error
+                certificates: state.certificates.certificates
             },
             settings: state.settings
         };
         saveState(persistedData);
-        console.log('[store.subscribe] Saved to localStorage:', persistedData);
+        if (process.env.NODE_ENV === 'development') {
+            console.log('[store.subscribe] Saved to localStorage:', persistedData);
+        }
     }, 2000)
 );
 
