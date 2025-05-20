@@ -231,7 +231,7 @@ const PostList = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const posts = useSelector(state => state.postReducer.posts || []);
   const searchResults = useSelector(state => state.postReducer.searchResults || []);
-
+const displayedPosts = searchResults.length > 0 ? searchResults : posts;
   useEffect(() => {
     dispatch(fetchPosts());
   }, [dispatch, page]);
