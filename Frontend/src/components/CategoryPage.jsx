@@ -17,12 +17,19 @@ const PostItem = React.memo(({ post, fallbackImage }) => {
   const isCompleted = completedPosts.some(cp => cp.postId === post.postId);
 
   const handleMarkAsCompleted = () => {
-    if (!isCompleted && post?.postId) {
+    if (!post?.postId) {
+      console.error('[PostItem] Invalid postId:', post);
+      toast.error('Cannot mark post as completed: Invalid post ID.', { position: 'top-right', autoClose: 2000 });
+      return;
+    }
+    if (!isCompleted) {
+      console.log('[PostItem] Marking post as completed:', post.postId);
       dispatch(markPostAsCompleted(post.postId));
     }
   };
 
   const handlePostClick = () => {
+    console.log('[PostItem] Navigating to post:', post.slug);
     window.location.href = `/post/${post.slug}`; // Force full page reload
   };
 
@@ -61,26 +68,40 @@ const PostItem = React.memo(({ post, fallbackImage }) => {
 const CategoryPage = () => {
   const { category } = useParams();
   const dispatch = useDispatch();
-  const posts = useSelector(state => state.postReducer.posts);
+  const posts = useSelector(state => state.postReducer.posts || []);
   const [chatWindows, setChatWindows] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    dispatch(fetchPosts());
-    dispatch(fetchCompletedPosts());
+    const fetchData = async () => {
+      setIsLoading(true);
+      try {
+        await Promise.all([
+          dispatch(fetchPosts()),
+          dispatch(fetchCompletedPosts())
+        ]);
+      } catch (error) {
+        console.error('[CategoryPage] Error fetching data:', error);
+        toast.error('Failed to load category data.', { position: 'top-right', autoClose: 2000 });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
   }, [dispatch]);
 
   const filteredPosts = useMemo(() => {
-    console.log('Raw posts from Redux:', posts);
-    console.log('Category from useParams:', category);
+    console.log('[CategoryPage] Raw posts from Redux:', posts);
+    console.log('[CategoryPage] Category from useParams:', category);
     return posts.filter(
-      post => post.category?.toLowerCase() === category.toLowerCase()
+      post => post.category?.toLowerCase() === category?.toLowerCase() && post.postId && post.slug
     );
   }, [posts, category]);
 
-  console.log('Filtered Posts for category', category, ':', filteredPosts);
+  console.log('[CategoryPage] Filtered Posts for category', category, ':', filteredPosts);
 
   const getRelatedPosts = useCallback((currentPostId) => {
-    console.log('getRelatedPosts called with postId:', currentPostId);
+    console.log('[CategoryPage] getRelatedPosts called with postId:', currentPostId);
     const related = filteredPosts
       .filter(
         post =>
@@ -90,7 +111,7 @@ const CategoryPage = () => {
           post.slug
       )
       .slice(0, 3);
-    console.log('Related posts:', related);
+    console.log('[CategoryPage] Related posts:', related);
     return related;
   }, [filteredPosts]);
 
@@ -107,7 +128,7 @@ const CategoryPage = () => {
     setChatWindows(prev => prev.filter(chat => chat.id !== id));
   }, []);
 
-  if (!posts) {
+  if (isLoading) {
     return <div>Loading...</div>;
   }
 
@@ -151,7 +172,7 @@ const CategoryPage = () => {
     },
   };
 
-  console.log('Structured Data:', structuredData);
+  console.log('[CategoryPage] Structured Data:', structuredData);
 
   return (
     <motion.div
