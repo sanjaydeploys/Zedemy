@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPosts, markPostAsCompleted, fetchCompletedPosts } from '../actions/postActions';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Helmet } from 'react-helmet';
 import { toast } from 'react-toastify';
@@ -22,6 +22,10 @@ const PostItem = React.memo(({ post, fallbackImage }) => {
     }
   };
 
+  const handlePostClick = () => {
+    window.location.href = `/post/${post.slug}`; // Force full page reload
+  };
+
   return (
     <motion.div
       className="post-item"
@@ -30,7 +34,7 @@ const PostItem = React.memo(({ post, fallbackImage }) => {
       transition={{ duration: 0.5 }}
     >
       <div className="post-content">
-        <Link to={`/post/${post.slug}`} className="post-link">
+        <a href={`/post/${post.slug}`} onClick={handlePostClick} className="post-link">
           <div className="post-title-container">
             <img
               src={post.titleImage || fallbackImage}
@@ -40,7 +44,7 @@ const PostItem = React.memo(({ post, fallbackImage }) => {
             />
             <h3 className="post-title">{post.title}</h3>
           </div>
-        </Link>
+        </a>
         <button
           className={`complete-button ${isCompleted ? 'completed' : ''}`}
           onClick={handleMarkAsCompleted}
@@ -182,7 +186,7 @@ const CategoryPage = () => {
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
       <nav className="breadcrumbs">
-        <Link to="/">Home</Link> <span>{capitalizedCategory}</span>
+        <a href="/" onClick={() => window.location.href = '/'}>Home</a> <span>{capitalizedCategory}</span>
       </nav>
       <h2 className="category-title">Category: {capitalizedCategory}</h2>
       {filteredPosts.length === 0 ? (
