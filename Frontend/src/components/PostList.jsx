@@ -1,6 +1,6 @@
 import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchPosts } from '../actions/postActions';
+import { fetchPosts, fetchPostBySlug } from '../actions/postActions'; // Import fetchPostBySlug
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import styled, { keyframes } from 'styled-components';
@@ -233,19 +233,22 @@ const PostList = () => {
   const searchResults = useSelector(state => state.postReducer.searchResults || []);
 
   useEffect(() => {
-    dispatch(fetchPosts(page));
+    dispatch(fetchPosts());
   }, [dispatch, page]);
 
   const loadMorePosts = () => {
     setPage(prevPage => prevPage + 1);
     setLoadingMore(true);
   };
+
   useEffect(() => {
     setLoadingMore(false);
   }, [posts]);
-const handlePreload = debounce((slug) => {
-    dispatch(fetchPosts(slug)); // Fetch and cache in Redux
+
+  const handlePreload = debounce((slug) => {
+    dispatch(fetchPostBySlug(slug)); // Use fetchPostBySlug for preloading
   }, 200);
+
   // Use searchResults if available, otherwise use posts
   const displayedPosts = searchResults.length > 0 ? searchResults : posts;
   // Fallback image URL
@@ -373,7 +376,7 @@ const handlePreload = debounce((slug) => {
                     "name": post.author
                   },
                   "url": `https://zedemy.vercel.app/post/${post.slug}`,
-                  "datePublished": post.createdAt || new Date().toISOString(),
+                  "datePublished": post.date || new Date().toISOString(), // Use post.date
                   "publisher": {
                     "@type": "Organization",
                     "name": "Zedemy",
@@ -398,7 +401,7 @@ const handlePreload = debounce((slug) => {
       <PostListContainer>
         {displayedPosts.slice(0, page * 5).map(post => (
           <PostContainer key={post.postId} onMouseEnter={() => handlePreload(post.slug)}>
-                      <Link to={`/post/${post.slug}`} aria-label={`View post: ${post.title}`}>
+            <Link to={`/post/${post.slug}`} aria-label={`View post: ${post.title}`}>
               <PostImage
                 src={post.titleImage || fallbackImage}
                 alt={`Featured image for ${post.title} on Zedemy`}
@@ -445,9 +448,9 @@ const handlePreload = debounce((slug) => {
         </FAQItem>
         <FAQItem>
           <FAQQuestion>How often are new blog posts published on Zedemy?</FAQQuestion>
-          <FAQAnswer>
+          <FAQQuestion>
             Zedemy publishes new blog posts regularly, typically weekly, to keep you updated with the latest programming trends and tutorials.
-          </FAQAnswer>
+          </FAQQuestion>
         </FAQItem>
         <FAQItem>
           <FAQQuestion>Can I contribute a blog post to Zedemy?</FAQQuestion>
