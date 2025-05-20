@@ -65,64 +65,6 @@ export const fetchPostSSR = (slug) => async (dispatch) => {
   }
 };
 
-export const fetchPostBySlug = (slug) => async (dispatch, getState) => {
-  try {
-    console.log('[fetchPostBySlug] Starting for slug:', slug);
-    const currentPost = getState().postReducer.post;
-    if (currentPost?.slug === slug && currentPost.subtitles && currentPost.references) {
-      return;
-    }
-
-    const apiRes = await fetch(`${API_BASE_URL}/${slug}?viewport=mobile`, {
-      headers: { 'Accept': 'application/json' }
-    });
-    if (!apiRes.ok) throw new Error(`API error: ${apiRes.status}`);
-    const postData = await apiRes.json();
-
-    dispatch({
-      type: 'FETCH_POST_SUCCESS',
-      payload: {
-        ...postData,
-        slug,
-        postId: postData.postId || '',
-        title: postData.title || 'Untitled Post',
-        author: postData.author || 'Zedemy Team',
-        date: postData.date || new Date().toISOString(),
-        contentHeight: postData.contentHeight || 500,
-        titleImageAspectRatio: postData.titleImageAspectRatio || '16:9',
-        titleImage: postData.titleImage || '',
-        category: postData.category || 'General',
-        subtitles: postData.subtitles || [],
-        superTitles: postData.superTitles || [],
-        references: postData.references || [],
-        content: postData.content || postData.preRenderedContent || '',
-        preRenderedContent: postData.preRenderedContent || '',
-        summary: postData.summary || ''
-      }
-    });
-  } catch (error) {
-    dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
-    toast.error('Failed to load post data.', { position: 'top-right', autoClose: 3000 });
-  }
-};
-
-export const searchPosts = (slug) => async (dispatch) => {
-  try {
-    const res = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(slug)}`, {
-      headers: {
-        'Accept': 'application/json',
-        'Accept-Encoding': 'gzip, deflate, br'
-      }
-    });
-    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-    const data = await res.json();
-    dispatch({ type: 'SEARCH_POSTS_SUCCESS', payload: data });
-  } catch (error) {
-    dispatch({ type: 'SEARCH_POSTS_FAILURE', payload: error.message });
-    toast.error('Failed to search posts.', { position: 'top-right', autoClose: 2000 });
-  }
-};
-
 export const fetchPosts = () => async (dispatch) => {
   const token = localStorage.getItem('token');
   try {
@@ -133,7 +75,8 @@ export const fetchPosts = () => async (dispatch) => {
     if (token) {
       headers['x-auth-token'] = token;
     }
-    const res = await fetch(API_BASE_URL, { headers });
+    // Add query parameter to fetch only necessary fields
+    const res = await fetch(`${API_BASE_URL}?fields=postId,slug,title,titleImage,category,author`, { headers });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const data = await res.json();
     dispatch({ type: 'FETCH_POSTS_SUCCESS', payload: data });
@@ -148,7 +91,7 @@ export const fetchUserPosts = () => async (dispatch) => {
   if (!token) return;
   dispatch({ type: 'FETCH_USER_POSTS_REQUEST' });
   try {
-    const res = await fetch(`${API_BASE_URL}/userposts`, {
+    const res = await fetch(`${API_BASE_URL}/userposts?fields=postId,slug,title,titleImage,category,author`, {
       headers: {
         'Accept': 'application/json',
         'Accept-Encoding': 'gzip, deflate, br',
@@ -160,6 +103,23 @@ export const fetchUserPosts = () => async (dispatch) => {
     dispatch({ type: 'FETCH_USER_POSTS_SUCCESS', payload: data });
   } catch (error) {
     dispatch({ type: 'FETCH_USER_POSTS_FAILURE', payload: error.message });
+  }
+};
+
+export const searchPosts = (query) => async (dispatch) => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(query)}&fields=postId,slug,title,titleImage,category,author`, {
+      headers: {
+        'Accept': 'application/json',
+        'Accept-Encoding': 'gzip, deflate, br'
+      }
+    });
+    if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+    const data = await res.json();
+    dispatch({ type: 'SEARCH_POSTS_SUCCESS', payload: data });
+  } catch (error) {
+    dispatch({ type: 'SEARCH_POSTS_FAILURE', payload: error.message });
+    toast.error('Failed to search posts.', { position: 'top-right', autoClose: 2000 });
   }
 };
 
