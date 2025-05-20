@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPosts, markPostAsCompleted, fetchCompletedPosts } from '../actions/postActions';
+import { loadUser } from '../actions/authActions'; // Import loadUser
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Helmet } from 'react-helmet';
@@ -69,6 +70,7 @@ const CategoryPage = () => {
   const { category } = useParams();
   const dispatch = useDispatch();
   const posts = useSelector(state => state.postReducer.posts || []);
+  const { user, isAuthenticated, loading: authLoading } = useSelector(state => state.auth);
   const [chatWindows, setChatWindows] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -76,6 +78,8 @@ const CategoryPage = () => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
+        // Ensure user is loaded
+        await dispatch(loadUser());
         await Promise.all([
           dispatch(fetchPosts()),
           dispatch(fetchCompletedPosts())
@@ -128,8 +132,12 @@ const CategoryPage = () => {
     setChatWindows(prev => prev.filter(chat => chat.id !== id));
   }, []);
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return <div>Loading...</div>;
+  }
+
+  if (!isAuthenticated || !user) {
+    return <div>Please log in to view this page.</div>;
   }
 
   const capitalizedCategory = category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
@@ -173,6 +181,7 @@ const CategoryPage = () => {
   };
 
   console.log('[CategoryPage] Structured Data:', structuredData);
+  console.log('[CategoryPage] User:', user);
 
   return (
     <motion.div
