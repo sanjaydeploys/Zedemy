@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchPosts, markPostAsCompleted, fetchCompletedPosts } from '../actions/postActions';
-import { loadUser } from '../actions/authActions'; // Import loadUser
+import { loadUser } from '../actions/authActions';
 import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Helmet } from 'react-helmet';
@@ -14,10 +14,16 @@ const ChatWindow = lazy(() => import('./ChatWindow'));
 // Memoized PostItem
 const PostItem = React.memo(({ post, fallbackImage }) => {
   const dispatch = useDispatch();
+  const { user, isAuthenticated } = useSelector(state => state.auth);
   const completedPosts = useSelector(state => state.postReducer.completedPosts || []);
   const isCompleted = completedPosts.some(cp => cp.postId === post.postId);
 
   const handleMarkAsCompleted = () => {
+    if (!isAuthenticated || !user?.id) {
+      console.warn('[PostItem] Authentication required to mark post as completed');
+      toast.error('Please log in to mark posts as completed.', { position: 'top-right', autoClose: 2000 });
+      return;
+    }
     if (!post?.postId) {
       console.error('[PostItem] Invalid postId:', post);
       toast.error('Cannot mark post as completed: Invalid post ID.', { position: 'top-right', autoClose: 2000 });
@@ -70,7 +76,7 @@ const CategoryPage = () => {
   const { category } = useParams();
   const dispatch = useDispatch();
   const posts = useSelector(state => state.postReducer.posts || []);
-  const { user, isAuthenticated, loading: authLoading } = useSelector(state => state.auth);
+  const { user, isAuthenticated } = useSelector(state => state.auth);
   const [chatWindows, setChatWindows] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -78,12 +84,12 @@ const CategoryPage = () => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // Ensure user is loaded
-        await dispatch(loadUser());
-        await Promise.all([
-          dispatch(fetchPosts()),
-          dispatch(fetchCompletedPosts())
-        ]);
+        // Load user if authenticated
+        if (localStorage.getItem('token')) {
+          await dispatch(loadUser());
+          await dispatch(fetchCompletedPosts());
+        }
+        await dispatch(fetchPosts());
       } catch (error) {
         console.error('[CategoryPage] Error fetching data:', error);
         toast.error('Failed to load category data.', { position: 'top-right', autoClose: 2000 });
@@ -132,12 +138,8 @@ const CategoryPage = () => {
     setChatWindows(prev => prev.filter(chat => chat.id !== id));
   }, []);
 
-  if (authLoading || isLoading) {
+  if (isLoading) {
     return <div>Loading...</div>;
-  }
-
-  if (!isAuthenticated || !user) {
-    return <div>Please log in to view this page.</div>;
   }
 
   const capitalizedCategory = category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
