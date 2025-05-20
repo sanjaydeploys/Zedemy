@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import styled, { keyframes } from 'styled-components';
 const SearchBlog = lazy(() => import('./SearchBlog'));
-import { fetchPosts } from '../actions/postActions';
 
 import { debounce } from 'lodash'; // Install lodash for debouncing
 // Styled Components
