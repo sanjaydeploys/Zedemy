@@ -1,6 +1,6 @@
 import { toast } from 'react-toastify';
 const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
-
+const SSR_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod';
 // Utility function for retrying fetch requests
 const fetchWithRetry = async (url, options, retries = 3, delay = 1000) => {
   for (let i = 0; i < retries; i++) {
@@ -24,7 +24,43 @@ const fetchWithRetry = async (url, options, retries = 3, delay = 1000) => {
     }
   }
 };
+export const fetchPostSSR = (slug) => async (dispatch) => {
+  try {
+    const response = await fetch(`${SSR_BASE_URL}/post/${slug}`, {
+      headers: {
+        'Accept': 'text/html',
+        'Accept-Encoding': 'gzip, deflate, br'
+      }
+    });
 
+    if (!response.ok) {
+      throw new Error(`SSR fetch error: ${response.status}`);
+    }
+
+    const html = await response.text();
+
+    const match = html.match(/window\.__POST_DATA__\s*=\s*({[\s\S]*?});/);
+    let postData = {};
+    if (match && match[1]) {
+      try {
+        postData = JSON.parse(match[1]);
+      } catch (err) {
+        console.error('[fetchPostSSR] Error parsing window.__POST_DATA__:', err.message);
+      }
+    }
+
+    dispatch({
+      type: 'FETCH_POST_SUCCESS',
+      payload: postData
+    });
+
+    return { html, postData };
+  } catch (error) {
+    dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
+    toast.error('Failed to load SSR data.', { position: 'top-right', autoClose: 3000 });
+    throw error;
+  }
+};
 export const fetchPosts = () => async (dispatch) => {
   const token = localStorage.getItem('token');
   try {
