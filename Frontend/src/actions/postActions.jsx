@@ -64,6 +64,7 @@ export const fetchPostSSR = (slug) => async (dispatch) => {
   }
 };
 
+// Add date to the fields
 export const fetchPosts = () => async (dispatch) => {
   const token = localStorage.getItem('token');
   try {
@@ -74,8 +75,7 @@ export const fetchPosts = () => async (dispatch) => {
     if (token) {
       headers['x-auth-token'] = token;
     }
-    // Add query parameter to fetch only necessary fields
-    const res = await fetch(`${API_BASE_URL}?fields=postId,slug,title,titleImage,category,author`, { headers });
+    const res = await fetch(`${API_BASE_URL}?fields=postId,slug,title,titleImage,category,author,date`, { headers });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const data = await res.json();
     dispatch({ type: 'FETCH_POSTS_SUCCESS', payload: data });
@@ -85,12 +85,13 @@ export const fetchPosts = () => async (dispatch) => {
   }
 };
 
+// Add date to the fields
 export const fetchUserPosts = () => async (dispatch) => {
   const token = localStorage.getItem('token');
   if (!token) return;
   dispatch({ type: 'FETCH_USER_POSTS_REQUEST' });
   try {
-    const res = await fetch(`${API_BASE_URL}/userposts?fields=postId,slug,title,titleImage,category,author`, {
+    const res = await fetch(`${API_BASE_URL}/userposts?fields=postId,slug,title,titleImage,category,author,date`, {
       headers: {
         'Accept': 'application/json',
         'Accept-Encoding': 'gzip, deflate, br',
@@ -105,9 +106,10 @@ export const fetchUserPosts = () => async (dispatch) => {
   }
 };
 
+// Add date to the fields
 export const searchPosts = (query) => async (dispatch) => {
   try {
-    const res = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(query)}&fields=postId,slug,title,titleImage,category,author`, {
+    const res = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(query)}&fields=postId,slug,title,titleImage,category,author,date`, {
       headers: {
         'Accept': 'application/json',
         'Accept-Encoding': 'gzip, deflate, br'
@@ -119,6 +121,40 @@ export const searchPosts = (query) => async (dispatch) => {
   } catch (error) {
     dispatch({ type: 'SEARCH_POSTS_FAILURE', payload: error.message });
     toast.error('Failed to search posts.', { position: 'top-right', autoClose: 2000 });
+  }
+};
+
+// Reintroduce fetchPostBySlug for preloading
+export const fetchPostBySlug = (slug) => async (dispatch, getState) => {
+  try {
+    console.log('[fetchPostBySlug] Starting for slug:', slug);
+    const currentPost = getState().postReducer.post;
+    if (currentPost?.slug === slug) {
+      return; // Post already in state, no need to fetch
+    }
+
+    const apiRes = await fetch(`${API_BASE_URL}/${slug}?fields=postId,slug,title,titleImage,category,author,date`, {
+      headers: { 'Accept': 'application/json' }
+    });
+    if (!apiRes.ok) throw new Error(`API error: ${apiRes.status}`);
+    const postData = await apiRes.json();
+
+    dispatch({
+      type: 'FETCH_POST_SUCCESS',
+      payload: {
+        ...postData,
+        slug,
+        postId: postData.postId || '',
+        title: postData.title || 'Untitled Post',
+        author: postData.author || 'Zedemy Team',
+        date: postData.date || new Date().toISOString(),
+        titleImage: postData.titleImage || '',
+        category: postData.category || 'General'
+      }
+    });
+  } catch (error) {
+    dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
+    toast.error('Failed to preload post data.', { position: 'top-right', autoClose: 2000 });
   }
 };
 
