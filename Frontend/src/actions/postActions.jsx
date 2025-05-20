@@ -110,8 +110,15 @@ export const fetchUserPosts = () => async (dispatch, getState) => {
       }
     });
     if (!res.ok) {
+      const status = res.status;
       const errorText = await res.text();
-      throw new Error(`HTTP error! status: ${res.status}, details: ${errorText}`);
+      console.error('[fetchUserPosts] Failed with status:', status, 'details:', errorText);
+      if (status === 404) {
+        // Handle case where no posts are found
+        dispatch({ type: 'FETCH_USER_POSTS_SUCCESS', payload: [] });
+        return;
+      }
+      throw new Error(`HTTP error! status: ${status}, details: ${errorText}`);
     }
     const data = await res.json();
     console.log('[fetchUserPosts] Fetched posts:', data);
@@ -215,7 +222,7 @@ export const addPost = (
     titleImageHash,
     videoHash,
     author: user.name,
-    userId: user.id, // Use user.id
+    userId: user.id,
     titleImageAspectRatio: titleImageAspectRatio || '16:9'
   };
   try {
@@ -335,6 +342,17 @@ export const fetchCompletedPosts = ({ retries = 3, delay = 1000 } = {}) => async
         'x-auth-token': token
       }
     }, retries, delay);
+    if (!res.ok) {
+      const status = res.status;
+      const errorText = await res.text();
+      console.error('[fetchCompletedPosts] Failed with status:', status, 'details:', errorText);
+      if (status === 404) {
+        // Handle case where no completed posts are found
+        dispatch({ type: 'FETCH_COMPLETED_POSTS_SUCCESS', payload: [] });
+        return;
+      }
+      throw new Error(`HTTP error! status: ${status}, details: ${errorText}`);
+    }
     const data = await res.json();
     console.log('[fetchCompletedPosts] Fetched completed posts:', data);
     dispatch({ type: 'FETCH_COMPLETED_POSTS_SUCCESS', payload: data });
