@@ -1,12 +1,11 @@
 import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchPosts, fetchPostBySlug } from '../actions/postActions'; // Import fetchPostBySlug
+import { fetchPosts } from '../actions/postActions'; // Removed fetchPostBySlug
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
 import styled, { keyframes } from 'styled-components';
 const SearchBlog = lazy(() => import('./SearchBlog'));
 
-import { debounce } from 'lodash'; // Install lodash for debouncing
 // Styled Components
 const Container = styled.div`
   max-width: 1200px;
@@ -131,7 +130,7 @@ const PostAuthor = styled.p`
   text-align: center;
 `;
 
-const ReadMoreLink = styled(Link)`
+const ReadMoreLink = styled.a`
   display: inline-block;
   margin-top: 12px;
   padding: 10px 16px;
@@ -144,6 +143,7 @@ const ReadMoreLink = styled(Link)`
   min-height: 44px;
   min-width: 44px;
   text-align: center;
+  cursor: pointer;
 
   &:hover {
     background-color: #003c8f;
@@ -245,14 +245,9 @@ const PostList = () => {
     setLoadingMore(false);
   }, [posts]);
 
-  const handlePreload = debounce((slug) => {
-    dispatch(fetchPostBySlug(slug)); // Use fetchPostBySlug for preloading
-  }, 200);
-
-  // Use searchResults if available, otherwise use posts
-  const displayedPosts = searchResults.length > 0 ? searchResults : posts;
   // Fallback image URL
   const fallbackImage = 'https://sanjaybasket.s3.ap-south-1.amazonaws.com/zedemy-logo.png';
+
   // FAQ Structured Data
   const faqData = {
     "@context": "https://schema.org",
@@ -307,6 +302,10 @@ const PostList = () => {
         }
       }
     ]
+  };
+
+  const handlePostClick = (slug) => {
+    window.location.href = `/post/${slug}`; // Force full page reload
   };
 
   return (
@@ -376,7 +375,7 @@ const PostList = () => {
                     "name": post.author
                   },
                   "url": `https://zedemy.vercel.app/post/${post.slug}`,
-                  "datePublished": post.date || new Date().toISOString(), // Use post.date
+                  "datePublished": post.date || new Date().toISOString(),
                   "publisher": {
                     "@type": "Organization",
                     "name": "Zedemy",
@@ -400,21 +399,21 @@ const PostList = () => {
       <Title>{searchResults.length > 0 ? 'Search Results' : 'Latest Posts'}</Title>
       <PostListContainer>
         {displayedPosts.slice(0, page * 5).map(post => (
-          <PostContainer key={post.postId} onMouseEnter={() => handlePreload(post.slug)}>
-            <Link to={`/post/${post.slug}`} aria-label={`View post: ${post.title}`}>
+          <PostContainer key={post.postId}>
+            <a href={`/post/${post.slug}`} onClick={() => handlePostClick(post.slug)} aria-label={`View post: ${post.title}`}>
               <PostImage
                 src={post.titleImage || fallbackImage}
                 alt={`Featured image for ${post.title} on Zedemy`}
                 loading="lazy"
               />
-            </Link>
+            </a>
             <PostTitle>
-              <Link to={`/post/${post.slug}`} aria-label={`Read more about ${post.title}`}>
+              <a href={`/post/${post.slug}`} onClick={() => handlePostClick(post.slug)} aria-label={`Read more about ${post.title}`}>
                 {post.title}
-              </Link>
+              </a>
             </PostTitle>
             <PostAuthor>Author: {post.author}</PostAuthor>
-            <ReadMoreLink to={`/post/${post.slug}`} aria-label={`Read more about ${post.title}`}>
+            <ReadMoreLink href={`/post/${post.slug}`} onClick={() => handlePostClick(post.slug)} aria-label={`Read more about ${post.title}`}>
               {`Read ${post.title}`}
             </ReadMoreLink>
           </PostContainer>
@@ -448,9 +447,9 @@ const PostList = () => {
         </FAQItem>
         <FAQItem>
           <FAQQuestion>How often are new blog posts published on Zedemy?</FAQQuestion>
-          <FAQQuestion>
+          <FAQAnswer>
             Zedemy publishes new blog posts regularly, typically weekly, to keep you updated with the latest programming trends and tutorials.
-          </FAQQuestion>
+          </FAQAnswer>
         </FAQItem>
         <FAQItem>
           <FAQQuestion>Can I contribute a blog post to Zedemy?</FAQQuestion>
