@@ -106,9 +106,9 @@ export const fetchUserPosts = () => async (dispatch) => {
   }
 };
 
-export const searchPosts = (slug) => async (dispatch) => {
+export const searchPosts = (query) => async (dispatch) => {
   try {
-    const res = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(slug)}`, {
+    const res = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(query)}&fields=postId,slug,title,titleImage,category,author,date`, {
       headers: {
         'Accept': 'application/json',
         'Accept-Encoding': 'gzip, deflate, br'
