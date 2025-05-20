@@ -40,7 +40,6 @@ export const fetchPostSSR = (slug) => async (dispatch) => {
     }
 
     const html = await response.text();
-
     const match = html.match(/window\.__POST_DATA__\s*=\s*({[\s\S]*?});/);
     let postData = {};
     if (match && match[1]) {
@@ -86,13 +85,21 @@ export const fetchPosts = () => async (dispatch) => {
 
 export const fetchUserPosts = () => async (dispatch, getState) => {
   const token = localStorage.getItem('token');
-  const user = getState().auth.user;
-  if (!token || !user?._id) {
-    console.warn('[fetchUserPosts] No token or user ID found');
+  let user = getState().auth.user;
+  if (!user) {
+    try {
+      user = JSON.parse(localStorage.getItem('user') || '{}');
+    } catch (err) {
+      console.error('[fetchUserPosts] Error parsing user from localStorage:', err.message);
+    }
+  }
+  if (!token || !user?.id) {
+    console.warn('[fetchUserPosts] Missing token or user ID:', { token: !!token, userId: user?.id });
     dispatch({ type: 'FETCH_USER_POSTS_FAILURE', payload: 'Authentication required' });
+    toast.error('Please log in to view your posts.', { position: 'top-right', autoClose: 2000 });
     return;
   }
-  console.log('[fetchUserPosts] Fetching posts for user:', user._id);
+  console.log('[fetchUserPosts] Fetching posts for user:', user.id);
   dispatch({ type: 'FETCH_USER_POSTS_REQUEST' });
   try {
     const res = await fetch(`${API_BASE_URL}/userposts?fields=postId,slug,title,titleImage,category,author,date`, {
@@ -112,7 +119,7 @@ export const fetchUserPosts = () => async (dispatch, getState) => {
   } catch (error) {
     console.error('[fetchUserPosts] Error:', error.message);
     dispatch({ type: 'FETCH_USER_POSTS_FAILURE', payload: error.message });
-    toast.error('Failed to fetch user posts.', { position: 'top-right', autoClose: 2000 });
+    toast.error(`Failed to fetch user posts: ${error.message}`, { position: 'top-right', autoClose: 2000 });
   }
 };
 
@@ -182,13 +189,20 @@ export const addPost = (
   titleImageAspectRatio
 ) => async (dispatch, getState) => {
   const token = localStorage.getItem('token');
-  const user = getState().auth.user || JSON.parse(localStorage.getItem('user') || '{}');
-  if (!token || !user._id) {
-    console.error('[addPost] No auth token or user found');
+  let user = getState().auth.user;
+  if (!user) {
+    try {
+      user = JSON.parse(localStorage.getItem('user') || '{}');
+    } catch (err) {
+      console.error('[addPost] Error parsing user from localStorage:', err.message);
+    }
+  }
+  if (!token || !user?.id) {
+    console.error('[addPost] Missing token or user ID:', { token: !!token, userId: user?.id });
     toast.error('Authentication required to add post.', { position: 'top-right', autoClose: 2000 });
     return;
   }
-  console.log('[addPost] Adding post:', title, 'by user:', user._id);
+  console.log('[addPost] Adding post:', title, 'by user:', user.id);
   const postData = {
     title,
     content,
@@ -201,7 +215,7 @@ export const addPost = (
     titleImageHash,
     videoHash,
     author: user.name,
-    userId: user._id, // Ensure userId is included
+    userId: user.id, // Use user.id
     titleImageAspectRatio: titleImageAspectRatio || '16:9'
   };
   try {
@@ -242,10 +256,22 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
     return;
   }
   const token = localStorage.getItem('token');
-  const user = getState().auth.user;
-  if (!token || !user?._id) {
-    console.error('[markPostAsCompleted] No auth token or user ID');
-    toast.error('Authentication required.', { position: 'top-right', autoClose: 2000 });
+  let user = getState().auth.user;
+  if (!user) {
+    try {
+      user = JSON.parse(localStorage.getItem('user') || '{}');
+    } catch (err) {
+      console.error('[markPostAsCompleted] Error parsing user from localStorage:', err.message);
+    }
+  }
+  if (!token) {
+    console.error('[markPostAsCompleted] Missing authentication token');
+    toast.error('Authentication token missing. Please log in.', { position: 'top-right', autoClose: 2000 });
+    return;
+  }
+  if (!user?.id) {
+    console.error('[markPostAsCompleted] Missing user ID:', { user });
+    toast.error('User ID not found. Please log in.', { position: 'top-right', autoClose: 2000 });
     return;
   }
   const { completedPosts = [] } = getState().postReducer;
@@ -254,7 +280,7 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
     toast.info('This post is already completed.', { position: 'top-right', autoClose: 2000 });
     return;
   }
-  console.log('[markPostAsCompleted] Marking post as completed:', postId, 'for user:', user._id);
+  console.log('[markPostAsCompleted] Marking post as completed:', postId, 'for user:', user.id);
   try {
     const res = await fetchWithRetry(`${API_BASE_URL}/complete/${postId}`, {
       method: 'PUT',
@@ -286,13 +312,21 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
 
 export const fetchCompletedPosts = ({ retries = 3, delay = 1000 } = {}) => async (dispatch, getState) => {
   const token = localStorage.getItem('token');
-  const user = getState().auth.user;
-  if (!token || !user?._id) {
-    console.log('[fetchCompletedPosts] No token or user ID found');
+  let user = getState().auth.user;
+  if (!user) {
+    try {
+      user = JSON.parse(localStorage.getItem('user') || '{}');
+    } catch (err) {
+      console.error('[fetchCompletedPosts] Error parsing user from localStorage:', err.message);
+    }
+  }
+  if (!token || !user?.id) {
+    console.warn('[fetchCompletedPosts] Missing token or user ID:', { token: !!token, userId: user?.id });
     dispatch({ type: 'FETCH_COMPLETED_POSTS_FAILURE', payload: 'Authentication required' });
+    toast.error('Please log in to view completed posts.', { position: 'top-right', autoClose: 2000 });
     return;
   }
-  console.log('[fetchCompletedPosts] Fetching completed posts for user:', user._id);
+  console.log('[fetchCompletedPosts] Fetching completed posts for user:', user.id);
   try {
     const res = await fetchWithRetry(`${API_BASE_URL}/completed`, {
       headers: {
