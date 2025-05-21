@@ -24,7 +24,7 @@ export const fetchNotifications = () => async dispatch => {
     setAuthToken(token);
     console.log('[fetchNotifications] Token set, fetching notifications from:', API_BASE_URL);
     try {
-        const response = await axios.get(API_BASE_URL, {
+        const response = await axios.get(`${API_BASE_URL}?t=${Date.now()}`, {
             headers: { 'x-auth-token': token }
         });
         console.log('[fetchNotifications] Successfully fetched notifications:', response.data);
@@ -36,6 +36,10 @@ export const fetchNotifications = () => async dispatch => {
                 status: error.response.status,
                 data: error.response.data
             } : 'No response data'
+        });
+        toast.error('Failed to fetch notifications.', {
+            position: 'top-right',
+            autoClose: 3000
         });
     }
 };
@@ -64,6 +68,10 @@ export const addNotification = (notification) => async dispatch => {
                 data: error.response.data
             } : 'No response data'
         });
+        toast.error('Failed to add notification.', {
+            position: 'top-right',
+            autoClose: 3000
+        });
     }
 };
 
@@ -78,7 +86,7 @@ export const markNotificationAsRead = (id) => async dispatch => {
     setAuthToken(token);
     console.log('[markNotificationAsRead] Token set, marking notification as read:', id);
     try {
-        const response = await axios.put(`${API_BASE_URL}/${id}/read`, {}, {
+        const response = await axios.put(`${API_BASE_URL}/${id}/read?t=${Date.now()}`, {}, {
             headers: { 'x-auth-token': token }
         });
         console.log('[markNotificationAsRead] Notification marked as read:', response.data);
@@ -219,13 +227,22 @@ export const fetchFollowedCategories = () => async dispatch => {
     if (!token) return;
     setAuthToken(token);
     try {
-      const response = await axios.get(`${API_BASE_URL}/followed-categories`, {
-        headers: { 'x-auth-token': token }
-      });
-      console.log('[fetchFollowedCategories] Fetched:', response.data);
-      dispatch({ type: FETCH_FOLLOWED_CATEGORIES_SUCCESS, payload: response.data });
+        const response = await axios.get(`${API_BASE_URL}/followed-categories?t=${Date.now()}`, {
+            headers: { 'x-auth-token': token }
+        });
+        console.log('[fetchFollowedCategories] Fetched:', response.data);
+        dispatch({ type: FETCH_FOLLOWED_CATEGORIES_SUCCESS, payload: response.data });
     } catch (error) {
-      console.error('[fetchFollowedCategories] Error:', error);
-      toast.error('Failed to fetch followed categories.');
+        console.error('[fetchFollowedCategories] Error:', {
+            message: error.message,
+            response: error.response ? {
+                status: error.response.status,
+                data: error.response.data
+            } : 'No response data'
+        });
+        toast.error('Failed to fetch followed categories.', {
+            position: 'top-right',
+            autoClose: 3000
+        });
     }
-  };
+};
