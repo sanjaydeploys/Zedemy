@@ -28,7 +28,7 @@ const fetchWithRetry = async (url, options, retries = 3, delay = 1000) => {
 
 export const fetchPostSSR = (slug) => async (dispatch) => {
   try {
-    const response = await fetch(`${SSR_BASE_URL}/post/${slug}`, {
+    const response = await fetch(`${SSR_BASE_URL}/post/${slug}?t=${Date.now()}`, {
       headers: {
         'Accept': 'text/html',
         'Accept-Encoding': 'gzip, deflate, br'
@@ -73,7 +73,7 @@ export const fetchPosts = () => async (dispatch) => {
     if (token) {
       headers['x-auth-token'] = token;
     }
-    const res = await fetch(`${API_BASE_URL}?fields=postId,slug,title,titleImage,category,author,date`, { headers });
+    const res = await fetch(`${API_BASE_URL}?fields=postId,slug,title,titleImage,category,author,date&t=${Date.now()}`, { headers });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
     const data = await res.json();
     dispatch({ type: 'FETCH_POSTS_SUCCESS', payload: data });
@@ -102,7 +102,7 @@ export const fetchUserPosts = () => async (dispatch, getState) => {
   console.log('[fetchUserPosts] Fetching posts for user:', user.id);
   dispatch({ type: 'FETCH_USER_POSTS_REQUEST' });
   try {
-    const res = await fetch(`${API_BASE_URL}/userposts?fields=postId,slug,title,titleImage,category,author,date`, {
+    const res = await fetch(`${API_BASE_URL}/userposts?fields=postId,slug,title,titleImage,category,author,date&t=${Date.now()}`, {
       headers: {
         'Accept': 'application/json',
         'Accept-Encoding': 'gzip, deflate, br',
@@ -114,7 +114,6 @@ export const fetchUserPosts = () => async (dispatch, getState) => {
       const errorText = await res.text();
       console.error('[fetchUserPosts] Failed with status:', status, 'details:', errorText);
       if (status === 404) {
-        // Handle case where no posts are found
         dispatch({ type: 'FETCH_USER_POSTS_SUCCESS', payload: [] });
         return;
       }
@@ -132,7 +131,7 @@ export const fetchUserPosts = () => async (dispatch, getState) => {
 
 export const searchPosts = (query) => async (dispatch) => {
   try {
-    const res = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(query)}&fields=postId,slug,title,titleImage,category,author,date`, {
+    const res = await fetch(`${API_BASE_URL}/search?query=${encodeURIComponent(query)}&fields=postId,slug,title,titleImage,category,author,date&t=${Date.now()}`, {
       headers: {
         'Accept': 'application/json',
         'Accept-Encoding': 'gzip, deflate, br'
@@ -156,7 +155,7 @@ export const fetchPostBySlug = (slug) => async (dispatch, getState) => {
       return;
     }
 
-    const apiRes = await fetch(`${API_BASE_URL}/${slug}?fields=postId,slug,title,titleImage,category,author,date`, {
+    const apiRes = await fetch(`${API_BASE_URL}/${slug}?fields=postId,slug,title,titleImage,category,author,date&t=${Date.now()}`, {
       headers: { 'Accept': 'application/json' }
     });
     if (!apiRes.ok) throw new Error(`API error: ${apiRes.status}`);
@@ -242,13 +241,9 @@ export const addPost = (
     }
     const data = await res.json();
     dispatch({ type: 'ADD_POST_SUCCESS', payload: data });
-    await fetch(`/api/users/category/${category}`, {
-      headers: {
-        'Accept': 'application/json',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'x-auth-token': token
-      }
-    });
+    // Refresh posts and notifications after adding a post
+    dispatch(fetchPosts());
+    dispatch(fetchNotifications());
     toast.success('Post added successfully!', { position: 'top-right', autoClose: 2000 });
   } catch (error) {
     console.error('[addPost] Error:', error.message);
@@ -310,7 +305,7 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
     } else {
       toast.success('Post marked as completed!', { position: 'top-right', autoClose: 2000 });
     }
-    dispatch(fetchCompletedPosts()); // Refresh completed posts
+    dispatch(fetchCompletedPosts());
   } catch (error) {
     console.error('[markPostAsCompleted] Error:', error.message, 'postId:', postId);
     toast.error(`Failed to mark post as completed: ${error.message}`, { position: 'top-right', autoClose: 3000 });
@@ -335,7 +330,7 @@ export const fetchCompletedPosts = ({ retries = 3, delay = 1000 } = {}) => async
   }
   console.log('[fetchCompletedPosts] Fetching completed posts for user:', user.id);
   try {
-    const res = await fetchWithRetry(`${API_BASE_URL}/completed`, {
+    const res = await fetchWithRetry(`${API_BASE_URL}/completed?t=${Date.now()}`, {
       headers: {
         'Accept': 'application/json',
         'Accept-Encoding': 'gzip, deflate, br',
@@ -347,7 +342,6 @@ export const fetchCompletedPosts = ({ retries = 3, delay = 1000 } = {}) => async
       const errorText = await res.text();
       console.error('[fetchCompletedPosts] Failed with status:', status, 'details:', errorText);
       if (status === 404) {
-        // Handle case where no completed posts are found
         dispatch({ type: 'FETCH_COMPLETED_POSTS_SUCCESS', payload: [] });
         return;
       }
