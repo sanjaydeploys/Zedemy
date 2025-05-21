@@ -60,11 +60,20 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=86400, s-maxage=86400, must-revalidate, stale-while-revalidate=604800"
+          "value": "no-cache, no-store, must-revalidate"
         },
         {
           "key": "Content-Type",
           "value": "text/html; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
         }
       ]
     },
