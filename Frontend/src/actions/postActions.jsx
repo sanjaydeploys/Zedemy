@@ -225,7 +225,7 @@ export const addPost = (
     titleImageAspectRatio: titleImageAspectRatio || '16:9'
   };
   try {
-    const res = await fetch(API_BASE_URL, {
+    const res = await fetch(`${API_BASE_URL}?t=${Date.now()}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -241,9 +241,6 @@ export const addPost = (
     }
     const data = await res.json();
     dispatch({ type: 'ADD_POST_SUCCESS', payload: data });
-    // Refresh posts and notifications after adding a post
-    dispatch(fetchPosts());
-    dispatch(fetchNotifications());
     toast.success('Post added successfully!', { position: 'top-right', autoClose: 2000 });
   } catch (error) {
     console.error('[addPost] Error:', error.message);
@@ -284,7 +281,7 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
   }
   console.log('[markPostAsCompleted] Marking post as completed:', postId, 'for user:', user.id);
   try {
-    const res = await fetchWithRetry(`${API_BASE_URL}/complete/${postId}`, {
+    const res = await fetchWithRetry(`${API_BASE_URL}/complete/${postId}?t=${Date.now()}`, {
       method: 'PUT',
       headers: {
         'Accept': 'application/json',
