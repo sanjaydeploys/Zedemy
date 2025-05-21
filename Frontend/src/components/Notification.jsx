@@ -94,6 +94,11 @@ const Notification = () => {
     useEffect(() => {
         if (token) {
             dispatch(fetchNotifications());
+            // Poll for notifications every 30 seconds
+            const interval = setInterval(() => {
+                dispatch(fetchNotifications());
+            }, 30000);
+            return () => clearInterval(interval);
         }
     }, [dispatch, token]);
 
