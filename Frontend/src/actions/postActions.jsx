@@ -10,12 +10,18 @@ const fetchWithRetry = async (url, options, retries = 3, delay = 1000) => {
       if (res.ok) return res;
       const errorText = await res.text().catch(() => 'No error details available');
       console.warn(`[fetchWithRetry] Attempt ${i + 1} failed: ${res.status} - ${errorText}`);
+      if (res.status === 400 && errorText.includes('Post already marked as completed')) {
+        throw new Error('Post already marked as completed');
+      }
       if (i < retries - 1) {
         await new Promise(resolve => setTimeout(resolve, delay));
       } else {
         throw new Error(`HTTP error! status: ${res.status}, details: ${errorText}`);
       }
     } catch (error) {
+      if (error.message === 'Post already marked as completed') {
+        throw error; // Stop retries immediately
+      }
       if (i < retries - 1) {
         console.warn(`[fetchWithRetry] Attempt ${i + 1} error: ${error.message}`);
         await new Promise(resolve => setTimeout(resolve, delay));
@@ -305,7 +311,11 @@ export const markPostAsCompleted = (postId) => async (dispatch, getState) => {
     dispatch(fetchCompletedPosts());
   } catch (error) {
     console.error('[markPostAsCompleted] Error:', error.message, 'postId:', postId);
-    toast.error(`Failed to mark post as completed: ${error.message}`, { position: 'top-right', autoClose: 3000 });
+    if (error.message === 'Post already marked as completed') {
+      toast.info('This post is already completed.', { position: 'top-right', autoClose: 2000 });
+    } else {
+      toast.error(`Failed to mark post as completed: ${error.message}`, { position: 'top-right', autoClose: 3000 });
+    }
   }
 };
 
