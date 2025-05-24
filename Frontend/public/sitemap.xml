@@ -85,4 +85,10 @@
   <priority>0.9</priority>
 </url>
 
+       <url>
+  <loc>https://zedemy.vercel.app/post/what-is-javascript-a-beginners-guide-to-js--real-examples</loc>
+  <lastmod>2025-05-24</lastmod>
+  <priority>0.9</priority>
+</url>
+
 </urlset>
