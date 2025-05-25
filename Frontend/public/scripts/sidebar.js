@@ -1,124 +1,58 @@
-(function () {
-  // Ensure code runs after DOM is fully loaded
-  document.addEventListener('DOMContentLoaded', initializeSidebar);
+document.addEventListener('DOMContentLoaded', () => {
+  const sidebarWrapper = document.getElementById('sidebar-wrapper');
+  const toggleButton = document.getElementById('toggle-button');
+  const sidebarLinks = document.querySelectorAll('.sidebar-link');
 
-  function initializeSidebar() {
-    const sidebarWrapper = document.getElementById('sidebar-wrapper');
-    const toggleButton = document.getElementById('toggle-button');
-    const sidebarLinks = document.querySelectorAll('.sidebar-link');
+  let isSidebarOpen = window.innerWidth >= 1024;
 
-    if (!sidebarWrapper || !toggleButton) {
-      console.warn('[Sidebar] Missing sidebar wrapper or toggle button');
-      return;
-    }
-
-    // Set initial state based on screen size
-    const isDesktop = window.matchMedia('(min-width: 1024px)').matches;
-    if (isDesktop) {
-      sidebarWrapper.classList.add('open');
-      toggleButton.style.display = 'none';
-    } else {
-      sidebarWrapper.classList.remove('open');
-      toggleButton.style.display = 'flex';
-    }
-
-    // Toggle sidebar on button click
-    toggleButton.addEventListener('click', () => {
-      sidebarWrapper.classList.toggle('open');
-      toggleButton.setAttribute(
-        'aria-label',
-        sidebarWrapper.classList.contains('open')
-          ? 'Close sidebar navigation'
-          : 'Open sidebar navigation'
-      );
-      toggleButton.textContent = sidebarWrapper.classList.contains('open') ? 'Close' : 'Menu';
-    });
-
-    // Handle sidebar link clicks for smooth scrolling
-    sidebarLinks.forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const sectionId = link.getAttribute('href').substring(1);
-        const targetSection = document.getElementById(sectionId);
-
-        if (targetSection) {
-          targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          // Update active state
-          sidebarLinks.forEach(l => l.removeAttribute('aria-current'));
-          link.setAttribute('aria-current', 'true');
-
-          // Close sidebar on mobile after clicking a link
-          if (!isDesktop) {
-            sidebarWrapper.classList.remove('open');
-            toggleButton.textContent = 'Menu';
-            toggleButton.setAttribute('aria-label', 'Open sidebar navigation');
-          }
-        }
-      });
-    });
-
-    // Update active link based on scroll position
-    const sections = Array.from(sidebarLinks).map(link => {
-      const href = link.getAttribute('href');
-      return href ? document.querySelector(href) : null;
-    }).filter(Boolean);
-
-    const observerOptions = {
-      root: null,
-      threshold: 0.5,
-      rootMargin: '-20% 0px -20% 0px'
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const sectionId = entry.target.id;
-          sidebarLinks.forEach(link => {
-            const linkHref = link.getAttribute('href');
-            if (linkHref === `#${sectionId}`) {
-              link.setAttribute('aria-current', 'true');
-            } else {
-              link.removeAttribute('aria-current');
-            }
-          });
-        }
-      });
-    }, observerOptions);
-
-    sections.forEach(section => observer.observe(section));
-
-    // Handle window resize to adjust sidebar visibility
-    window.addEventListener('resize', () => {
-      const isNowDesktop = window.matchMedia('(min-width: 1024px)').matches;
-      if (isNowDesktop) {
-        sidebarWrapper.classList.add('open');
-        toggleButton.style.display = 'none';
-      } else {
-        sidebarWrapper.classList.remove('open');
-        toggleButton.style.display = 'flex';
-        toggleButton.textContent = 'Menu';
-        toggleButton.setAttribute('aria-label', 'Open sidebar navigation');
-      }
-    });
-
-    // Prevent duplicate initialization in CSR
-    if (window.__SIDEBAR_INITIALIZED__) {
-      console.warn('[Sidebar] Already initialized');
-      return;
-    }
-    window.__SIDEBAR_INITIALIZED__ = true;
-  }
-
-  // Global scrollToSection function for inline onclick handlers
-  window.scrollToSection = function (sectionId) {
-    const targetSection = document.getElementById(sectionId);
-    if (targetSection) {
-      targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      const link = document.querySelector(`.sidebar-link[href="#${sectionId}"]`);
-      if (link) {
-        document.querySelectorAll('.sidebar-link').forEach(l => l.removeAttribute('aria-current'));
-        link.setAttribute('aria-current', 'true');
-      }
-    }
+  const toggleSidebar = () => {
+    isSidebarOpen = !isSidebarOpen;
+    sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
+    sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
+    toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
+    toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
   };
-})();
+
+  const highlightActiveSection = () => {
+    const sections = document.querySelectorAll('section[id]');
+    let activeSectionId = '';
+    sections.forEach(section => {
+      const rect = section.getBoundingClientRect();
+      if (rect.top >= 0 && rect.top < window.innerHeight / 2) {
+        activeSectionId = section.id;
+      }
+    });
+    sidebarLinks.forEach(link => {
+      const href = link.getAttribute('href').slice(1);
+      link.classList.toggle('active', href === activeSectionId);
+    });
+  };
+
+  toggleButton.addEventListener('click', toggleSidebar);
+  sidebarLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const sectionId = link.getAttribute('href').slice(1);
+      document.getElementById(sectionId).scrollIntoView({ behavior: 'smooth' });
+      if (window.innerWidth < 1024) {
+        toggleSidebar();
+      }
+    });
+  });
+
+  window.addEventListener('scroll', highlightActiveSection);
+  window.addEventListener('resize', () => {
+    isSidebarOpen = window.innerWidth >= 1024;
+    sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
+    sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
+    toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
+    toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
+  });
+
+  // Initialize
+  sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
+  sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
+  toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
+  toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
+  highlightActiveSection();
+});
