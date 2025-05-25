@@ -3,17 +3,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const toggleButton = document.getElementById('toggle-button');
   const sidebarLinks = document.querySelectorAll('.sidebar-link');
 
+  // Exit if critical elements are missing
   if (!sidebarWrapper || !toggleButton) {
-    console.warn('[sidebar.js] Missing sidebar elements');
+    console.warn('[sidebar.js] Missing sidebar-wrapper or toggle-button');
     return;
   }
 
-  let isSidebarOpen = window.innerWidth >= 768;
+  // Initialize sidebar state based on screen width
+  let isSidebarOpen = window.innerWidth >= 1024;
 
   const toggleSidebar = () => {
     isSidebarOpen = !isSidebarOpen;
     sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
-    sidebarWrapper.style.display = isSidebarOpen ? 'block' : 'none';
+    sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
     toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
     toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
   };
@@ -28,53 +30,46 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
     sidebarLinks.forEach(link => {
-      const href = link.getAttribute('href').slice(1);
+      const href = link.getAttribute('href')?.slice(1) || '';
       link.classList.toggle('active', href === activeSectionId);
     });
   };
 
-  // Clean up existing listeners for SPA
-  const existingToggle = toggleButton.__toggleListener;
-  if (existingToggle) toggleButton.removeEventListener('click', existingToggle);
-  toggleButton.__toggleListener = toggleSidebar;
+  // Attach toggle event
   toggleButton.addEventListener('click', toggleSidebar);
 
-  // Reattach link listeners
+  // Attach link click events
   sidebarLinks.forEach(link => {
-    const handler = (e) => {
+    link.addEventListener('click', (e) => {
       e.preventDefault();
-      const sectionId = link.getAttribute('href').slice(1);
+      const sectionId = link.getAttribute('href')?.slice(1) || '';
       const section = document.getElementById(sectionId);
       if (section) {
         section.scrollIntoView({ behavior: 'smooth' });
-        if (window.innerWidth < 768) {
+        if (window.innerWidth < 1024) {
           toggleSidebar();
         }
       }
-    };
-    const existingHandler = link.__clickListener;
-    if (existingHandler) link.removeEventListener('click', existingHandler);
-    link.__clickListener = handler;
-    link.addEventListener('click', handler);
+    });
   });
 
-  // Scroll and resize listeners
-  window.addEventListener('scroll', highlightActiveSection, { passive: true });
+  // Handle scroll and resize
+  window.addEventListener('scroll', highlightActiveSection);
   window.addEventListener('resize', () => {
-    const shouldBeOpen = window.innerWidth >= 768;
-    if (isSidebarOpen !== shouldBeOpen) {
-      isSidebarOpen = shouldBeOpen;
+    const newIsOpen = window.innerWidth >= 1024;
+    if (newIsOpen !== isSidebarOpen) {
+      isSidebarOpen = newIsOpen;
       sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
-      sidebarWrapper.style.display = isSidebarOpen ? 'block' : 'none';
+      sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
       toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
       toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
     }
     highlightActiveSection();
   });
 
-  // Initialize
+  // Initialize state
   sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
-  sidebarWrapper.style.display = isSidebarOpen ? 'block' : 'none';
+  sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
   toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
   toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
   highlightActiveSection();
