@@ -8,12 +8,12 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  let isSidebarOpen = window.innerWidth >= 1024;
+  let isSidebarOpen = window.innerWidth >= 768;
 
   const toggleSidebar = () => {
     isSidebarOpen = !isSidebarOpen;
     sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
-    sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
+    sidebarWrapper.style.display = isSidebarOpen ? 'block' : 'none';
     toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
     toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
   };
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   };
 
-  // Remove existing listeners to prevent duplicates in SPA
+  // Clean up existing listeners for SPA
   const existingToggle = toggleButton.__toggleListener;
   if (existingToggle) toggleButton.removeEventListener('click', existingToggle);
   toggleButton.__toggleListener = toggleSidebar;
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const section = document.getElementById(sectionId);
       if (section) {
         section.scrollIntoView({ behavior: 'smooth' });
-        if (window.innerWidth < 1024) {
+        if (window.innerWidth < 768) {
           toggleSidebar();
         }
       }
@@ -61,11 +61,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Scroll and resize listeners
   window.addEventListener('scroll', highlightActiveSection, { passive: true });
   window.addEventListener('resize', () => {
-    const shouldBeOpen = window.innerWidth >= 1024;
+    const shouldBeOpen = window.innerWidth >= 768;
     if (isSidebarOpen !== shouldBeOpen) {
       isSidebarOpen = shouldBeOpen;
       sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
-      sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
+      sidebarWrapper.style.display = isSidebarOpen ? 'block' : 'none';
       toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
       toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
     }
@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Initialize
   sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
-  sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
+  sidebarWrapper.style.display = isSidebarOpen ? 'block' : 'none';
   toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
   toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
   highlightActiveSection();
