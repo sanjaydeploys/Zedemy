@@ -4,24 +4,20 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import styled from 'styled-components';
 import { fetchPostSSR } from '../actions/postActions';
-
 const Layout = styled.div`
   display: flex;
   min-height: 100vh;
 `;
-
 const PostContent = styled.div`
   flex: 1;
 `;
-
 const PostPage = memo(() => {
   const { slug } = useParams();
   const dispatch = useDispatch();
   const [ssrHtml, setSsrHtml] = useState('');
   const postData = useSelector((state) => state.postReducer.post) || window.__POST_DATA__ || {};
   const error = useSelector((state) => state.postReducer.error);
-
-  // Load sidebar.js dynamically
+  // Load sidebar.js dynamically to ensure toggleSidebar and scrollToSection are defined
   useEffect(() => {
     const loadSidebarScript = () => {
       if (typeof window.toggleSidebar !== 'function' || typeof window.scrollToSection !== 'function') {
@@ -39,32 +35,23 @@ const PostPage = memo(() => {
     };
     loadSidebarScript();
   }, []);
-
   // Fetch SSR HTML
   useEffect(() => {
     if (!window.__POST_DATA__ || !postData.title) {
       dispatch(fetchPostSSR(slug))
         .then(({ html, postData: fetchedPostData }) => {
-          // Extract only the main content from the SSR HTML
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(html, 'text/html');
-          const mainContent = doc.querySelector('main')?.outerHTML || '';
-          setSsrHtml(mainContent);
+          setSsrHtml(html);
           if (fetchedPostData.title) {
             dispatch({ type: 'FETCH_POST_SUCCESS', payload: fetchedPostData });
           }
         })
         .catch((err) => {
-          console.error('[PostPage.jsx] Error fetching SSR:', err);
           setSsrHtml('');
         });
     } else {
-      // Use window.__POST_DATA__ to avoid re-rendering entire document
-      const mainContent = document.querySelector('main')?.outerHTML || '';
-      setSsrHtml(mainContent);
+      setSsrHtml(document.documentElement.outerHTML);
     }
   }, [slug, dispatch, postData]);
-
   if (error || (!postData.title && !ssrHtml)) {
     return (
       <HelmetProvider>
@@ -83,7 +70,6 @@ const PostPage = memo(() => {
       </HelmetProvider>
     );
   }
-
   return (
     <HelmetProvider>
       <Helmet>
@@ -96,5 +82,4 @@ const PostPage = memo(() => {
     </HelmetProvider>
   );
 });
-
 export default PostPage;
