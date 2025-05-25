@@ -3,16 +3,15 @@ import { useDispatch, useSelector } from 'react-redux';
 import { addPost } from '../actions/postActions';
 import { loadUser } from '../actions/authActions';
 import '../styles/AddPostForm.css';
+
 // Lazy-load heavy dependencies
 const loadDependencies = async () => {
   const [
     { default: axios },
-    { default: DOMPurify },
   ] = await Promise.all([
     import('axios'),
-    import('dompurify'),
   ]);
-  return { axios, DOMPurify };
+  return { axios };
 };
 
 // Custom Tooltip Component
@@ -85,17 +84,6 @@ const AddPostForm = React.memo(() => {
       loadDependencies().then(setDeps);
     }
   }, []);
-
-  // Sanitization configuration
-  const codeSanitizeConfig = useMemo(() => ({
-    ALLOWED_TAGS: [],
-    ALLOWED_ATTR: [],
-  }), []);
-
-  const sanitizeCodeSnippet = useCallback((code) => {
-    if (!deps?.DOMPurify) return code;
-    return deps.DOMPurify.sanitize(code, codeSanitizeConfig);
-  }, [deps, codeSanitizeConfig]);
 
   // File validation
   const validateFile = useCallback(async (file, type) => {
@@ -609,7 +597,7 @@ const AddPostForm = React.memo(() => {
         imageHash: sub.imageHash || null,
         bulletPoints: sub.bulletPoints.map(point => ({
           text: point.text || '',
-          codeSnippet: sanitizeCodeSnippet(point.codeSnippet || ''),
+          codeSnippet: point.codeSnippet || '',
           image: point.image || null,
           imageHash: point.imageHash || null,
           video: point.video || null,
@@ -696,7 +684,6 @@ const AddPostForm = React.memo(() => {
     videoHash,
     dispatch,
     validateMediaFields,
-    sanitizeCodeSnippet,
   ]);
 
   // User loading and cleanup
@@ -951,7 +938,7 @@ const AddPostForm = React.memo(() => {
                     </FormGroup>
                     <FormGroup>
                       <label className="label">Code Snippet</label>
-                      <Tooltip title="Enter a code snippet. This will be sanitized to prevent XSS attacks.">
+                      <Tooltip title="Enter a code snippet. This will be displayed as entered.">
                         <textarea
                           className="textarea"
                           rows="4"
