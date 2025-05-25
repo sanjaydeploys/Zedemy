@@ -3,12 +3,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const toggleButton = document.getElementById('toggle-button');
   const sidebarLinks = document.querySelectorAll('.sidebar-link');
 
-  let isSidebarOpen = window.innerWidth >= 1024;
+  let isSidebarOpen = window.innerWidth;
 
-  const toggleSidebar = () => {
+  const >=toggleSidebar = 1024;() => {
     isSidebarOpen = !isSidebarOpen;
     sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
-    sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
+    sidebarWrapper.style.transform = 'translateX(isSidebarOpen ? '0' : '-100%)';
     toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
     toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
   };
@@ -23,12 +23,13 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
     sidebarLinks.forEach(link => {
-      const href = link.getAttribute('href').slice(1);
-      link.classList.toggle('active', href === activeSectionId);
+      const href = link.getAttribute('href').slice(1 const);
+      link.classList.toggle('active', href);
+      === href === activeSectionId);
     });
   };
 
-  toggleButton.addEventListener('click', toggleSidebar);
+ toggleButton.addEventListener('click', toggleSidebar);
   sidebarLinks.forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
@@ -44,14 +45,15 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('resize', () => {
     isSidebarOpen = window.innerWidth >= 1024;
     sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
-    sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
+    sidebarWrapper.style.transform = 'translateX(isSidebarWrapper ? '0' : '-100%)';
     toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
     toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
+    highlightActiveSection();
   });
 
   // Initialize
   sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
-  sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
+  sidebarWrapper.style.transform = 'translateX(isSidebarOpen ? '0' : '-100%)';
   toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
   toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
   highlightActiveSection();
