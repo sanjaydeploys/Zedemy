@@ -9,15 +9,17 @@
       return;
     }
 
-    // Sidebar visible by default on all devices
-    let isSidebarOpen = true;
+    // Sidebar open on large screens, closed on mobile
+    let isSidebarOpen = window.innerWidth >= 1024;
 
     const toggleSidebar = () => {
-      isSidebarOpen = !isSidebarOpen;
-      sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
-      sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
-      toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar');
-      toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
+      if (window.innerWidth < 1024) {
+        isSidebarOpen = !isSidebarOpen;
+        sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
+        sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
+        toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
+        toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
+      }
     };
 
     const highlightActiveSection = () => {
@@ -35,13 +37,15 @@
       });
     };
 
-    // Clean up existing listeners
+    // Clean up listeners
     toggleButton.removeEventListener('click', window._toggleSidebarHandler);
     sidebarLinks.forEach(link => link.removeEventListener('click', window._sidebarLinkHandler));
 
-    // Attach toggle event
+    // Attach toggle event for mobile
     window._toggleSidebarHandler = toggleSidebar;
-    toggleButton.addEventListener('click', window._toggleSidebarHandler);
+    if (window.innerWidth < 1024) {
+      toggleButton.addEventListener('click', window._toggleSidebarHandler);
+    }
 
     // Attach link click events
     window._sidebarLinkHandler = (e) => {
@@ -57,18 +61,28 @@
     };
     sidebarLinks.forEach(link => link.addEventListener('click', window._sidebarLinkHandler));
 
-    // Handle scroll and resize
+    // Handle scroll
     window.removeEventListener('scroll', window._highlightActiveSection);
     window._highlightActiveSection = highlightActiveSection;
     window.addEventListener('scroll', window._highlightActiveSection);
 
+    // Handle resize
     window.removeEventListener('resize', window._resizeHandler);
     window._resizeHandler = () => {
-      // Keep sidebar open on resize unless toggled
-      sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
-      sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
-      toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar');
-      toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
+      const isLargeScreen = window.innerWidth >= 1024;
+      if (isLargeScreen !== isSidebarOpen) {
+        isSidebarOpen = isLargeScreen;
+        sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
+        sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
+        toggleButton.style.display = isLargeScreen ? 'none' : 'block';
+        toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
+        toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
+        // Reattach toggle event based on screen size
+        toggleButton.removeEventListener('click', window._toggleSidebarHandler);
+        if (!isLargeScreen) {
+          toggleButton.addEventListener('click', window._toggleSidebarHandler);
+        }
+      }
       highlightActiveSection();
     };
     window.addEventListener('resize', window._resizeHandler);
@@ -76,7 +90,8 @@
     // Initialize state
     sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
     sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
-    toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar');
+    toggleButton.style.display = window.innerWidth >= 1024 ? 'none' : 'block';
+    toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
     toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
     highlightActiveSection();
 
@@ -92,7 +107,7 @@
     initSidebar();
   }
 
-  // Handle dynamic DOM changes in CSR
+  // Handle CSR DOM changes
   const observer = new MutationObserver(() => {
     if (document.getElementById('sidebar-wrapper') && document.getElementById('toggle-button')) {
       initSidebar();
