@@ -1,29 +1,25 @@
 (function() {
-  // Initialize sidebar functionality
   function initSidebar() {
     const sidebarWrapper = document.getElementById('sidebar-wrapper');
     const toggleButton = document.getElementById('toggle-button');
     const sidebarLinks = document.querySelectorAll('.sidebar-link');
 
-    // Exit if critical elements are missing
     if (!sidebarWrapper || !toggleButton) {
       console.warn('[sidebar.js] Missing sidebar-wrapper or toggle-button');
       return;
     }
 
-    // Initialize sidebar state
-    let isSidebarOpen = window.innerWidth >= 1024;
+    // Sidebar visible by default on all devices
+    let isSidebarOpen = true;
 
-    // Toggle sidebar function
     const toggleSidebar = () => {
       isSidebarOpen = !isSidebarOpen;
       sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
       sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
-      toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
+      toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar');
       toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
     };
 
-    // Highlight active section
     const highlightActiveSection = () => {
       const sections = document.querySelectorAll('section[id]');
       let activeSectionId = '';
@@ -39,11 +35,9 @@
       });
     };
 
-    // Remove existing listeners to prevent duplicates
+    // Clean up existing listeners
     toggleButton.removeEventListener('click', window._toggleSidebarHandler);
-    sidebarLinks.forEach(link => {
-      link.removeEventListener('click', window._sidebarLinkHandler);
-    });
+    sidebarLinks.forEach(link => link.removeEventListener('click', window._sidebarLinkHandler));
 
     // Attach toggle event
     window._toggleSidebarHandler = toggleSidebar;
@@ -56,14 +50,12 @@
       const section = document.getElementById(sectionId);
       if (section) {
         section.scrollIntoView({ behavior: 'smooth' });
-        if (window.innerWidth < 1024) {
+        if (window.innerWidth < 1024 && isSidebarOpen) {
           toggleSidebar();
         }
       }
     };
-    sidebarLinks.forEach(link => {
-      link.addEventListener('click', window._sidebarLinkHandler);
-    });
+    sidebarLinks.forEach(link => link.addEventListener('click', window._sidebarLinkHandler));
 
     // Handle scroll and resize
     window.removeEventListener('scroll', window._highlightActiveSection);
@@ -72,14 +64,11 @@
 
     window.removeEventListener('resize', window._resizeHandler);
     window._resizeHandler = () => {
-      const newIsOpen = window.innerWidth >= 1024;
-      if (newIsOpen !== isSidebarOpen) {
-        isSidebarOpen = newIsOpen;
-        sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
-        sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
-        toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
-        toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
-      }
+      // Keep sidebar open on resize unless toggled
+      sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
+      sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
+      toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar');
+      toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
       highlightActiveSection();
     };
     window.addEventListener('resize', window._resizeHandler);
@@ -87,7 +76,7 @@
     // Initialize state
     sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
     sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
-    toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
+    toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Hide Sidebar' : 'Show Sidebar');
     toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
     highlightActiveSection();
 
@@ -96,32 +85,19 @@
     window.initSidebar = initSidebar;
   }
 
-  // Run on DOMContentLoaded
+  // Run initialization
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initSidebar);
   } else {
     initSidebar();
   }
 
-  // MutationObserver for dynamic DOM changes in CSR
-  const observer = new MutationObserver((mutations) => {
+  // Handle dynamic DOM changes in CSR
+  const observer = new MutationObserver(() => {
     if (document.getElementById('sidebar-wrapper') && document.getElementById('toggle-button')) {
       initSidebar();
       observer.disconnect();
     }
   });
   observer.observe(document.body, { childList: true, subtree: true });
-
-  // Polling fallback for CSR
-  let attempts = 0;
-  const maxAttempts = 10;
-  const pollInterval = setInterval(() => {
-    if (document.getElementById('sidebar-wrapper') && document.getElementById('toggle-button')) {
-      initSidebar();
-      clearInterval(pollInterval);
-    } else if (attempts++ >= maxAttempts) {
-      console.warn('[sidebar.js] Failed to find sidebar elements after max attempts');
-      clearInterval(pollInterval);
-    }
-  }, 100);
 })();
