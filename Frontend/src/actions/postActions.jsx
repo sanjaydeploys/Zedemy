@@ -34,41 +34,22 @@ const fetchWithRetry = async (url, options, retries = 3, delay = 1000) => {
 
 export const fetchPostSSR = (slug) => async (dispatch) => {
   try {
-    const response = await fetch(`${SSR_BASE_URL}/post/${slug}?t=${Date.now()}`, {
-      headers: {
-        'Accept': 'text/html',
-        'Accept-Encoding': 'gzip, deflate, br'
-      }
-    });
-
+    const response = await fetch(`/post/${slug}`);
     if (!response.ok) {
-      throw new Error(`SSR fetch error: ${response.status}`);
+      throw new Error('Failed to fetch post');
     }
-
     const html = await response.text();
-    const match = html.match(/window\.__POST_DATA__\s*=\s*({[\s\S]*?});/);
-    let postData = {};
-    if (match && match[1]) {
-      try {
-        postData = JSON.parse(match[1]);
-      } catch (err) {
-        console.error('[fetchPostSSR] Error parsing window.__POST_DATA__:', err.message);
-      }
-    }
-
-    dispatch({
-      type: 'FETCH_POST_SUCCESS',
-      payload: postData
-    });
-
-    return { html, postData };
+    // Parse HTML and extract main content
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const mainContent = doc.querySelector('main')?.outerHTML || '';
+    const postData = window.__POST_DATA__ || {};
+    return { html: mainContent, postData };
   } catch (error) {
-    dispatch({ type: 'FETCH_POST_FAILURE', payload: error.message });
-    toast.error('Failed to load SSR data.', { position: 'top-right', autoClose: 3000 });
+    dispatch({ type: 'FETCH_POST_ERROR', payload: error.message });
     throw error;
   }
 };
-
 export const fetchPosts = () => async (dispatch) => {
   const token = localStorage.getItem('token');
   try {
