@@ -1,28 +1,18 @@
 (function() {
-  function initSidebar(attempts = 5) {
+  function initSidebar() {
     const sidebarWrapper = document.getElementById('sidebar-wrapper');
     const toggleButton = document.getElementById('toggle-button');
     const sidebarLinks = document.querySelectorAll('.sidebar-link');
 
-    // Exit if elements missing
     if (!sidebarWrapper || !toggleButton) {
-      if (attempts > 0) {
-        requestAnimationFrame(() => initSidebar(attempts - 1));
-      }
+      console.warn('[sidebar.js] Missing sidebar-wrapper or toggle-button');
       return;
     }
 
-    // Prevent re-initialization
     if (sidebarWrapper.dataset.sidebarInitialized) return;
     sidebarWrapper.dataset.sidebarInitialized = 'true';
 
-    // Start hidden on mobile, visible on desktop
     let isSidebarOpen = window.innerWidth >= 1024;
-
-    // Ensure toggle button visible on mobile
-    if (window.innerWidth < 1024) {
-      toggleButton.style.display = 'block';
-    }
 
     const toggleSidebar = () => {
       if (window.innerWidth < 1024) {
@@ -54,7 +44,7 @@
     window.removeEventListener('scroll', window._highlightActiveSection);
     window.removeEventListener('resize', window._resizeHandler);
 
-    // Attach toggle event
+    // Attach toggle
     window._toggleSidebarHandler = toggleSidebar;
     toggleButton.addEventListener('click', toggleSidebar);
 
@@ -72,7 +62,7 @@
     };
     sidebarLinks.forEach(link => link.addEventListener('click', window._sidebarLinkHandler));
 
-    // Attach scroll event
+    // Attach scroll
     window._highlightActiveSection = highlightActiveSection;
     window.addEventListener('scroll', highlightActiveSection);
 
@@ -85,14 +75,13 @@
         sidebarWrapper.classList.toggle('open', isSidebarOpen);
         toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
         toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
-        toggleButton.style.display = currentWidth < 1024 ? 'block' : 'none';
         highlightActiveSection();
       }
       lastWidth = currentWidth;
     };
     window.addEventListener('resize', window._resizeHandler);
 
-    // Initialize state
+    // Initialize
     sidebarWrapper.classList.toggle('open', isSidebarOpen);
     toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
     toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
@@ -101,7 +90,6 @@
     window.initSidebar = initSidebar;
   }
 
-  // Run initialization
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
     initSidebar();
   } else {
