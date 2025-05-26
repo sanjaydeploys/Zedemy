@@ -19,6 +19,11 @@
     // Start hidden on mobile, visible on desktop
     let isSidebarOpen = window.innerWidth >= 1024;
 
+    // Ensure toggle button visible on mobile
+    if (window.innerWidth < 1024) {
+      toggleButton.style.display = 'block';
+    }
+
     const toggleSidebar = () => {
       if (window.innerWidth < 1024) {
         isSidebarOpen = !isSidebarOpen;
@@ -80,6 +85,7 @@
         sidebarWrapper.classList.toggle('open', isSidebarOpen);
         toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
         toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
+        toggleButton.style.display = currentWidth < 1024 ? 'block' : 'none';
         highlightActiveSection();
       }
       lastWidth = currentWidth;
