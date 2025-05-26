@@ -71,17 +71,14 @@ const PostPage = memo(() => {
       console.log('[PostPage.jsx] Loading sidebar.js');
       sidebarScript = document.createElement('script');
       sidebarScript.src = '/scripts/sidebar.js';
-      sidebarScript.async = false; // Load synchronously
+      sidebarScript.async = false; // Synchronous loading
       document.head.appendChild(sidebarScript);
       sidebarScript.onload = initializeSidebar;
-    } else if (window.toggleSidebar) {
-      initializeSidebar();
     } else {
-      // Wait for existing script to load
-      sidebarScript.addEventListener('load', initializeSidebar);
+      initializeSidebar();
     }
 
-    // Fetch post data if not preloaded
+    // Fetch post data
     if (!window.__POST_DATA__ || !postData.title) {
       dispatch(fetchPostSSR(slug))
         .then(({ html, postData: fetchedPostData }) => {
@@ -89,11 +86,7 @@ const PostPage = memo(() => {
           if (fetchedPostData.title) {
             dispatch({ type: 'FETCH_POST_SUCCESS', payload: fetchedPostData });
           }
-          // Only initialize sidebar if not already done
-          if (!document.querySelector('script[src="/scripts/sidebar.js"]').hasAttribute('data-initialized')) {
-            initializeSidebar();
-            sidebarScript.setAttribute('data-initialized', 'true');
-          }
+          initializeSidebar();
         })
         .catch((err) => {
           setSsrHtml('');
@@ -101,11 +94,7 @@ const PostPage = memo(() => {
         });
     } else {
       setSsrHtml(document.documentElement.outerHTML);
-      // Only initialize sidebar if not already done
-      if (!document.querySelector('script[src="/scripts/sidebar.js"]')?.hasAttribute('data-initialized')) {
-        initializeSidebar();
-        if (sidebarScript) sidebarScript.setAttribute('data-initialized', 'true');
-      }
+      initializeSidebar();
     }
 
     // Cleanup
@@ -117,7 +106,10 @@ const PostPage = memo(() => {
       }
       document.removeEventListener('click', handleClickOutside);
     };
-  }, [slug, dispatch]);
+  }, [slug, dispatch, postData]);
+
+  // Determine title for Helmet
+  const pageTitle = postData.title ? `${postData.title} | Zedemy` : 'Zedemy';
 
   if (error || (!postData.title && !ssrHtml)) {
     return (
@@ -150,8 +142,7 @@ const PostPage = memo(() => {
   return (
     <HelmetProvider>
       <Helmet>
-        <title>{postData.title || 'Post'} | Zedemy</title>
-        <meta name="description" content={postData.summary || 'Explore this post on Zedemy.'} />
+        <title>{pageTitle}</title>
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
       </Helmet>
       <Layout>
