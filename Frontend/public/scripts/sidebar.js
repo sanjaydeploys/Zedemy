@@ -1,30 +1,24 @@
 (function() {
-  function initSidebar(attempts = 5, delay = 200) {
+  function initSidebar(attempts = 10) {
     const sidebarWrapper = document.getElementById('sidebar-wrapper');
     const toggleButton = document.getElementById('toggle-button');
     const sidebarLinks = document.querySelectorAll('.sidebar-link');
 
     if (!sidebarWrapper || !toggleButton) {
       if (attempts > 0) {
-        console.log('[sidebar.js] Elements not found, retrying...', attempts);
-        setTimeout(() => initSidebar(attempts - 1, delay), delay);
-      } else {
-        console.error('[sidebar.js] Failed to find sidebar-wrapper or toggle-button');
+        requestAnimationFrame(() => initSidebar(attempts - 1));
       }
       return;
     }
-
-    console.log('[sidebar.js] Sidebar initialized');
 
     let isSidebarOpen = window.innerWidth >= 1024;
 
     const toggleSidebar = () => {
       if (window.innerWidth < 1024) {
         isSidebarOpen = !isSidebarOpen;
-        sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
-        sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
-        toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
+        sidebarWrapper.classList.toggle('open', isSidebarOpen);
         toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
+        toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
       }
     };
 
@@ -75,11 +69,10 @@
       const isLargeScreen = window.innerWidth >= 1024;
       if (isLargeScreen !== isSidebarOpen) {
         isSidebarOpen = isLargeScreen;
-        sidebarWrapper.dataset.state = isLargeScreen ? 'open' : 'closed';
-        sidebarWrapper.style.transform = isLargeScreen ? 'translateX(0)' : 'translateX(-100%)';
-        toggleButton.style.display = isLargeScreen ? 'none' : 'block';
-        toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
+        sidebarWrapper.classList.toggle('open', isLargeScreen);
         toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
+        toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
+        toggleButton.style.display = isLargeScreen ? 'none' : 'block';
         toggleButton.removeEventListener('click', window._toggleSidebarHandler);
         if (!isLargeScreen) {
           toggleButton.addEventListener('click', window._toggleSidebarHandler);
@@ -90,12 +83,13 @@
     window.addEventListener('resize', window._resizeHandler);
 
     // Initialize state
-    sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
-    sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
+    sidebarWrapper.classList.toggle('open', isSidebarOpen);
     toggleButton.style.display = window.innerWidth >= 1024 ? 'none' : 'block';
-    toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
     toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
+    toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
     highlightActiveSection();
+
+    window.initSidebar = initSidebar; // Expose for PostPage.jsx
   }
 
   // Run initialization
