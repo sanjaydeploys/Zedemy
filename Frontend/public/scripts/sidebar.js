@@ -86,8 +86,6 @@
     toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
     toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
     highlightActiveSection();
-
-    window.initSidebar = initSidebar;
   }
 
   if (document.readyState === 'complete' || document.readyState === 'interactive') {
