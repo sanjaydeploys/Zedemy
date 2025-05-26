@@ -63,22 +63,25 @@ const PostPage = memo(() => {
     }
   };
 
-  // Fetch SSR HTML and ensure sidebar.js is loaded
+  // Load sidebar.js and fetch post data
   useEffect(() => {
-    // Load sidebar.js if not present
+    // Ensure sidebar.js is loaded synchronously
     let sidebarScript = document.querySelector('script[src="/scripts/sidebar.js"]');
     if (!sidebarScript) {
       console.log('[PostPage.jsx] Loading sidebar.js');
       sidebarScript = document.createElement('script');
       sidebarScript.src = '/scripts/sidebar.js';
-      sidebarScript.defer = true;
-      sidebarScript.onload = initializeSidebar;
+      sidebarScript.async = false; // Load synchronously
       document.head.appendChild(sidebarScript);
-    } else {
+      sidebarScript.onload = initializeSidebar;
+    } else if (window.toggleSidebar) {
       initializeSidebar();
+    } else {
+      // Wait for existing script to load
+      sidebarScript.addEventListener('load', initializeSidebar);
     }
 
-    // Fetch post data
+    // Fetch post data if not preloaded
     if (!window.__POST_DATA__ || !postData.title) {
       dispatch(fetchPostSSR(slug))
         .then(({ html, postData: fetchedPostData }) => {
@@ -86,7 +89,11 @@ const PostPage = memo(() => {
           if (fetchedPostData.title) {
             dispatch({ type: 'FETCH_POST_SUCCESS', payload: fetchedPostData });
           }
-          initializeSidebar();
+          // Only initialize sidebar if not already done
+          if (!document.querySelector('script[src="/scripts/sidebar.js"]').hasAttribute('data-initialized')) {
+            initializeSidebar();
+            sidebarScript.setAttribute('data-initialized', 'true');
+          }
         })
         .catch((err) => {
           setSsrHtml('');
@@ -94,7 +101,11 @@ const PostPage = memo(() => {
         });
     } else {
       setSsrHtml(document.documentElement.outerHTML);
-      initializeSidebar();
+      // Only initialize sidebar if not already done
+      if (!document.querySelector('script[src="/scripts/sidebar.js"]')?.hasAttribute('data-initialized')) {
+        initializeSidebar();
+        if (sidebarScript) sidebarScript.setAttribute('data-initialized', 'true');
+      }
     }
 
     // Cleanup
@@ -106,7 +117,7 @@ const PostPage = memo(() => {
       }
       document.removeEventListener('click', handleClickOutside);
     };
-  }, [slug, dispatch, postData]);
+  }, [slug, dispatch]);
 
   if (error || (!postData.title && !ssrHtml)) {
     return (
@@ -139,7 +150,8 @@ const PostPage = memo(() => {
   return (
     <HelmetProvider>
       <Helmet>
-        <title>{postData.title || 'Loading...'} | Zedemy</title>
+        <title>{postData.title || 'Post'} | Zedemy</title>
+        <meta name="description" content={postData.summary || 'Explore this post on Zedemy.'} />
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
       </Helmet>
       <Layout>
