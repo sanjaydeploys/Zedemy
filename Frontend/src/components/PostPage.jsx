@@ -21,8 +21,64 @@ const PostPage = memo(() => {
   const postData = useSelector((state) => state.postReducer.post) || window.__POST_DATA__ || {};
   const error = useSelector((state) => state.postReducer.error);
 
-  // Fetch SSR HTML
+  // Initialize sidebar event listeners
+  const initializeSidebar = () => {
+    console.log('[PostPage.jsx] Initializing sidebar event listeners');
+    const toggleButton = document.getElementById('toggle-button');
+    if (toggleButton && window.toggleSidebar) {
+      // Remove existing listeners to prevent duplicates
+      toggleButton.removeEventListener('click', window.toggleSidebar);
+      toggleButton.removeEventListener('keydown', handleSidebarKeydown);
+      // Add new listeners
+      toggleButton.addEventListener('click', window.toggleSidebar);
+      toggleButton.addEventListener('keydown', handleSidebarKeydown);
+      // Add click-outside handler
+      document.removeEventListener('click', handleClickOutside);
+      document.addEventListener('click', handleClickOutside);
+    } else {
+      console.warn('[PostPage.jsx] Toggle button or toggleSidebar not found');
+    }
+  };
+
+  // Keyboard handler for sidebar toggle
+  const handleSidebarKeydown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      window.toggleSidebar();
+    }
+  };
+
+  // Click-outside handler to close sidebar
+  const handleClickOutside = (e) => {
+    const sidebar = document.getElementById('sidebar-wrapper');
+    const toggleButton = document.getElementById('toggle-button');
+    if (
+      sidebar &&
+      toggleButton &&
+      !sidebar.contains(e.target) &&
+      !toggleButton.contains(e.target) &&
+      sidebar.classList.contains('open')
+    ) {
+      window.toggleSidebar();
+    }
+  };
+
+  // Fetch SSR HTML and ensure sidebar.js is loaded
   useEffect(() => {
+    // Load sidebar.js if not present
+    let sidebarScript = document.querySelector('script[src="/scripts/sidebar.js"]');
+    if (!sidebarScript) {
+      console.log('[PostPage.jsx] Loading sidebar.js');
+      sidebarScript = document.createElement('script');
+      sidebarScript.src = '/scripts/sidebar.js';
+      sidebarScript.defer = true;
+      sidebarScript.onload = initializeSidebar;
+      document.head.appendChild(sidebarScript);
+    } else {
+      initializeSidebar();
+    }
+
+    // Fetch post data
     if (!window.__POST_DATA__ || !postData.title) {
       dispatch(fetchPostSSR(slug))
         .then(({ html, postData: fetchedPostData }) => {
@@ -30,77 +86,27 @@ const PostPage = memo(() => {
           if (fetchedPostData.title) {
             dispatch({ type: 'FETCH_POST_SUCCESS', payload: fetchedPostData });
           }
+          initializeSidebar();
         })
         .catch((err) => {
           setSsrHtml('');
-          console.error('Failed to fetch SSR HTML:', err);
+          console.error('[PostPage.jsx] Failed to fetch SSR:', err);
         });
     } else {
       setSsrHtml(document.documentElement.outerHTML);
+      initializeSidebar();
     }
-  }, [slug, dispatch, postData.title]);
 
-  // Initialize sidebar toggle and section links
-  useEffect(() => {
-    if (ssrHtml) {
-      const toggleButton = document.getElementById('toggleSidebar');
-      const sidebarLinks = document.querySelectorAll('.sidebar-link');
-
-      // Add toggle event listener
-      const handleToggle = () => {
-        if (typeof window.toggleSidebar === 'function') {
-          window.toggleSidebar();
-        }
-      };
-
-      // Add section link event listeners
-      const handleSectionClick = (event) => {
-        event.preventDefault();
-        const sectionId = event.target.getAttribute('href').substring(1);
-        if (typeof window.scrollToSection === 'function') {
-          window.scrollToSection(sectionId);
-        }
-      };
-
+    // Cleanup
+    return () => {
+      const toggleButton = document.getElementById('toggle-button');
       if (toggleButton) {
-        toggleButton.addEventListener('click', handleToggle);
-        toggleButton.addEventListener('keydown', (e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            handleToggle();
-          }
-        });
+        toggleButton.removeEventListener('click', window.toggleSidebar);
+        toggleButton.removeEventListener('keydown', handleSidebarKeydown);
       }
-
-      sidebarLinks.forEach(link => {
-        link.addEventListener('click', handleSectionClick);
-      });
-
-      // Click outside to close sidebar
-      const handleClickOutside = (e) => {
-        const sidebar = document.getElementById('sidebar-wrapper');
-        if (sidebar && toggleButton && !sidebar.contains(e.target) && !toggleButton.contains(e.target) && sidebar.classList.contains('open')) {
-          if (typeof window.toggleSidebar === 'function') {
-            window.toggleSidebar();
-          }
-        }
-      };
-
-      document.addEventListener('click', handleClickOutside);
-
-      // Cleanup
-      return () => {
-        if (toggleButton) {
-          toggleButton.removeEventListener('click', handleToggle);
-          toggleButton.removeEventListener('keydown', handleToggle);
-        }
-        sidebarLinks.forEach(link => {
-          link.removeEventListener('click', handleSectionClick);
-        });
-        document.removeEventListener('click', handleClickOutside);
-      };
-    }
-  }, [ssrHtml]);
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [slug, dispatch, postData]);
 
   if (error || (!postData.title && !ssrHtml)) {
     return (
@@ -112,7 +118,16 @@ const PostPage = memo(() => {
         </Helmet>
         <div className="container">
           <main>
-            <div style={{ color: '#d32f2f', fontSize: '0.875rem', textAlign: 'center', padding: '0.5rem', background: '#ffebee', borderRadius: '0.25rem' }}>
+            <div
+              style={{
+                color: '#d32f2f',
+                fontSize: '0.875rem',
+                textAlign: 'center',
+                padding: '0.5rem',
+                background: '#ffebee',
+                borderRadius: '0.25rem',
+              }}
+            >
               Failed to load the post: {error || 'Not found'}. Please try again later.
             </div>
           </main>
@@ -125,7 +140,6 @@ const PostPage = memo(() => {
     <HelmetProvider>
       <Helmet>
         <title>{postData.title || 'Loading...'} | Zedemy</title>
-        <meta name="description" content={postData.summary || `Explore ${postData.title?.toLowerCase() || 'tech tutorials'} on Zedemy.`} />
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
       </Helmet>
       <Layout>
