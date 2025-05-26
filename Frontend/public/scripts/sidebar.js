@@ -1,60 +1,44 @@
 (function() {
-  function toggleSidebar() {
-    const sidebar = document.getElementById('sidebar-wrapper');
-    const toggleButton = document.getElementById('toggle-button');
-    if (sidebar && toggleButton) {
+  window.toggleSidebar = function() {
+    const sidebar = document.getElementById('sidebarWrapper');
+    const toggleBtn = document.querySelector('.toggleButton');
+    if (sidebar && toggleBtn) {
       sidebar.classList.toggle('open');
-      const isOpen = sidebar.classList.contains('open');
-      toggleButton.textContent = isOpen ? '✕' : '☰';
-      toggleButton.setAttribute('aria-label', isOpen ? 'Close Sidebar' : 'Open Sidebar');
-      console.log('[sidebar.js] Sidebar toggled, open:', isOpen);
+      toggleBtn.textContent = sidebar.classList.contains('open') ? '×' : '☰';
+      toggleBtn.setAttribute('aria-label', sidebar.classList.contains('open') ? 'Close Sidebar' : 'Open Sidebar');
+      console.log('[sidebar.js] Toggled sidebar, open:', sidebar.classList.contains('open'));
     } else {
       console.warn('[sidebar.js] Sidebar or toggle button not found');
     }
-  }
+  };
 
-  function scrollToSection(sectionId) {
+  window.scrollToSection = function(sectionId) {
     const element = document.getElementById(sectionId);
-    const sidebar = document.getElementById('sidebar-wrapper');
+    const sidebar = document.getElementById('sidebarWrapper');
+    const toggleBtn = document.querySelector('.toggleButton');
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
-      if (sidebar && window.innerWidth < 1024 && sidebar.classList.contains('open')) {
+      if (sidebar && sidebar.classList.contains('open') && window.innerWidth < 1024) {
         sidebar.classList.remove('open');
-        const toggleButton = document.getElementById('toggle-button');
-        if (toggleButton) {
-          toggleButton.textContent = '☰';
-          toggleButton.setAttribute('aria-label', 'Open Sidebar');
+        if (toggleBtn) {
+          toggleBtn.textContent = '☰';
+          toggleBtn.setAttribute('aria-label', 'Open Sidebar');
+          console.log('[sidebar.js] Closed sidebar on section click');
         }
-        console.log('[sidebar.js] Sidebar closed after scrolling');
       }
+    } else {
+      console.warn('[sidebar.js] Section not found:', sectionId);
     }
-  }
+  };
 
-  function initSidebar() {
-    const toggleButton = document.getElementById('toggle-button');
-    const sidebarLinks = document.querySelectorAll('.sidebar-link');
-
-    if (!toggleButton) {
-      console.warn('[sidebar.js] Toggle button not found');
-      return;
+  // Initialize toggle button state
+  document.addEventListener('DOMContentLoaded', () => {
+    const toggleBtn = document.querySelector('.toggleButton');
+    const sidebar = document.getElementById('sidebarWrapper');
+    if (toggleBtn && sidebar) {
+      toggleBtn.textContent = sidebar.classList.contains('open') ? '×' : '☰';
+      toggleBtn.setAttribute('aria-label', sidebar.classList.contains('open') ? 'Close Sidebar' : 'Open Sidebar');
+      console.log('[sidebar.js] Initialized toggle button');
     }
-
-    toggleButton.addEventListener('click', toggleSidebar);
-    console.log('[sidebar.js] Toggle button listener attached');
-
-    sidebarLinks.forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const sectionId = link.getAttribute('href')?.slice(1) || '';
-        scrollToSection(sectionId);
-      });
-    });
-    console.log('[sidebar.js] Sidebar links initialized');
-  }
-
-  if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    initSidebar();
-  } else {
-    document.addEventListener('DOMContentLoaded', initSidebar);
-  }
+  });
 })();
