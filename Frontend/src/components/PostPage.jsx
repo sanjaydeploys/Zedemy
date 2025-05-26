@@ -4,81 +4,39 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import styled from 'styled-components';
 import { fetchPostSSR } from '../actions/postActions';
-
 const Layout = styled.div`
   display: flex;
   min-height: 100vh;
 `;
-
 const PostContent = styled.div`
   flex: 1;
 `;
-
 const PostPage = memo(() => {
   const { slug } = useParams();
   const dispatch = useDispatch();
   const [ssrHtml, setSsrHtml] = useState('');
   const postData = useSelector((state) => state.postReducer.post) || window.__POST_DATA__ || {};
   const error = useSelector((state) => state.postReducer.error);
-
-  // Initialize sidebar event listeners
-  const initializeSidebar = () => {
-    console.log('[PostPage.jsx] Initializing sidebar event listeners');
-    const toggleButton = document.getElementById('toggle-button');
-    if (toggleButton && window.toggleSidebar) {
-      // Remove existing listeners to prevent duplicates
-      toggleButton.removeEventListener('click', window.toggleSidebar);
-      toggleButton.removeEventListener('keydown', handleSidebarKeydown);
-      // Add new listeners
-      toggleButton.addEventListener('click', window.toggleSidebar);
-      toggleButton.addEventListener('keydown', handleSidebarKeydown);
-      // Add click-outside handler
-      document.removeEventListener('click', handleClickOutside);
-      document.addEventListener('click', handleClickOutside);
-    } else {
-      console.warn('[PostPage.jsx] Toggle button or toggleSidebar not found');
-    }
-  };
-
-  // Keyboard handler for sidebar toggle
-  const handleSidebarKeydown = (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      window.toggleSidebar();
-    }
-  };
-
-  // Click-outside handler to close sidebar
-  const handleClickOutside = (e) => {
-    const sidebar = document.getElementById('sidebar-wrapper');
-    const toggleButton = document.getElementById('toggle-button');
-    if (
-      sidebar &&
-      toggleButton &&
-      !sidebar.contains(e.target) &&
-      !toggleButton.contains(e.target) &&
-      sidebar.classList.contains('open')
-    ) {
-      window.toggleSidebar();
-    }
-  };
-
-  // Load sidebar.js and fetch post data
+  // Load sidebar.js dynamically to ensure toggleSidebar and scrollToSection are defined
   useEffect(() => {
-    // Ensure sidebar.js is loaded synchronously
-    let sidebarScript = document.querySelector('script[src="/scripts/sidebar.js"]');
-    if (!sidebarScript) {
-      console.log('[PostPage.jsx] Loading sidebar.js');
-      sidebarScript = document.createElement('script');
-      sidebarScript.src = '/scripts/sidebar.js';
-      sidebarScript.async = false; // Synchronous loading
-      document.head.appendChild(sidebarScript);
-      sidebarScript.onload = initializeSidebar;
-    } else {
-      initializeSidebar();
-    }
-
-    // Fetch post data
+    const loadSidebarScript = () => {
+      if (typeof window.toggleSidebar !== 'function' || typeof window.scrollToSection !== 'function') {
+        console.log('[PostPage.jsx] Loading sidebar.js');
+        const script = document.createElement('script');
+        script.src = '/scripts/sidebar.js';
+        script.async = true;
+        script.onload = () => console.log('[PostPage.jsx] sidebar.js loaded');
+        script.onerror = () => console.error('[PostPage.jsx] Error loading sidebar.js');
+        document.head.appendChild(script);
+        return () => document.head.removeChild(script);
+      } else {
+        console.log('[PostPage.jsx] sidebar.js already loaded');
+      }
+    };
+    loadSidebarScript();
+  }, []);
+  // Fetch SSR HTML
+  useEffect(() => {
     if (!window.__POST_DATA__ || !postData.title) {
       dispatch(fetchPostSSR(slug))
         .then(({ html, postData: fetchedPostData }) => {
@@ -86,31 +44,14 @@ const PostPage = memo(() => {
           if (fetchedPostData.title) {
             dispatch({ type: 'FETCH_POST_SUCCESS', payload: fetchedPostData });
           }
-          initializeSidebar();
         })
         .catch((err) => {
           setSsrHtml('');
-          console.error('[PostPage.jsx] Failed to fetch SSR:', err);
         });
     } else {
       setSsrHtml(document.documentElement.outerHTML);
-      initializeSidebar();
     }
-
-    // Cleanup
-    return () => {
-      const toggleButton = document.getElementById('toggle-button');
-      if (toggleButton) {
-        toggleButton.removeEventListener('click', window.toggleSidebar);
-        toggleButton.removeEventListener('keydown', handleSidebarKeydown);
-      }
-      document.removeEventListener('click', handleClickOutside);
-    };
   }, [slug, dispatch, postData]);
-
-  // Determine title for Helmet
-  const pageTitle = postData.title ? `${postData.title} | Zedemy` : 'Zedemy';
-
   if (error || (!postData.title && !ssrHtml)) {
     return (
       <HelmetProvider>
@@ -121,16 +62,7 @@ const PostPage = memo(() => {
         </Helmet>
         <div className="container">
           <main>
-            <div
-              style={{
-                color: '#d32f2f',
-                fontSize: '0.875rem',
-                textAlign: 'center',
-                padding: '0.5rem',
-                background: '#ffebee',
-                borderRadius: '0.25rem',
-              }}
-            >
+            <div style={{ color: '#d32f2f', fontSize: '0.875rem', textAlign: 'center', padding: '0.5rem', background: '#ffebee', borderRadius: '0.25rem' }}>
               Failed to load the post: {error || 'Not found'}. Please try again later.
             </div>
           </main>
@@ -138,11 +70,10 @@ const PostPage = memo(() => {
       </HelmetProvider>
     );
   }
-
   return (
     <HelmetProvider>
       <Helmet>
-        <title>{pageTitle}</title>
+        <title>{postData.title || 'Loading...'} | Zedemy</title>
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
       </Helmet>
       <Layout>
@@ -151,5 +82,4 @@ const PostPage = memo(() => {
     </HelmetProvider>
   );
 });
-
 export default PostPage;
