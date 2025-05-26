@@ -4,7 +4,6 @@
     const toggleButton = document.getElementById('toggle-button');
     const sidebarLinks = document.querySelectorAll('.sidebar-link');
 
-    // Exit if elements missing and attempts remain
     if (!sidebarWrapper || !toggleButton) {
       if (attempts > 0) {
         requestAnimationFrame(() => initSidebar(attempts - 1));
@@ -16,6 +15,7 @@
     if (sidebarWrapper.dataset.sidebarInitialized) return;
     sidebarWrapper.dataset.sidebarInitialized = 'true';
 
+    // Initialize state: hidden on mobile, visible on desktop
     let isSidebarOpen = window.innerWidth >= 1024;
 
     const toggleSidebar = () => {
@@ -42,7 +42,7 @@
       });
     };
 
-    // Clean up existing listeners
+    // Clean up listeners
     toggleButton.removeEventListener('click', window._toggleSidebarHandler);
     sidebarLinks.forEach(link => link.removeEventListener('click', window._sidebarLinkHandler));
     window.removeEventListener('scroll', window._highlightActiveSection);
@@ -70,7 +70,7 @@
     window._highlightActiveSection = highlightActiveSection;
     window.addEventListener('scroll', highlightActiveSection);
 
-    // Handle resize (only update if crossing 1024px)
+    // Handle resize
     let lastWidth = window.innerWidth;
     window._resizeHandler = () => {
       const currentWidth = window.innerWidth;
@@ -85,13 +85,12 @@
     };
     window.addEventListener('resize', window._resizeHandler);
 
-    // Initialize state
+    // Set initial state
     sidebarWrapper.classList.toggle('open', isSidebarOpen);
     toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
     toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
     highlightActiveSection();
 
-    // Expose for PostPage.jsx
     window.initSidebar = initSidebar;
   }
 
