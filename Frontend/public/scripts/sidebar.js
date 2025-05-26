@@ -1,35 +1,38 @@
 (function() {
+  let retryInterval = null;
   let retryTimeout = null;
-  const maxRetryDuration = 10000; // 10 seconds
-  let retryStartTime = null;
+  const maxRetryDuration = 5000; // 5 seconds
+  const retryIntervalMs = 100;
 
   function initSidebar() {
-    const root = document.getElementById('root');
+    // Clear existing retries
+    if (retryInterval) clearInterval(retryInterval);
+    if (retryTimeout) clearTimeout(retryTimeout);
+
     const sidebarWrapper = document.getElementById('sidebar-wrapper');
     const toggleButton = document.getElementById('toggle-button');
     const sidebarLinks = document.querySelectorAll('.sidebar-link');
 
-    // Check for critical elements
-    if (!root) {
-      console.error('[sidebar.js] Root element (#root) not found');
-      return;
-    }
     if (!sidebarWrapper || !toggleButton) {
-      if (!retryStartTime) retryStartTime = Date.now();
-      if (Date.now() - retryStartTime < maxRetryDuration) {
-        clearTimeout(retryTimeout);
-        retryTimeout = setTimeout(initSidebar, 100);
-      } else {
-        console.error('[sidebar.js] Failed to find sidebar-wrapper or toggle-button after 10s');
-      }
+      console.warn('[sidebar.js] Missing sidebar-wrapper or toggle-button, retrying...');
+      // Fallback: Retry after 100ms
+      retryTimeout = setTimeout(initSidebar, 100);
+      // Fallback: Retry every 100ms for 5 seconds
+      const startTime = Date.now();
+      retryInterval = setInterval(() => {
+        if (document.getElementById('sidebar-wrapper') && document.getElementById('toggle-button')) {
+          clearInterval(retryInterval);
+          initSidebar();
+        } else if (Date.now() - startTime > maxRetryDuration) {
+          clearInterval(retryInterval);
+          console.error('[sidebar.js] Failed to find sidebar-wrapper or toggle-button after 5 seconds');
+        }
+      }, retryIntervalMs);
       return;
     }
 
-    // Clear retry logic
-    clearTimeout(retryTimeout);
-    retryStartTime = null;
+    console.log('[sidebar.js] Sidebar initialized successfully');
 
-    // Initialize sidebar state
     let isSidebarOpen = window.innerWidth >= 1024;
 
     const toggleSidebar = () => {
@@ -39,6 +42,7 @@
         sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
         toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
         toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
+        console.log('[sidebar.js] Sidebar toggled:', isSidebarOpen ? 'open' : 'closed');
       }
     };
 
@@ -57,7 +61,7 @@
       });
     };
 
-    // Clean up existing listeners
+    // Clean up listeners
     if (window._toggleSidebarHandler) {
       toggleButton.removeEventListener('click', window._toggleSidebarHandler);
     }
@@ -71,7 +75,7 @@
       window.removeEventListener('resize', window._resizeHandler);
     }
 
-    // Attach toggle event for mobile
+    // Attach toggle event
     window._toggleSidebarHandler = toggleSidebar;
     if (window.innerWidth < 1024) {
       toggleButton.addEventListener('click', window._toggleSidebarHandler);
@@ -105,26 +109,24 @@
         toggleButton.style.display = isLargeScreen ? 'none' : 'block';
         toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
         toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
+        // Reattach toggle event
         toggleButton.removeEventListener('click', window._toggleSidebarHandler);
         if (!isLargeScreen) {
           toggleButton.addEventListener('click', window._toggleSidebarHandler);
         }
+        console.log('[sidebar.js] Resize handled, sidebar:', isLargeScreen ? 'open' : 'closed');
       }
       highlightActiveSection();
     };
     window.addEventListener('resize', window._resizeHandler);
 
-    // Set initial state
+    // Initialize state
     sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
     sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
     toggleButton.style.display = window.innerWidth >= 1024 ? 'none' : 'block';
     toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
     toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
     highlightActiveSection();
-
-    // Expose functions
-    window.toggleSidebar = toggleSidebar;
-    window.initSidebar = initSidebar;
   }
 
   // Initial run
@@ -134,12 +136,20 @@
     document.addEventListener('DOMContentLoaded', initSidebar);
   }
 
-  // Handle CSR DOM changes
-  const root = document.getElementById('root') || document.body;
-  const observer = new MutationObserver(() => {
-    if (document.getElementById('sidebar-wrapper') && document.getElementById('toggle-button')) {
-      initSidebar();
+  // Robust CSR handling
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      if (mutation.addedNodes.length) {
+        if (document.getElementById('sidebar-wrapper') && document.getElementById('toggle-button')) {
+          console.log('[sidebar.js] DOM change detected, reinitializing');
+          initSidebar();
+          break;
+        }
+      }
     }
   });
-  observer.observe(root, { childList: true, subtree: true });
+  observer.observe(document.body, { childList: true, subtree: true });
+
+  // Expose for manual triggering
+  window.initSidebar = initSidebar;
 })();
