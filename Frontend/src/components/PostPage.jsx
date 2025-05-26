@@ -4,37 +4,23 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import styled from 'styled-components';
 import { fetchPostSSR } from '../actions/postActions';
+
 const Layout = styled.div`
   display: flex;
   min-height: 100vh;
 `;
+
 const PostContent = styled.div`
   flex: 1;
 `;
+
 const PostPage = memo(() => {
   const { slug } = useParams();
   const dispatch = useDispatch();
   const [ssrHtml, setSsrHtml] = useState('');
   const postData = useSelector((state) => state.postReducer.post) || window.__POST_DATA__ || {};
   const error = useSelector((state) => state.postReducer.error);
-  // Load sidebar.js dynamically to ensure toggleSidebar and scrollToSection are defined
-  useEffect(() => {
-    const loadSidebarScript = () => {
-      if (typeof window.toggleSidebar !== 'function' || typeof window.scrollToSection !== 'function') {
-        console.log('[PostPage.jsx] Loading sidebar.js');
-        const script = document.createElement('script');
-        script.src = '/scripts/sidebar.js';
-        script.async = true;
-        script.onload = () => console.log('[PostPage.jsx] sidebar.js loaded');
-        script.onerror = () => console.error('[PostPage.jsx] Error loading sidebar.js');
-        document.head.appendChild(script);
-        return () => document.head.removeChild(script);
-      } else {
-        console.log('[PostPage.jsx] sidebar.js already loaded');
-      }
-    };
-    loadSidebarScript();
-  }, []);
+
   // Fetch SSR HTML
   useEffect(() => {
     if (!window.__POST_DATA__ || !postData.title) {
@@ -52,6 +38,15 @@ const PostPage = memo(() => {
       setSsrHtml(document.documentElement.outerHTML);
     }
   }, [slug, dispatch, postData]);
+
+  // Initialize sidebar after SSR HTML is set
+  useEffect(() => {
+    if (ssrHtml && typeof window.initSidebar === 'function') {
+      console.log('[PostPage.jsx] Initializing sidebar');
+      window.initSidebar();
+    }
+  }, [ssrHtml]);
+
   if (error || (!postData.title && !ssrHtml)) {
     return (
       <HelmetProvider>
@@ -70,6 +65,7 @@ const PostPage = memo(() => {
       </HelmetProvider>
     );
   }
+
   return (
     <HelmetProvider>
       <Helmet>
@@ -82,4 +78,5 @@ const PostPage = memo(() => {
     </HelmetProvider>
   );
 });
+
 export default PostPage;
