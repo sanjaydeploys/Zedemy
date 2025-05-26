@@ -11,13 +11,13 @@ window.toggleSidebar = function () {
   }
 };
 
-window.scrollToSection = function (sectionId) {
+window.scrollToSection = function(sectionId) {
   const element = document.getElementById(sectionId);
   if (element) {
     element.scrollIntoView({ behavior: 'smooth' });
     const sidebar = document.getElementById('sidebar-wrapper');
-    const toggleButton = document.getElementById('toggle-button');
-    if (sidebar && sidebar.classList.contains('open')) {
+    const toggleButton = document.querySelector('#toggle-button');
+    if (sidebar && toggleButton && sidebar.classList.contains('open')) {
       sidebar.classList.remove('open');
       sidebar.setAttribute('aria-hidden', 'true');
       toggleButton.setAttribute('aria-expanded', 'false');
