@@ -4,6 +4,7 @@
     const toggleButton = document.getElementById('toggle-button');
     const sidebarLinks = document.querySelectorAll('.sidebar-link');
 
+    // Exit if elements missing
     if (!sidebarWrapper || !toggleButton) {
       if (attempts > 0) {
         requestAnimationFrame(() => initSidebar(attempts - 1));
@@ -15,7 +16,7 @@
     if (sidebarWrapper.dataset.sidebarInitialized) return;
     sidebarWrapper.dataset.sidebarInitialized = 'true';
 
-    // Initialize state: hidden on mobile, visible on desktop
+    // Start hidden on mobile, visible on desktop
     let isSidebarOpen = window.innerWidth >= 1024;
 
     const toggleSidebar = () => {
@@ -85,7 +86,7 @@
     };
     window.addEventListener('resize', window._resizeHandler);
 
-    // Set initial state
+    // Initialize state
     sidebarWrapper.classList.toggle('open', isSidebarOpen);
     toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
     toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
