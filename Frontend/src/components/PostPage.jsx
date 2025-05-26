@@ -33,17 +33,72 @@ const PostPage = memo(() => {
         })
         .catch((err) => {
           setSsrHtml('');
+          console.error('Failed to fetch SSR HTML:', err);
         });
     } else {
       setSsrHtml(document.documentElement.outerHTML);
     }
-  }, [slug, dispatch, postData]);
+  }, [slug, dispatch, postData.title]);
 
-  // Initialize sidebar after SSR HTML is set
+  // Initialize sidebar toggle and section links
   useEffect(() => {
-    if (ssrHtml && typeof window.initSidebar === 'function') {
-      console.log('[PostPage.jsx] Initializing sidebar');
-      window.initSidebar();
+    if (ssrHtml) {
+      const toggleButton = document.getElementById('toggleSidebar');
+      const sidebarLinks = document.querySelectorAll('.sidebar-link');
+
+      // Add toggle event listener
+      const handleToggle = () => {
+        if (typeof window.toggleSidebar === 'function') {
+          window.toggleSidebar();
+        }
+      };
+
+      // Add section link event listeners
+      const handleSectionClick = (event) => {
+        event.preventDefault();
+        const sectionId = event.target.getAttribute('href').substring(1);
+        if (typeof window.scrollToSection === 'function') {
+          window.scrollToSection(sectionId);
+        }
+      };
+
+      if (toggleButton) {
+        toggleButton.addEventListener('click', handleToggle);
+        toggleButton.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleToggle();
+          }
+        });
+      }
+
+      sidebarLinks.forEach(link => {
+        link.addEventListener('click', handleSectionClick);
+      });
+
+      // Click outside to close sidebar
+      const handleClickOutside = (e) => {
+        const sidebar = document.getElementById('sidebar-wrapper');
+        if (sidebar && toggleButton && !sidebar.contains(e.target) && !toggleButton.contains(e.target) && sidebar.classList.contains('open')) {
+          if (typeof window.toggleSidebar === 'function') {
+            window.toggleSidebar();
+          }
+        }
+      };
+
+      document.addEventListener('click', handleClickOutside);
+
+      // Cleanup
+      return () => {
+        if (toggleButton) {
+          toggleButton.removeEventListener('click', handleToggle);
+          toggleButton.removeEventListener('keydown', handleToggle);
+        }
+        sidebarLinks.forEach(link => {
+          link.removeEventListener('click', handleSectionClick);
+        });
+        document.removeEventListener('click', handleClickOutside);
+      };
     }
   }, [ssrHtml]);
 
@@ -70,6 +125,7 @@ const PostPage = memo(() => {
     <HelmetProvider>
       <Helmet>
         <title>{postData.title || 'Loading...'} | Zedemy</title>
+        <meta name="description" content={postData.summary || `Explore ${postData.title?.toLowerCase() || 'tech tutorials'} on Zedemy.`} />
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
       </Helmet>
       <Layout>
