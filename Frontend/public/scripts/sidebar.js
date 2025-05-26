@@ -1,27 +1,35 @@
 (function() {
-  let retryCount = 0;
-  const maxRetries = 100; // ~5 seconds at 60fps
-  let isInitialized = false;
+  let retryTimeout = null;
+  const maxRetryDuration = 10000; // 10 seconds
+  let retryStartTime = null;
 
   function initSidebar() {
+    const root = document.getElementById('root');
     const sidebarWrapper = document.getElementById('sidebar-wrapper');
     const toggleButton = document.getElementById('toggle-button');
     const sidebarLinks = document.querySelectorAll('.sidebar-link');
 
+    // Check for critical elements
+    if (!root) {
+      console.error('[sidebar.js] Root element (#root) not found');
+      return;
+    }
     if (!sidebarWrapper || !toggleButton) {
-      if (retryCount < maxRetries) {
-        retryCount++;
-        requestAnimationFrame(initSidebar);
+      if (!retryStartTime) retryStartTime = Date.now();
+      if (Date.now() - retryStartTime < maxRetryDuration) {
+        clearTimeout(retryTimeout);
+        retryTimeout = setTimeout(initSidebar, 100);
       } else {
-        console.error('[sidebar.js] Failed to find sidebar-wrapper or toggle-button after max retries');
+        console.error('[sidebar.js] Failed to find sidebar-wrapper or toggle-button after 10s');
       }
       return;
     }
 
-    if (isInitialized) return;
-    isInitialized = true;
-    retryCount = 0;
+    // Clear retry logic
+    clearTimeout(retryTimeout);
+    retryStartTime = null;
 
+    // Initialize sidebar state
     let isSidebarOpen = window.innerWidth >= 1024;
 
     const toggleSidebar = () => {
@@ -63,7 +71,7 @@
       window.removeEventListener('resize', window._resizeHandler);
     }
 
-    // Attach toggle event
+    // Attach toggle event for mobile
     window._toggleSidebarHandler = toggleSidebar;
     if (window.innerWidth < 1024) {
       toggleButton.addEventListener('click', window._toggleSidebarHandler);
@@ -92,12 +100,11 @@
       const isLargeScreen = window.innerWidth >= 1024;
       if (isLargeScreen !== isSidebarOpen) {
         isSidebarOpen = isLargeScreen;
-        sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
-        sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
+        sidebarWrapper.dataset.state = isLargeScreen ? 'open' : 'closed';
+        sidebarWrapper.style.transform = isLargeScreen ? 'translateX(0)' : 'translateX(-100%)';
         toggleButton.style.display = isLargeScreen ? 'none' : 'block';
         toggleButton.setAttribute('aria-label', isSidebarOpen ? 'Close Sidebar' : 'Open Sidebar');
         toggleButton.textContent = isSidebarOpen ? '✕' : '☰';
-        // Reattach toggle event
         toggleButton.removeEventListener('click', window._toggleSidebarHandler);
         if (!isLargeScreen) {
           toggleButton.addEventListener('click', window._toggleSidebarHandler);
@@ -107,7 +114,7 @@
     };
     window.addEventListener('resize', window._resizeHandler);
 
-    // Initialize state
+    // Set initial state
     sidebarWrapper.dataset.state = isSidebarOpen ? 'open' : 'closed';
     sidebarWrapper.style.transform = isSidebarOpen ? 'translateX(0)' : 'translateX(-100%)';
     toggleButton.style.display = window.innerWidth >= 1024 ? 'none' : 'block';
@@ -128,14 +135,11 @@
   }
 
   // Handle CSR DOM changes
-  const observer = new MutationObserver((mutations) => {
+  const root = document.getElementById('root') || document.body;
+  const observer = new MutationObserver(() => {
     if (document.getElementById('sidebar-wrapper') && document.getElementById('toggle-button')) {
-      isInitialized = false;
       initSidebar();
     }
   });
-  observer.observe(document.getElementById('root') || document.body, {
-    childList: true,
-    subtree: true
-  });
+  observer.observe(root, { childList: true, subtree: true });
 })();
