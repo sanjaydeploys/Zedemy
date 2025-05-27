@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import styled from 'styled-components';
 import { fetchPostSSR } from '../actions/postActions';
-import { Bounce.loader } from 'react-spinners';
+import { BounceLoader } from 'react-spinners';
 
 const Layout = styled.div`
   display: flex;
