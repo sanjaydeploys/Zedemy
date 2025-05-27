@@ -3,7 +3,8 @@ import { useParams } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import styled from 'styled-components';
-import { fetchPostSSR } from '../actions/postActions';
+import { ClipLoader } from 'react-spinners';
+import { fetchPostSSR, fetchPostBySlug } from '../actions/postActions';
 
 const Layout = styled.div`
   display: flex;
@@ -14,15 +15,33 @@ const PostContent = styled.div`
   flex: 1;
 `;
 
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+`;
+
+const ErrorContainer = styled.div`
+  color: #d32f2f;
+  font-size: 0.875rem;
+  text-align: center;
+  padding: 0.5rem;
+  background: #ffebee;
+  border-radius: 0.25rem;
+  margin: 1rem auto;
+  max-width: 600px;
+`;
+
 const PostPage = memo(() => {
   const { slug } = useParams();
   const dispatch = useDispatch();
   const [ssrHtml, setSsrHtml] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const postData = useSelector((state) => state.postReducer.post) || window.__POST_DATA__ || {};
+  const [loading, setLoading] = useState(true);
+  const postData = useSelector((state) => state.postReducer.post) || {};
   const error = useSelector((state) => state.postReducer.error);
 
-  // Load sidebar.js dynamically to ensure toggleSidebar and scrollToSection are defined
+  // Load sidebar.js dynamically
   useEffect(() => {
     const loadSidebarScript = () => {
       if (typeof window.toggleSidebar !== 'function' || typeof window.scrollToSection !== 'function') {
@@ -41,51 +60,51 @@ const PostPage = memo(() => {
     loadSidebarScript();
   }, []);
 
-  // Fetch SSR HTML
+  // Fetch post data and SSR HTML
   useEffect(() => {
-    setIsLoading(true);
-    if (!window.__POST_DATA__ || !postData.title) {
-      dispatch(fetchPostSSR(slug))
-        .then(({ html, postData: fetchedPostData }) => {
+    setLoading(true);
+    const fetchData = async () => {
+      try {
+        // Fetch post metadata for Helmet
+        await dispatch(fetchPostBySlug(slug));
+
+        // Fetch SSR HTML if not already available
+        if (!window.__POST_DATA__ || !postData.title) {
+          const { html, postData: fetchedPostData } = await dispatch(fetchPostSSR(slug));
           setSsrHtml(html);
           if (fetchedPostData.title) {
             dispatch({ type: 'FETCH_POST_SUCCESS', payload: fetchedPostData });
           }
-          setIsLoading(false);
-        })
-        .catch((err) => {
-          setSsrHtml('');
-          setIsLoading(false);
-        });
-    } else {
-      setSsrHtml(document.documentElement.outerHTML);
-      setIsLoading(false);
-    }
-  }, [slug, dispatch, postData]);
+        } else {
+          setSsrHtml(document.documentElement.outerHTML);
+        }
+      } catch (err) {
+        console.error('[PostPage.jsx] Error fetching data:', err.message);
+        setSsrHtml('');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Render loading state
-  if (isLoading) {
+    fetchData();
+  }, [slug, dispatch, postData.title]);
+
+  if (loading) {
     return (
       <HelmetProvider>
         <Helmet>
           <title>Loading... | Zedemy</title>
+          <meta name="description" content="Loading post content..." />
           <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
         </Helmet>
-        <Layout>
-          <PostContent>
-            <div className="container">
-              <main>
-                <div>Loading...</div>
-              </main>
-            </div>
-          </PostContent>
-        </Layout>
+        <LoadingContainer>
+          <ClipLoader color="#22c55e" size={50} />
+        </LoadingContainer>
       </HelmetProvider>
     );
   }
 
-  // Render error state if SSR HTML is empty (indicating a backend error)
-  if (!ssrHtml) {
+  if (error || (!postData.title && !ssrHtml)) {
     return (
       <HelmetProvider>
         <Helmet>
@@ -93,26 +112,24 @@ const PostPage = memo(() => {
           <meta name="description" content="An error occurred while loading the post." />
           <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
         </Helmet>
-        <Layout>
-          <PostContent>
-            <div className="container">
-              <main>
-                <div style={{ color: '#d32f2f', fontSize: '0.875rem', textAlign: 'center', padding: '0.5rem', background: '#ffebee', borderRadius: '0.25rem' }}>
-                  An error occurred. Please try again later.
-                </div>
-              </main>
-            </div>
-          </PostContent>
-        </Layout>
+        <div className="container">
+          <main>
+            <ErrorContainer>
+              Post not found. Please try again later.
+            </ErrorContainer>
+          </main>
+        </div>
       </HelmetProvider>
     );
   }
 
-  // Render post content
   return (
     <HelmetProvider>
       <Helmet>
         <title>{postData.title || 'Untitled'} | Zedemy</title>
+        <meta name="description" content={postData.summary || 'Explore this post on Zedemy.'} />
+        <meta property="og:title" content={postData.title || 'Untitled'} />
+        <meta property="og:image" content={postData.titleImage || 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/default-post-image.webp'} />
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
       </Helmet>
       <Layout>
