@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import styled from 'styled-components';
 import { fetchPostSSR } from '../actions/postActions';
-import { BounceLoader } from 'react-spinners';
+import { RingLoader } from 'react-spinners';
 
 const Layout = styled.div`
   display: flex;
@@ -16,10 +16,39 @@ const PostContent = styled.div`
 
 const LoadingContainer = styled.div`
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
   background: #f9fafb;
+  animation: fadeIn 0.5s ease-in;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+`;
+
+const LoadingText = styled.div`
+  margin-top: 1rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: clamp(0.875rem, 2vw, 1rem);
+  color: #1f2937;
+  font-weight: 500;
+  animation: pulse 1.5s ease-in-out infinite;
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 0.7;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
 `;
 
 const PostPage = memo(() => {
@@ -70,7 +99,16 @@ const PostPage = memo(() => {
   if (loading) {
     return (
       <LoadingContainer>
-        <BounceLoader color="#22c55e" size={60} />
+        <RingLoader
+          color="#22c55e"
+          size={80}
+          speedMultiplier={1.2}
+          cssOverride={{
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            borderWidth: '4px',
+          }}
+        />
+        <LoadingText>Loading your post...</LoadingText>
       </LoadingContainer>
     );
   }
