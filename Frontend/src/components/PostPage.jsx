@@ -1,10 +1,9 @@
 import React, { memo, useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
-import { Helmet, HelmetProvider } from 'react-helmet-async';
+import { useDispatch } from 'react-redux';
 import styled from 'styled-components';
-import { fetchPostSSR, fetchPostBySlug } from '../actions/postActions';
-import { BounceLoader } from 'react-spinners';
+import { fetchPostSSR } from '../actions/postActions';
+import { Bounce.loader } from 'react-spinners';
 
 const Layout = styled.div`
   display: flex;
@@ -28,7 +27,6 @@ const PostPage = memo(() => {
   const dispatch = useDispatch();
   const [ssrHtml, setSsrHtml] = useState('');
   const [loading, setLoading] = useState(!window.__POST_DATA__); // Only true if no SSR data
-  const postData = useSelector((state) => state.postReducer.post) || window.__POST_DATA__ || {};
 
   // Load sidebar.js dynamically
   useEffect(() => {
@@ -49,73 +47,38 @@ const PostPage = memo(() => {
     loadSidebarScript();
   }, []);
 
-  // Fetch SSR HTML and post metadata
+  // Fetch SSR HTML
   useEffect(() => {
-    // If SSR data is available, use it
-    if (window.__POST_DATA__ && window.__POST_DATA__.title) {
+    if (window.__POST_DATA__) {
       setSsrHtml(document.documentElement.outerHTML);
       setLoading(false);
       dispatch({ type: 'FETCH_POST_SUCCESS', payload: window.__POST_DATA__ });
     } else {
-      // Fetch post metadata for Helmet and SSR HTML
-      Promise.all([
-        dispatch(fetchPostBySlug(slug)), // Fetch metadata for Helmet
-        dispatch(fetchPostSSR(slug)).then(({ html, postData: fetchedPostData }) => {
+      dispatch(fetchPostSSR(slug))
+        .then(({ html }) => {
           setSsrHtml(html);
-          if (fetchedPostData.title) {
-            dispatch({ type: 'FETCH_POST_SUCCESS', payload: fetchedPostData });
-          }
-        }),
-      ])
-        .then(() => setLoading(false))
+          setLoading(false);
+        })
         .catch((err) => {
-          console.error('[PostPage.jsx] Error fetching data:', err.message);
+          console.error('[PostPage.jsx] Error fetching SSR HTML:', err.message);
           setSsrHtml('');
           setLoading(false);
         });
     }
   }, [slug, dispatch]);
 
-  // Show loading spinner while fetching
   if (loading) {
     return (
-      <HelmetProvider>
-        <Helmet>
-          <title>Loading... | Zedemy</title>
-          <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
-        </Helmet>
-        <LoadingContainer>
-          <BounceLoader color="#22c55e" size={60} />
-        </LoadingContainer>
-      </HelmetProvider>
+      <LoadingContainer>
+        <BounceLoader color="#22c55e" size={60} />
+      </LoadingContainer>
     );
   }
 
-  // Render SSR HTML
   return (
-    <HelmetProvider>
-      <Helmet>
-        <title>{postData.title || 'Untitled'} | Zedemy</title>
-        <meta
-          name="description"
-          content={postData.summary || postData.content?.substring(0, 155) || `Explore ${postData.title?.toLowerCase() || 'tech tutorials'}.`}
-        />
-        <meta property="og:title" content={postData.title || 'Untitled'} />
-        <meta
-          property="og:image"
-          content={
-            postData.titleImage
-              ? `${postData.titleImage}?w=1200&format=avif&q=40`
-              : 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/default-post-image.webp'
-          }
-        />
-        <meta property="og:image:alt" content={postData.title || 'Post'} />
-        <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
-      </Helmet>
-      <Layout>
-        <PostContent dangerouslySetInnerHTML={{ __html: ssrHtml }} />
-      </Layout>
-    </HelmetProvider>
+    <Layout>
+      <PostContent dangerouslySetInnerHTML={{ __html: ssrHtml }} />
+    </Layout>
   );
 });
 
