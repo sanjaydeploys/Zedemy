@@ -15,31 +15,20 @@ const PostContent = styled.div`
   flex: 1;
 `;
 
-const LoadingContainer = styled.div`
+const LoaderContainer = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-`;
-
-const ErrorContainer = styled.div`
-  color: #d32f2f;
-  font-size: 0.875rem;
-  text-align: center;
-  padding: 0.5rem;
-  background: #ffebee;
-  border-radius: 0.25rem;
-  margin: 1rem auto;
-  max-width: 600px;
+  background: #f9fafb;
 `;
 
 const PostPage = memo(() => {
   const { slug } = useParams();
   const dispatch = useDispatch();
   const [ssrHtml, setSsrHtml] = useState('');
-  const [loading, setLoading] = useState(true);
   const postData = useSelector((state) => state.postReducer.post) || {};
-  const error = useSelector((state) => state.postReducer.error);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Load sidebar.js dynamically
   useEffect(() => {
@@ -62,72 +51,51 @@ const PostPage = memo(() => {
 
   // Fetch post data and SSR HTML
   useEffect(() => {
-    setLoading(true);
-    const fetchData = async () => {
-      try {
-        // Fetch post metadata for Helmet
-        await dispatch(fetchPostBySlug(slug));
+    // If SSR data is already available (direct access), use it
+    if (window.__POST_DATA__ && window.__POST_DATA__.title) {
+      setSsrHtml(document.documentElement.outerHTML);
+      dispatch({ type: 'FETCH_POST_SUCCESS', payload: window.__POST_DATA__ });
+      setIsLoading(false);
+      return;
+    }
 
-        // Fetch SSR HTML if not already available
-        if (!window.__POST_DATA__ || !postData.title) {
-          const { html, postData: fetchedPostData } = await dispatch(fetchPostSSR(slug));
-          setSsrHtml(html);
-          if (fetchedPostData.title) {
-            dispatch({ type: 'FETCH_POST_SUCCESS', payload: fetchedPostData });
-          }
-        } else {
-          setSsrHtml(document.documentElement.outerHTML);
+    // Fetch post data for Helmet and SSR HTML
+    Promise.all([
+      dispatch(fetchPostBySlug(slug)), // Fetch title and titleImage for Helmet
+      dispatch(fetchPostSSR(slug)).then(({ html, postData: fetchedPostData }) => {
+        setSsrHtml(html);
+        if (fetchedPostData.title) {
+          dispatch({ type: 'FETCH_POST_SUCCESS', payload: fetchedPostData });
         }
-      } catch (err) {
+      }),
+    ])
+      .then(() => setIsLoading(false))
+      .catch((err) => {
         console.error('[PostPage.jsx] Error fetching data:', err.message);
         setSsrHtml('');
-      } finally {
-        setLoading(false);
-      }
-    };
+        setIsLoading(false);
+      });
+  }, [slug, dispatch]);
 
-    fetchData();
-  }, [slug, dispatch, postData.title]);
-
-  if (loading) {
+  // Show loader while fetching
+  if (isLoading) {
     return (
-      <HelmetProvider>
-        <Helmet>
-          <title>Loading... | Zedemy</title>
-          <meta name="description" content="Loading post content..." />
-          <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
-        </Helmet>
-        <LoadingContainer>
-          <ClipLoader color="#22c55e" size={50} />
-        </LoadingContainer>
-      </HelmetProvider>
+      <LoaderContainer>
+        <ClipLoader color="#22c55e" size={50} aria-label="Loading post content" />
+      </LoaderContainer>
     );
   }
 
-  if (error || (!postData.title && !ssrHtml)) {
-    return (
-      <HelmetProvider>
-        <Helmet>
-          <title>Error | Zedemy</title>
-          <meta name="description" content="An error occurred while loading the post." />
-          <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
-        </Helmet>
-        <div className="container">
-          <main>
-            <ErrorContainer>
-              Post not found. Please try again later.
-            </ErrorContainer>
-          </main>
-        </div>
-      </HelmetProvider>
-    );
+  // If no SSR HTML or post data, rely on backend error handling
+  if (!ssrHtml || !postData.title) {
+    return null; // Backend will serve 404/500 HTML
   }
 
   return (
     <HelmetProvider>
       <Helmet>
         <title>{postData.title || 'Untitled'} | Zedemy</title>
-        <meta name="description" content={postData.summary || 'Explore this post on Zedemy.'} />
+        <meta name="description" content={postData.summary || postData.content?.slice(0, 155) || 'Explore tech tutorials.'} />
         <meta property="og:title" content={postData.title || 'Untitled'} />
         <meta property="og:image" content={postData.titleImage || 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/default-post-image.webp'} />
         <link rel="canonical" href={`https://zedemy.vercel.app/post/${slug}`} />
