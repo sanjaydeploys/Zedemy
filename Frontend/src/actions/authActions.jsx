@@ -13,7 +13,7 @@ import {
     FOLLOW_CATEGORY_SUCCESS
 } from './types';
 
-const API_BASE_URL = "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod";
+const API_BASE_URL = "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/api";
 
 export const loadUser = () => async dispatch => {
     const token = localStorage.getItem('token');
