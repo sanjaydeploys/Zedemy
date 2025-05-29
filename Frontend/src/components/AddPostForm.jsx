@@ -291,7 +291,7 @@ const AddPostForm = React.memo(() => {
         });
 
         const res = await deps.axios.post(
-          'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/get-presigned-url',
+          'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/get-presigned-url',
           {
             fileType: compressedFile.type,
             folder: 'images',
@@ -307,7 +307,7 @@ const AddPostForm = React.memo(() => {
         const fileHash = await generateFileHash(compressedFile);
 
         await deps.axios.post(
-          'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
+          'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
           {
             fileKey: key,
             fileHash,
@@ -390,7 +390,7 @@ const AddPostForm = React.memo(() => {
         });
 
         const res = await deps.axios.post(
-          'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/get-presigned-url',
+          'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/get-presigned-url',
           {
             fileType: file.type,
             folder: 'videos',
@@ -406,7 +406,7 @@ const AddPostForm = React.memo(() => {
         const fileHash = await generateFileHash(file);
 
         await deps.axios.post(
-          'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
+          'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
           {
             fileKey: key,
             fileHash,
