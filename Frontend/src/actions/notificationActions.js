@@ -11,7 +11,7 @@ import {
     FETCH_FOLLOWED_CATEGORIES_SUCCESS
 } from './types';
 
-const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/notifications';
+const API_BASE_URL = 'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/api/notifications';
 
 export const fetchNotifications = () => async dispatch => {
     const token = localStorage.getItem('token');
