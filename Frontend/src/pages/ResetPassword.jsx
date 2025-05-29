@@ -174,7 +174,7 @@ const ResetPassword = () => {
         try {
             console.log(`Sending reset request with token: ${token}, password: ${password}`);
             const response = await axios.post(
-                `https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/auth/reset-password/${token}`,
+                `https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/api/auth/reset-password/${token}`,
                 { password }
             );
             console.log('Reset response:', response.data);
