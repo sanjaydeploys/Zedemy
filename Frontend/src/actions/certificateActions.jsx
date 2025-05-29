@@ -4,7 +4,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { setAuthToken } from '../utils/setAuthToken';
 import { GET_CERTIFICATES, CERTIFICATES_ERROR } from './types';
 
-const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/certificates';
+const API_BASE_URL = 'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/api/certificates';
 
 export const fetchCertificates = () => async dispatch => {
     const token = localStorage.getItem('token');
