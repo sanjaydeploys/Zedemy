@@ -283,7 +283,7 @@ const Dashboard = () => {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [categoryTotals, setCategoryTotals] = useState({});
   const [isDataLoading, setIsDataLoading] = useState(true);
-  const API_BASE_URL = 'https://urgwdthmkk.execute-api.ap-south-1.amazonaws.com/prod/api';
+  const API_BASE_URL = 'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/api';
   const availableCategories = ['React', 'Node.js', 'AWS', 'Python', 'JavaScript', 'VS Code'];
 
   // Combined useEffect for auth initialization
