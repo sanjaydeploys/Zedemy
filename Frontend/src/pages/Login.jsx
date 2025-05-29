@@ -168,7 +168,7 @@ const Login = () => {
   }, []);
 
   const handleGoogleLogin = useCallback(() => {
-    window.location.href = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/auth/google';
+    window.location.href = 'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/api/auth/google';
   }, []);
 
   return (
