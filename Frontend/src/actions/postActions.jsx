@@ -1,6 +1,6 @@
 import { toast } from 'react-toastify';
-const API_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
-const SSR_BASE_URL = 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod';
+const API_BASE_URL = 'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/api/posts';
+const SSR_BASE_URL = 'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod';
 
 // Utility function for retrying fetch requests
 const fetchWithRetry = async (url, options, retries = 3, delay = 1000) => {
