@@ -61,35 +61,41 @@
     <priority>0.9</priority>
   </url>
 
-   <url>
-    <loc>https://zedemy.vercel.app/post/vs-code-vs-visual-studio-key-differences-and-comparison</loc>
-    <lastmod>2025-05-17T11:10:44+01:00</lastmod>
+    <url>
+    <loc>https://zedemy.vercel.app/post/why-should-beginners-learn-react-in-2025</loc>
+    <lastmod>2025-05-30</lastmod>
     <priority>0.9</priority>
   </url>
 
-  <url>
-  <loc>https://zedemy.vercel.app/post/what-is-vs-code-introduction--installation-guide-windows</loc>
-  <lastmod>2025-05-19T22:05:00+00:00</lastmod>
-  <priority>0.9</priority>
-</url>
+  
+    <url>
+    <loc>https://zedemy.vercel.app/post/react-vs-vanilla-javascript-comparisondifferences-guide2025</loc>
+    <lastmod>2025-05-30</lastmod>
+    <priority>0.9</priority>
+  </url>
+
+      <url>
+    <loc>https://zedemy.vercel.app/post/how-to-write-your-first-react-component-with-examples</loc>
+    <lastmod>2025-05-30</lastmod>
+    <priority>0.9</priority>
+  </url>
 
     <url>
-  <loc>https://zedemy.vercel.app/post/what-is-html--html5--xhtml--key-differences-and-comparison</loc>
-  <lastmod>2025-05-22</lastmod>
-  <priority>0.9</priority>
-</url>
+    <loc>https://zedemy.vercel.app/post/react-beginners-guide-2025-learn-with-code-examples-</loc>
+    <lastmod>2025-05-30</lastmod>
+    <priority>0.9</priority>
+  </url>
+
+      <url>
+    <loc>https://zedemy.vercel.app/post/what-is-react-and-why-use-it-for-web-development</loc>
+    <lastmod>2025-05-30</lastmod>
+    <priority>0.9</priority>
+  </url>
 
      <url>
-  <loc>https://zedemy.vercel.app/post/what-is-css--css3-features-and-key-differences</loc>
-  <lastmod>2025-05-22</lastmod>
-  <priority>0.9</priority>
-</url>
-
-
-        <url>
-  <loc>https://zedemy.vercel.app/post/learn-what-is-javascript-beginner-guide-with-code-examples</loc>
-  <lastmod>2025-05-26</lastmod>
-  <priority>0.9</priority>
-</url>
+    <loc>https://zedemy.vercel.app/post/how-does-react-work-with-components-and-jsx</loc>
+    <lastmod>2025-05-30</lastmod>
+    <priority>0.9</priority>
+  </url>
 
 </urlset>
