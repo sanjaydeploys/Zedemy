@@ -52,7 +52,7 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /^https:\/\/se3fw2nzc2\.execute-api\.ap-south-1\.amazonaws\.com\/prod\/post/,
+            urlPattern: /^https:\/\/g3u06ptici\.execute-api\.ap-south-1\.amazonaws\.com\/prod\/post/,
             handler: 'NetworkOnly',
             options: {
               cacheName: 'ssr-post',
@@ -60,7 +60,7 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /^https:\/\/se3fw2nzc2\.execute-api\.ap-south-1\.amazonaws\.com/,
+            urlPattern: /^https:\/\/g3u06ptici\.execute-api\.ap-south-1\.amazonaws\.com/,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
@@ -70,7 +70,7 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /^https:\/\/zedemy-media-2025\.s3\.ap-south-1\.amazonaws\.com/,
+            urlPattern: /^https:\/\/mys3resources\.s3\.ap-south-1\.amazonaws\.com/,
             handler: 'CacheFirst',
             options: {
               cacheName: 'media-cache',
@@ -188,32 +188,32 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api/posts/complete/:postId': {
-        target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
+        target: 'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/posts\/complete/, '/api/posts/complete'),
       },
       '/api/posts/completed': {
-        target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
+        target: 'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/posts\/completed/, '/api/posts/completed'),
       },
       '/api/posts': {
-        target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
+        target: 'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/posts/, '/api/posts'),
       },
       '/get-presigned-url': {
-        target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
+        target: 'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/get-presigned-url/, '/get-presigned-url'),
       },
       '/api': {
-        target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
+        target: 'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '/api/posts'),
       },
       '/post': {
-        target: 'https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod',
+        target: 'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/post/, '/post'),
       },
