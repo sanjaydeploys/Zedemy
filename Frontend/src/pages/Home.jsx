@@ -389,12 +389,12 @@ const Home = memo(() => {
         name: 'Zedemy',
         logo: {
           '@type': 'ImageObject',
-          url: 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png',
+          url: 'https://mys3resources.s3.ap-south-1.amazonaws.com/bbb-Photoroom.png',
         },
       },
       image: {
         '@type': 'ImageObject',
-        url: 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy_header_image.webp',
+        url: 'https://mys3resources.s3.ap-south-1.amazonaws.com/bbb-Photoroom.png',
       },
     },
     {
@@ -404,7 +404,7 @@ const Home = memo(() => {
       url: 'https://zedemy.vercel.app/',
       logo: {
         '@type': 'ImageObject',
-        url: 'https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png',
+        url: 'https://mys3resources.s3.ap-south-1.amazonaws.com/bbb-Photoroom.png',
       },
       founder: {
         '@type': 'Person',
@@ -466,19 +466,19 @@ const Home = memo(() => {
         <meta name="author" content="Sanjay Patidar" />
         <meta name="robots" content="index, follow" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-        <link rel="icon" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png" type="image/png" />
+        <link rel="icon" href="https://mys3resources.s3.ap-south-1.amazonaws.com/bbb-Photoroom.png" type="image/png" />
         <link rel="canonical" href="https://zedemy.vercel.app/" />
-        <link rel="preload" fetchpriority="high" as="image" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy_header_image.webp" type="image/webp" />
-        <link rel="preload" as="image" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy-logo.png" type="image/png" />
-        <link rel="preconnect" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com" crossorigin="anonymous" />
-        <link rel="dns-prefetch" href="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com" />
+        <link rel="preload" fetchpriority="high" as="image" href="https://mys3resources.s3.ap-south-1.amazonaws.com/bbb-Photoroom.png" type="image/webp" />
+        <link rel="preload" as="image" href="https://mys3resources.s3.ap-south-1.amazonaws.com/bbb-Photoroom.png" type="image/png" />
+        <link rel="preconnect" href="https://mys3resources.s3.ap-south-1.amazonaws.com" crossorigin="anonymous" />
+        <link rel="dns-prefetch" href="https://3resources.s3.ap-south-1.amazonaws.com" />
         <meta http-equiv="Cache-Control" content="public, max-age=31536000, immutable" />
         <meta property="og:title" content="Zedemy: Courses, Code & Certificates by Sanjay Patidar" />
         <meta
           property="og:description"
           content="Zedemy by Sanjay Patidar: Category-based courses, certificates, and in-browser coding. Master tech skills with an Indian-rooted online learning platform."
         />
-        <meta property="og:image" content="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy_header_image.webp" />
+        <meta property="og:image" content="https://mys3resources.s3.ap-south-1.amazonaws.com/bbb-Photoroom.png" />
         <meta property="og:image:alt" content="Zedemy tech learning platform logo" />
         <meta property="og:url" content="https://zedemy.vercel.app/" />
         <meta property="og:type" content="website" />
@@ -489,7 +489,7 @@ const Home = memo(() => {
           name="twitter:description"
           content="Zedemy by Sanjay Patidar: Category-based courses, certificates, and in-browser coding. Master tech skills with an Indian-rooted online learning platform."
         />
-        <meta name="twitter:image" content="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy_header_image.webp" />
+        <meta name="twitter:image" content="https://mys3resources.s3.ap-south-1.amazonaws.com/bbb-Photoroom.png" />
         <meta name="twitter:image:alt" content="Zedemy tech learning platform logo" />
         <script type="application/ld+json">{JSON.stringify(structuredData)}</script>
       </Helmet>
@@ -503,12 +503,8 @@ const Home = memo(() => {
           <ImageSection>
             <LazyLoad height={400} offset={100} once>
               <StyledImage
-                src="https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy_header_image.webp"
-                srcSet="
-                  https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy_header_image_320.webp 320w,
-                  https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy_header_image_500.webp 500w,
-                  https://zedemy-media-2025.s3.ap-south-1.amazonaws.com/zedemy_header_image.webp 800w
-                "
+                src="https://mys3resources.s3.ap-south-1.amazonaws.com/bbb-Photoroom.png"
+              
                 sizes="(max-width: 600px) 320px, (max-width: 768px) 500px, 800px"
                 alt="Interactive tech learning experience on Zedemy"
                 width="400"
