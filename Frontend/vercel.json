@@ -90,27 +90,27 @@
   "rewrites": [
     {
       "source": "/post/:slug",
-      "destination": "https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/post/:slug"
+      "destination": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/post/:slug"
     },
     {
       "source": "/api/posts/complete/:postId",
-      "destination": "https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/complete/:postId"
+      "destination": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/api/posts/complete/:postId"
     },
     {
       "source": "/api/posts/completed",
-      "destination": "https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed"
+      "destination": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed"
     },
     {
       "source": "/api/posts",
-      "destination": "https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts"
+      "destination": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/api/posts"
     },
     {
       "source": "/get-presigned-url",
-      "destination": "https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/get-presigned-url"
+      "destination": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/get-presigned-url"
     },
     {
       "source": "/api/:path*",
-      "destination": "https://se3fw2nzc2.execute-api.ap-south-1.amazonaws.com/prod/api/posts/:path*"
+      "destination": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/api/posts/:path*"
     },
     {
       "source": "/assets/:path*",
