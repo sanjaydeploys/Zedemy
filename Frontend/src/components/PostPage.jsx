@@ -185,7 +185,7 @@ const PostPage = memo(() => {
       setLoading(false);
       dispatch({ type: 'FETCH_POST_SUCCESS', payload: window.__POST_DATA__ });
     } else {
-      dispatch(fetchPostPage(slug))
+      dispatch(fetchPostSSR(slug))
         .then(({ html }) => {
           setSsrHtml(html);
           setLoading(false);
