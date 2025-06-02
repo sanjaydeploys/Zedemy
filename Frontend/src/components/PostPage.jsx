@@ -20,7 +20,7 @@ const PostContent = styled.div`
 `;
 
 const LoadingContainer = styled.div`
-  display: #f9fafb;
+  display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
@@ -41,13 +41,14 @@ const LoadingContainer = styled.div`
 const LoadingText = styled.div`
   margin-top: 1rem;
   font-family: 'Inter', sans-serif;
-  font-size: .875rem;
+  font-size: 0.875rem;
   color: #1f2937;
   font-weight: 500;
   animation: pulse 1.5s ease-in-out infinite;
 
   @keyframes pulse {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 0.7;
     }
     50% {
@@ -172,7 +173,7 @@ const PostPage = memo(() => {
       { src: '/scripts/copyCode.js', name: 'copyCode.js', defer: true },
     ];
 
-    scripts.forEach(script => {
+    scripts.forEach((script) => {
       const scriptElement = document.createElement('script');
       scriptElement.src = script.src;
       scriptElement.defer = script.defer;
@@ -184,7 +185,7 @@ const PostPage = memo(() => {
       setLoading(false);
       dispatch({ type: 'FETCH_POST_SUCCESS', payload: window.__POST_DATA__ });
     } else {
-      dispatch(fetchPostPage(slugs))
+      dispatch(fetchPostPage(slug))
         .then(({ html }) => {
           setSsrHtml(html);
           setLoading(false);
@@ -201,10 +202,10 @@ const PostPage = memo(() => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(ssrHtml, 'text/html');
       const wrappers = doc.querySelectorAll('.code-snippet-wrapper');
-      const snippetData = Array.from(wrappers).map(wrapper => ({
+      const snippetData = Array.from(wrappers).map((wrapper) => ({
         id: wrapper.id,
         language: wrapper.getAttribute('data-language') || 'javascript',
-        wrapper.getAttribute('data-snippet') || '',
+        snippet: wrapper.getAttribute('data-snippet') || '',
       }));
       setSnippets(snippetData);
 
@@ -230,7 +231,7 @@ const PostPage = memo(() => {
           ref={(el) => {
             if (el) {
               // Replace .code-snippet-wrapper to prevent duplication
-              el.querySelectorAll('.code-snippet-wrapper').forEach(wrapper => {
+              el.querySelectorAll('.code-snippet-wrapper').forEach((wrapper) => {
                 const placeholder = document.createElement('div');
                 placeholder.id = wrapper.id;
                 wrapper.parentNode.replaceChild(placeholder, wrapper);
