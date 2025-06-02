@@ -8,7 +8,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { vscodeDark } from '@uiw/codemirror-theme-vscode';
 import prettier from 'prettier/standalone';
-import parserBabel from 'prettier/parser-babel';
+import * as prettierPluginBabel from '@prettier/plugin-babel';
 
 const Layout = styled.div`
   display: flex;
@@ -84,7 +84,8 @@ const CopyButton = styled.button`
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.875rem;
-  &:hover, &:focus {
+  &:hover,
+  &:focus {
     background: #22c55e;
     outline: 2px solid #1e40af;
     outline-offset: 2px;
@@ -116,7 +117,7 @@ const CodeSnippet = ({ snippet, language, snippetId }) => {
     try {
       const formatted = prettier.format(snippet, {
         parser: language === 'javascript' ? 'babel' : language,
-        plugins: [parserBabel],
+        plugins: [prettierPluginBabel],
         tabWidth: 2,
         useTabs: false,
         semi: true,
@@ -126,7 +127,7 @@ const CodeSnippet = ({ snippet, language, snippetId }) => {
       setFormattedSnippet(formatted);
     } catch (error) {
       console.warn(`[CodeSnippet] Prettier formatting failed for ${snippetId}:`, error);
-      setFormattedSnippet(snippet);
+      setFormattedSnippet(snippet); // Fallback to unformatted
     }
   }, [snippet, language, snippetId]);
 
@@ -134,16 +135,21 @@ const CodeSnippet = ({ snippet, language, snippetId }) => {
     navigator.clipboard.writeText(formattedSnippet).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    }).catch(err => {
+    }).catch((err) => {
       console.error(`[CodeSnippet] Copy failed for ${snippetId}:`, err);
     });
   };
 
   return (
-    <CodeSnippetWrapper id={snippetId} data-language={language}>
+    <CodeSnippetWrapper id={snippetId} data-language={language} data-snippet={snippet}>
       <CodeHeader>
         <CodeLanguage>{language.charAt(0).toUpperCase() + language.slice(1)}</CodeLanguage>
-        <CopyButton className={copied ? 'copied' : ''} onClick={handleCopy}>
+        <CopyButton
+          className={copied ? 'copied' : ''}
+          onClick={handleCopy}
+          data-snippet-id={snippetId}
+          aria-label={`Copy ${language} code`}
+        >
           {copied ? 'Copied' : 'Copy'}
         </CopyButton>
       </CodeHeader>
@@ -179,6 +185,7 @@ const PostPage = memo(() => {
     const scripts = [
       { src: '/scripts/sidebar.js', name: 'sidebar.js', defer: true },
       { src: '/scripts/scrollToTop.js', name: 'scrollToTop.js', defer: true },
+      { src: '/scripts/copyCode.js', name: 'copyCode.js', defer: true },
     ];
 
     const loadScript = (script) => {
@@ -196,7 +203,7 @@ const PostPage = memo(() => {
     const loadedScripts = scripts.map(loadScript);
 
     return () => {
-      loadedScripts.forEach(scriptElement => {
+      loadedScripts.forEach((scriptElement) => {
         if (scriptElement && document.head.contains(scriptElement)) {
           document.head.removeChild(scriptElement);
         }
@@ -228,15 +235,14 @@ const PostPage = memo(() => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(ssrHtml, 'text/html');
       const wrappers = doc.querySelectorAll('.code-snippet-wrapper');
-      const snippetData = Array.from(wrappers).map(wrapper => ({
+      const snippetData = Array.from(wrappers).map((wrapper) => ({
         id: wrapper.id,
         language: wrapper.getAttribute('data-language') || 'javascript',
         snippet: wrapper.getAttribute('data-formatted-snippet') || wrapper.getAttribute('data-snippet') || '',
-        isHighlighted: wrapper.querySelector('.code-block code[class*="language-"]') !== null,
       }));
       setSnippets(snippetData);
 
-      // Trigger DOMContentLoaded for other scripts
+      // Trigger DOMContentLoaded for copyCode.js
       const event = new Event('DOMContentLoaded');
       document.dispatchEvent(event);
     }
@@ -263,10 +269,23 @@ const PostPage = memo(() => {
     <ErrorBoundary>
       <Layout>
         <PostContent>
-          <div dangerouslySetInnerHTML={{ __html: ssrHtml }} />
-          {snippets.map(({ id, snippet, language, isHighlighted }) => (
-            !isHighlighted && snippet ? <CodeSnippet key={id} snippetId={id} snippet={snippet} language={language} /> : null
-          ))}
+          <div
+            ref={(el) => {
+              if (el) {
+                // Replace .code-snippet-wrapper with empty divs to prevent duplicate rendering
+                const wrappers = el.querySelectorAll('.code-snippet-wrapper');
+                wrappers.forEach((wrapper) => {
+                  const placeholder = document.createElement('div');
+                  placeholder.id = wrapper.id;
+                  wrapper.parentNode.replaceChild(placeholder, wrapper);
+                });
+              }
+            }}
+            dangerouslySetInnerHTML={{ __html: ssrHtml }}
+          />
+          {snippets.map(({ id, snippet, language }) =>
+            snippet ? <CodeSnippet key={id} snippetId={id} snippet={snippet} language={language} /> : null
+          )}
         </PostContent>
       </Layout>
     </ErrorBoundary>
