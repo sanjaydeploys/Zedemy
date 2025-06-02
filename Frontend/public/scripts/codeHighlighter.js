@@ -7,7 +7,6 @@
         const language = wrapper.getAttribute('data-language') || 'javascript';
         let snippet = wrapper.getAttribute('data-formatted-snippet') || wrapper.getAttribute('data-snippet') || '';
         const codeBlock = wrapper.querySelector('.code-block code');
-
         if (snippet && codeBlock) {
           try {
             // Format snippet if not pre-formatted
