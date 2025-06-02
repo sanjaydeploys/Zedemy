@@ -95,7 +95,7 @@ export default defineConfig({
       '@pages': path.resolve(__dirname, 'src/pages'),
       '@actions': path.resolve(__dirname, 'src/actions'),
     },
-    dedupe: ['popper.js', 'styled-components'],
+    dedupe: ['popper.js', 'styled-components', '@uiw/react-codemirror'],
   },
   build: {
     minify: 'esbuild',
@@ -107,6 +107,10 @@ export default defineConfig({
     },
     manifest: true,
     rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        codeHighlighter: path.resolve(__dirname, 'public/scripts/codeHighlighter.js'),
+      },
       output: {
         experimentalMinChunkSize: 10000,
         manualChunks: {
@@ -115,8 +119,9 @@ export default defineConfig({
           router: ['react-router-dom'],
           uiLibs: ['framer-motion', 'styled-components'],
           utilities: ['react-helmet-async', 'dompurify', 'react-copy-to-clipboard'],
+          codemirror: ['@uiw/react-codemirror', '@codemirror/lang-javascript', '@codemirror/lang-python', '@codemirror/lang-html', '@codemirror/lang-css', '@codemirror/lang-json', '@codemirror/lang-markdown', '@uiw/codemirror-theme-vscode'],
+          prettier: ['prettier'],
           syntax_highlighter: ['react-syntax-highlighter', 'highlight.js'],
-          codemirror: ['@codemirror/view', '@codemirror/state'],
           parse5: ['parse5'],
           lodash: ['lodash'],
           toast: ['react-toastify'],
@@ -142,18 +147,11 @@ export default defineConfig({
           addPostForm: [path.resolve(__dirname, 'src/components/AddPostForm.jsx')],
         },
         chunkFileNames: (chunkInfo) => {
-          if (['post', 'layout'].includes(chunkInfo.name)) {
+          if (['post', 'layout', 'codemirror', 'prettier'].includes(chunkInfo.name)) {
             return 'assets/priority-[name]-[hash].js';
           }
-          if (['react', 'redux', 'router', 'uiLibs', 'utilities', 'syntax_highlighter', 'codemirror', 'parse5', 'lodash', 'toast'].includes(chunkInfo.name)) {
+          if (['react', 'redux', 'router', 'uiLibs', 'utilities', 'syntax_highlighter', 'parse5', 'lodash', 'toast'].includes(chunkInfo.name)) {
             return 'assets/[name]-[hash].async.js';
-          }
-          if ([
-            'home', 'register', 'dashboard', 'adminDashboard', 'postList', 'categoryPage',
-            'forgotPassword', 'resetPassword', 'verifyCertificate', 'category', 'footer',
-            'notification', 'codeEditor', 'faqPage', 'addPostForm'
-          ].includes(chunkInfo.name)) {
-            return 'assets/[name]-[hash].js';
           }
           return 'assets/[name]-[hash].js';
         },
@@ -169,6 +167,15 @@ export default defineConfig({
       'react',
       'react-dom',
       'styled-components',
+      '@uiw/react-codemirror',
+      '@codemirror/lang-javascript',
+      '@codemirror/lang-python',
+      '@codemirror/lang-html',
+      '@codemirror/lang-css',
+      '@codemirror/lang-json',
+      '@codemirror/lang-markdown',
+      '@uiw/codemirror-theme-vscode',
+      'prettier',
       path.resolve(__dirname, 'src/components/PostPage.jsx'),
       path.resolve(__dirname, 'src/components/PriorityContent.jsx'),
       path.resolve(__dirname, 'src/components/Layout.jsx'),
@@ -176,11 +183,11 @@ export default defineConfig({
       path.resolve(__dirname, 'src/pages/Register.jsx'),
       path.resolve(__dirname, 'src/pages/Dashboard.jsx'),
     ],
-    exclude: ['react-toastify', 'redux', 'react-redux', 'axios', 'highlight.js', '@codemirror/view', '@codemirror/state', 'parse5', 'lodash', 'react-syntax-highlighter'],
+    exclude: ['react-toastify', 'redux', 'react-redux', 'axios', 'highlight.js'],
     force: true,
   },
   ssr: {
-    noExternal: ['styled-components'],
+    noExternal: ['styled-components', '@uiw/react-codemirror'],
   },
   server: {
     fs: { allow: ['.'] },
