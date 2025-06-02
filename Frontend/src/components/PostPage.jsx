@@ -2,7 +2,7 @@ import { memo, useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import styled from 'styled-components';
-import { fetchPostPage } from '../actions/postActions';
+import { fetchPostSSR } from '../actions/postActions';
 import { RingLoader } from 'react-spinners';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
@@ -212,7 +212,7 @@ const PostPage = memo(() => {
       setLoading(false);
       dispatch({ type: 'FETCH_POST_SUCCESS', payload: window.__POST_DATA__ });
     } else {
-      dispatch(fetchPostPage(slug))
+      dispatch(fetchPostSSR(slug))
         .then(({ html }) => {
           setSsrHtml(html);
           setLoading(false);
