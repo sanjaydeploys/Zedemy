@@ -208,8 +208,8 @@ const CodeSnippet = ({ snippet, language = 'javascript', snippetId }) => {
 const PostPage = memo(() => {
   const { slug } = useParams();
   const dispatch = useDispatch();
-  const [postData, setPostData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [ssrHtml, setSsrHtml] = useState('');
+  const [loading, setLoading] = useState(!window.__post__post_DATA__);
   const [snippets, setSnippets] = useState([]);
 
   useEffect(() => {
@@ -233,43 +233,45 @@ const PostPage = memo(() => {
       document.head.appendChild(script);
     });
 
-    // Fetch post data
+    // Handle SSR data
     if (window.__post__post_DATA__) {
-      setPostData(window.__post__post_DATA__);
+      setSsrHtml(document.documentElement.outerHTML);
       setLoading(false);
+      dispatch({ type: 'FETCH_POST_SUCCESS', payload: window.__post__post_DATA__ });
     } else {
       dispatch(fetchPostSSR(slug))
-        .then(({ data }) => {
-          setPostData(data);
+        .then(({ html }) => {
+          setSsrHtml(html);
           setLoading(false);
         })
         .catch((error) => {
-          console.error('[PostPage.jsx] Error fetching post data:', error);
+          console.error('[PostPage.jsx] Error fetching SSR HTML:', error);
           setLoading(false);
         });
     }
   }, [slug, dispatch]);
 
   useEffect(() => {
-    if (postData && postData.subtitles) {
-      const snippetData = postData.subtitles
-        .flatMap((subtitle, index) =>
-          (subtitle.bulletPoints || []).map((point, j) => ({
-            id: `snippet-${index}-${j}`,
-            language: point.language || 'javascript',
-            snippet: point.codeSnippet || '',
-          }))
-        )
-        .filter(snippet => snippet.snippet.trim());
+    if (ssrHtml) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(ssrHtml, 'text/html');
+      const wrappers = doc.querySelectorAll('.code-snippet-wrapper');
+
+      const snippetData = Array.from(wrappers).map(wrapper => ({
+        id: wrapper.id,
+        language: wrapper.getAttribute('data-language') || 'javascript',
+        snippet: wrapper.getAttribute('data-snippet') || '',
+      }));
 
       setSnippets(snippetData);
+      document.dispatchEvent(new Event('DOMContentLoaded'));
     }
-  }, [postData]);
+  }, [ssrHtml]);
 
   if (loading) {
     return (
       <LoadingContainer>
-        <RingLoader color="#22c55e" size={80} />
+        <RingLoader color="#22c55d4" size={50} />
         <LoadingText>Loading post...</LoadingText>
       </LoadingContainer>
     );
@@ -278,13 +280,10 @@ const PostPage = memo(() => {
   return (
     <Layout>
       <PostContent>
-        {snippets.length > 0 ? (
-          snippets.map(({ id, snippet, language }) => (
-            <CodeSnippet key={id} snippetId={id} snippet={snippet} language={language} />
-          ))
-        ) : (
-          <p>No code snippets available.</p>
-        )}
+        <div dangerouslySetInnerHTML={{ __html: ssrHtml }} />
+        {snippets.map(({ id, snippet, language }) => (
+          <CodeSnippet key={id} snippetId={id" snippet={snippet} language={language} />
+        ))}
       </PostContent>
     </Layout>
   );
