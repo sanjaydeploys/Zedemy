@@ -2,7 +2,7 @@ import { memo, useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import styled from 'styled-components';
-import { fetchPostPage } from '../actions/postActions';
+import { fetchPostSSR } from '../actions/postActions';
 import { RingLoader } from 'react-spinners';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
@@ -126,6 +126,7 @@ const CodeSnippet = ({ snippet, language, snippetId }) => {
       setFormattedSnippet(formatted);
     } catch (error) {
       console.warn(`[CodeSnippet] Prettier formatting failed for ${snippetId}:`, error);
+      setFormattedSnippet(snippet);
     }
   }, [snippet, language, snippetId]);
 
@@ -231,6 +232,7 @@ const PostPage = memo(() => {
         id: wrapper.id,
         language: wrapper.getAttribute('data-language') || 'javascript',
         snippet: wrapper.getAttribute('data-formatted-snippet') || wrapper.getAttribute('data-snippet') || '',
+        isHighlighted: wrapper.querySelector('.code-block code[class*="language-"]') !== null,
       }));
       setSnippets(snippetData);
 
@@ -262,8 +264,8 @@ const PostPage = memo(() => {
       <Layout>
         <PostContent>
           <div dangerouslySetInnerHTML={{ __html: ssrHtml }} />
-          {snippets.map(({ id, snippet, language }) => (
-            snippet ? <CodeSnippet key={id} snippetId={id} snippet={snippet} language={language} /> : null
+          {snippets.map(({ id, snippet, language, isHighlighted }) => (
+            !isHighlighted && snippet ? <CodeSnippet key={id} snippetId={id} snippet={snippet} language={language} /> : null
           ))}
         </PostContent>
       </Layout>
