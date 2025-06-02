@@ -70,9 +70,14 @@ const PostPage = memo(() => {
         name: 'ReactDOM',
       },
       {
-        src: 'https://cdn.jsdelivr.net/npm/react-syntax-highlighter@15.5.0/dist/esm/prism.js',
+        src: 'https://cdn.jsdelivr.net/npm/react-syntax-highlighter@15.5.0/dist/umd/react-syntax-highlighter.min.js',
         check: () => typeof window.ReactSyntaxHighlighter === 'undefined',
         name: 'ReactSyntaxHighlighter',
+      },
+      {
+        src: 'https://cdn.jsdelivr.net/npm/react-syntax-highlighter@15.5.0/dist/umd/styles/prism.min.js',
+        check: () => typeof window.ReactSyntaxHighlighterStyles === 'undefined',
+        name: 'SyntaxHighlighterStyles',
       },
       {
         src: 'https://cdn.jsdelivr.net/npm/react-copy-to-clipboard@5.1.0/build/react-copy-to-clipboard.min.js',
@@ -118,21 +123,13 @@ const PostPage = memo(() => {
       }
     };
 
-    // Load styles for Prism
-    if (!document.querySelector('link[href*="react-syntax-highlighter"]')) {
-      const styleLink = document.createElement('link');
-      styleLink.rel = 'stylesheet';
-      styleLink.href = 'https://cdn.jsdelivr.net/npm/react-syntax-highlighter@15.5.0/dist/esm/styles/prism/vs.css';
-      document.head.appendChild(styleLink);
-    }
-
     const loadedScripts = scripts.map(script => loadScript(script)).filter(Boolean);
 
     const initializeScripts = () => {
       const event = new Event('DOMContentLoaded');
       document.dispatchEvent(event);
 
-      if (window.React && window.ReactDOM && window.ReactSyntaxHighlighter) {
+      if (window.React && window.ReactDOM && window.ReactSyntaxHighlighter && window.ReactSyntaxHighlighterStyles) {
         const wrappers = document.querySelectorAll('.code-snippet-wrapper');
         wrappers.forEach(wrapper => {
           const snippetId = wrapper.id;
@@ -142,16 +139,11 @@ const PostPage = memo(() => {
             const root = window.ReactDOM.createRoot(wrapper);
             root.render(
               window.React.createElement(
-                window.ReactSyntaxHighlighter.Prism,
+                window.ReactSyntaxHighlighter,
                 {
                   language,
-                  style: window.ReactSyntaxHighlighter.styles?.prism?.vs || {},
-                  customStyle: {
-                    margin: 0,
-                    padding: '1rem',
-                    background: '#1f2937',
-                    fontSize: 'clamp(0.875rem, 1.8vw, 0.9375rem)',
-                  },
+                  style: window.ReactSyntaxHighlighterStyles.prism,
+                  customStyle: { margin: 0, padding: '1rem', background: '#1f2937', fontSize: 'clamp(0.875rem, 1.8vw, 0.9375rem)' },
                   wrapLines: true,
                   wrapLongLines: true,
                   children: snippet,
