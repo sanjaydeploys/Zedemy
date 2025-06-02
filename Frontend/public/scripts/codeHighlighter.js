@@ -1,10 +1,15 @@
-if (window.React && window.ReactDOM && window.ReactSyntaxHighlighter && window.CopyToClipboard) {
+(function () {
+  // Ensure dependencies are loaded
+  if (!window.React || !window.ReactDOM || !window.ReactSyntaxHighlighter || !window.CopyToClipboard || !window.ReactSyntaxHighlighterStyles) {
+    console.error('[codeHighlighter.js] Required dependencies (React, ReactDOM, ReactSyntaxHighlighter, CopyToClipboard, or Styles) not loaded');
+    return;
+  }
+
   const { createRoot } = window.ReactDOM;
-  const { Prism: SyntaxHighlighter } = window.ReactSyntaxHighlighter;
-  const { CopyToClipboard } = window;
+  const { useState } = window.React;
 
   const CodeSnippet = ({ snippetId, language, snippet }) => {
-    const [copied, setCopied] = window.React.useState(false);
+    const [copied, setCopied] = useState(false);
 
     const handleCopy = () => {
       setCopied(true);
@@ -23,7 +28,7 @@ if (window.React && window.ReactDOM && window.ReactSyntaxHighlighter && window.C
           language.charAt(0).toUpperCase() + language.slice(1)
         ),
         window.React.createElement(
-          CopyToClipboard,
+          window.CopyToClipboard,
           { text: snippet, onCopy: handleCopy },
           window.React.createElement(
             'button',
@@ -36,12 +41,12 @@ if (window.React && window.ReactDOM && window.ReactSyntaxHighlighter && window.C
         )
       ),
       window.React.createElement(
-        SyntaxHighlighter,
+        window.ReactSyntaxHighlighter,
         {
           language,
-          style: window.ReactSyntaxHighlighter.styles?.prism?.vs || {},
+          style: window.ReactSyntaxHighlighterStyles.prism,
           customStyle: {
-            margin: 0,
+            margin: '0',
             padding: '1rem',
             background: '#1f2937',
             fontSize: 'clamp(0.875rem, 1.8vw, 0.9375rem)',
@@ -72,6 +77,4 @@ if (window.React && window.ReactDOM && window.ReactSyntaxHighlighter && window.C
       }
     });
   });
-} else {
-  console.error('[codeHighlighter.js] Required dependencies (React, ReactDOM, ReactSyntaxHighlighter, CopyToClipboard) not loaded.');
-}
+})();
