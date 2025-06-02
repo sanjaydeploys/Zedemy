@@ -63,46 +63,67 @@ const PostPage = memo(() => {
         src: 'https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js',
         check: () => typeof window.React === 'undefined',
         name: 'React',
+        async: false,
       },
       {
         src: 'https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js',
         check: () => typeof window.ReactDOM === 'undefined',
         name: 'ReactDOM',
+        async: false,
       },
       {
         src: 'https://cdn.jsdelivr.net/npm/react-syntax-highlighter@15.5.0/dist/umd/react-syntax-highlighter.min.js',
         check: () => typeof window.ReactSyntaxHighlighter === 'undefined',
         name: 'ReactSyntaxHighlighter',
+        async: false,
       },
       {
         src: 'https://cdn.jsdelivr.net/npm/react-syntax-highlighter@15.5.0/dist/umd/styles/prism.min.js',
         check: () => typeof window.ReactSyntaxHighlighterStyles === 'undefined',
         name: 'SyntaxHighlighterStyles',
+        async: false,
       },
       {
         src: 'https://cdn.jsdelivr.net/npm/react-copy-to-clipboard@5.1.0/build/react-copy-to-clipboard.min.js',
         check: () => typeof window.CopyToClipboard === 'undefined',
         name: 'CopyToClipboard',
+        async: false,
+      },
+      {
+        src: 'https://cdn.jsdelivr.net/npm/prettier@3.3.3/standalone.js',
+        check: () => typeof window.prettier === 'undefined',
+        name: 'Prettier',
+        async: false,
+      },
+      {
+        src: 'https://cdn.jsdelivr.net/npm/prettier@3.3.3/parser-babel.js',
+        check: () => typeof window.prettierPlugins === 'undefined',
+        name: 'PrettierParserBabel',
+        async: false,
       },
       {
         src: '/scripts/sidebar.js',
         check: () => typeof window.toggleSidebar !== 'function' || typeof window.scrollToSection !== 'function',
         name: 'sidebar.js',
+        defer: true,
       },
       {
         src: '/scripts/scrollToTop.js',
         check: () => !document.getElementById('scroll-to-top'),
         name: 'scrollToTop.js',
+        defer: true,
       },
       {
         src: '/scripts/copyCode.js',
         check: () => !document.querySelector('.copy-button'),
         name: 'copyCode.js',
+        defer: true,
       },
       {
         src: '/scripts/codeHighlighter.js',
         check: () => !document.querySelector('.code-snippet-wrapper'),
         name: 'codeHighlighter.js',
+        defer: true,
       },
     ];
 
@@ -111,8 +132,8 @@ const PostPage = memo(() => {
         console.log(`[PostPage.jsx] Loading ${script.name}`);
         const scriptElement = document.createElement('script');
         scriptElement.src = script.src;
-        scriptElement.async = false;
-        scriptElement.defer = true;
+        scriptElement.async = script.async !== undefined ? script.async : false;
+        if (script.defer) scriptElement.defer = true;
         scriptElement.onload = () => console.log(`[PostPage.jsx] ${script.name} loaded`);
         scriptElement.onerror = () => console.error(`[PostPage.jsx] Error loading ${script.name}`);
         document.head.appendChild(scriptElement);
@@ -125,7 +146,7 @@ const PostPage = memo(() => {
 
     const loadedScripts = scripts.map(script => loadScript(script)).filter(Boolean);
 
-    const initializeScripts = (attempts = 5, delay = 100) => {
+    const initializeScripts = (attempts = 10, delay = 200) => {
       if (attempts <= 0) {
         console.error('[PostPage.jsx] Failed to initialize code highlighters after retries');
         return;
@@ -136,7 +157,9 @@ const PostPage = memo(() => {
         window.ReactDOM &&
         window.ReactSyntaxHighlighter &&
         window.ReactSyntaxHighlighterStyles &&
-        window.ReactSyntaxHighlighterStyles.prism
+        window.ReactSyntaxHighlighterStyles.prism &&
+        window.prettier &&
+        window.prettierPlugins
       ) {
         console.log('[PostPage.jsx] Initializing code highlighters');
         const event = new Event('DOMContentLoaded');
@@ -146,9 +169,25 @@ const PostPage = memo(() => {
         wrappers.forEach(wrapper => {
           const snippetId = wrapper.id;
           const language = wrapper.getAttribute('data-language') || 'javascript';
-          const snippet = wrapper.getAttribute('data-snippet') || '';
+          let snippet = wrapper.getAttribute('data-raw-snippet') || wrapper.getAttribute('data-snippet') || '';
           if (snippet) {
             try {
+              // Format snippet with Prettier
+              let formattedSnippet = snippet;
+              try {
+                formattedSnippet = window.prettier.format(snippet, {
+                  parser: language === 'javascript' ? 'babel' : language,
+                  plugins: window.prettierPlugins,
+                  tabWidth: 2,
+                  useTabs: false,
+                  semi: true,
+                  singleQuote: true,
+                  trailingComma: 'es5',
+                });
+              } catch (formatError) {
+                console.warn(`[PostPage.jsx] Prettier formatting failed for snippet ${snippetId}:`, formatError);
+              }
+
               const root = window.ReactDOM.createRoot(wrapper);
               root.render(
                 window.React.createElement(
@@ -164,7 +203,7 @@ const PostPage = memo(() => {
                     },
                     wrapLines: true,
                     wrapLongLines: true,
-                    children: snippet,
+                    children: formattedSnippet,
                   }
                 )
               );
@@ -175,7 +214,7 @@ const PostPage = memo(() => {
         });
       } else {
         console.warn(`[PostPage.jsx] Dependencies not ready, retrying (${attempts} attempts left)`);
-        setTimeout(() => initializeScripts(attempts - 1, delay * 2), delay);
+        setTimeout(() => initializeScripts(attempts - 1, delay), delay);
       }
     };
 
