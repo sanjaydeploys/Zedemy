@@ -57,23 +57,67 @@ const PostPage = memo(() => {
   const [ssrHtml, setSsrHtml] = useState('');
   const [loading, setLoading] = useState(!window.__POST_DATA__); // Only true if no SSR data
 
-  // Load sidebar.js dynamically
+  // Load all required scripts dynamically
   useEffect(() => {
-    const loadSidebarScript = () => {
-      if (typeof window.toggleSidebar !== 'function' || typeof window.scrollToSection !== 'function') {
-        console.log('[PostPage.jsx] Loading sidebar.js');
-        const script = document.createElement('script');
-        script.src = '/scripts/sidebar.js';
-        script.async = true;
-        script.onload = () => console.log('[PostPage.jsx] sidebar.js loaded');
-        script.onerror = () => console.error('[PostPage.jsx] Error loading sidebar.js');
-        document.head.appendChild(script);
-        return () => document.head.removeChild(script);
+    const scripts = [
+      {
+        src: 'https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js',
+        check: () => typeof window.React === 'undefined',
+        name: 'React',
+      },
+      {
+        src: 'https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js',
+        check: () => typeof window.ReactDOM === 'undefined',
+        name: 'ReactDOM',
+      },
+      {
+        src: '/scripts/sidebar.js',
+        check: () => typeof window.toggleSidebar !== 'function' || typeof window.scrollToSection !== 'function',
+        name: 'sidebar.js',
+      },
+      {
+        src: '/scripts/scrollToTop.js',
+        check: () => !document.getElementById('scroll-to-top') || !document.querySelector('.scroll-to-top'),
+        name: 'scrollToTop.js',
+      },
+      {
+        src: '/scripts/copyCode.js',
+        check: () => !document.querySelector('.copy-button'),
+        name: 'copyCode.js',
+      },
+      {
+        src: '/scripts/codeHighlighter.js',
+        check: () => !document.querySelector('.code-snippet-wrapper'),
+        name: 'codeHighlighter.js',
+      },
+    ];
+
+    const loadScript = (script) => {
+      if (script.check()) {
+        console.log(`[PostPage.jsx] Loading ${script.name}`);
+        const scriptElement = document.createElement('script');
+        scriptElement.src = script.src;
+        scriptElement.async = true;
+        scriptElement.defer = true;
+        scriptElement.onload = () => console.log(`[PostPage.jsx] ${script.name} loaded`);
+        scriptElement.onerror = () => console.error(`[PostPage.jsx] Error loading ${script.name}`);
+        document.head.appendChild(scriptElement);
+        return scriptElement;
       } else {
-        console.log('[PostPage.jsx] sidebar.js already loaded');
+        console.log(`[PostPage.jsx] ${script.name} already loaded or not needed`);
+        return null;
       }
     };
-    loadSidebarScript();
+
+    const loadedScripts = scripts.map(script => loadScript(script)).filter(Boolean);
+
+    return () => {
+      loadedScripts.forEach(scriptElement => {
+        if (scriptElement && document.head.contains(scriptElement)) {
+          document.head.removeChild(scriptElement);
+        }
+      });
+    };
   }, []);
 
   // Fetch SSR HTML
