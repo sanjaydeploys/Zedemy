@@ -4,12 +4,19 @@ import { useDispatch } from 'react-redux';
 import styled from 'styled-components';
 import { fetchPostSSR } from '../actions/postActions';
 import { RingLoader } from 'react-spinners';
-import CodeMirror from '@uiw/react-codemirror';
-import { javascript } from '@codemirror/lang-javascript';
-import { vscodeDark } from '@uiw/codemirror-theme-vscode';
-import prettier from 'prettier/standalone';
-import parserBabel from 'prettier/parser-babel';
+import hljs from 'highlight.js/lib/core';
+import { javascript } from 'highlight.js/lib/languages/javascript';
+import { xml } from 'highlight.js/lib/languages/xml';
+import css from 'highlight.js/lib/languages/css';
+import python from 'highlight.js/lib/languages/python';
 
+// Register languages
+hljs.registerLanguage('javascript', javascript);
+hljs.registerLanguage('html', xml); // xml used for HTML in highlight.js
+hljs.registerLanguage('css', css);
+hljs.registerLanguage('python', python);
+
+// Styled Components
 const Layout = styled.div`
   display: flex;
   min-height: 100vh;
@@ -26,15 +33,11 @@ const LoadingContainer = styled.div`
   align-items: center;
   min-height: 100vh;
   background-color: #f9fafb;
-  animation: fadeIn 0.5s ease-in;
+  animation: fadeIn 0.5s ease-in-out;
 
   @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
   }
 `;
 
@@ -43,26 +46,22 @@ const LoadingText = styled.div`
   font-family: 'Inter', sans-serif;
   font-size: 0.875rem;
   color: #1f2937;
-  font-weight: 500;
-  animation: pulse 1.5s ease-in-out infinite;
+  font-weight: normal;
+  animation: pulse 1s ease-in-out infinite;
 
   @keyframes pulse {
-    0%,
-    100% {
-      opacity: 0.7;
-    }
-    50% {
-      opacity: 1;
-    }
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
   }
 `;
 
 const CodeSnippetWrapper = styled.div`
   position: relative;
-  margin: 1rem 0;
-  border-radius: 8px;
+  margin: 1.5rem 0;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background: #1f2937;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 `;
 
 const CodeHeader = styled.div`
@@ -72,153 +71,121 @@ const CodeHeader = styled.div`
   background: #374151;
   color: #fff;
   font-size: 0.875rem;
-  border-bottom: 1px solid #1f2937;
 `;
 
-const CodeLanguage = styled.span`
-  font-weight: 700;
+const CodeLanguageLabel = styled.span`
+  font-weight: bold;
 `;
 
 const CopyButton = styled.button`
   background: #4b5563;
-  color: #fff;
+  color: white;
   border: none;
   padding: 0.25rem 0.75rem;
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.875rem;
-  transition: background 0.2s ease;
-  &:hover,
-  &:focus {
+
+  &:hover, &:focus {
     background: #22c55e;
     outline: 2px solid #1e40af;
     outline-offset: 2px;
   }
+
   &.copied {
     background: #22c55e;
   }
 `;
 
-const CodeMirrorWrapper = styled.div`
-  .cm-editor {
-    font-family: 'Fira Code', 'Consolas', monospace;
-    font-size: 0.9375rem;
-    background: #1e1e1e;
-    border-radius: 0 0 8px 8px;
-    overflow: hidden;
-  }
-  .cm-scroller {
-    padding: 0.5rem;
-  }
-  .cm-content {
-    padding: 0;
-  }
-  .cm-lineNumbers .cm-gutterElement {
-    color: #858585;
-    padding-left: 0.5rem;
-    padding-right: 0.75rem;
-  }
-  .cm-activeLine {
-    background: rgba(255, 255, 255, 0.05);
+const CodeBlock = styled.pre`
+  background: #1f2937;
+  padding: 1rem;
+  margin: 0;
+  overflow-x: auto;
+
+  code {
+    font-family: 'Consolas', 'Monaco', 'Andale Mono', monospace;
+    font-size: 0.875rem;
+    white-space: pre-wrap;
+    line-height: 1.6;
   }
 `;
 
-const CodeSnippet = ({ snippet, language, snippetId }) => {
-  const [formattedSnippet, setFormattedSnippet] = useState(snippet);
+// Escape fallback
+const escapeHTML = (str) =>
+  str?.replace(/[&<>'"]/g, (char) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char])
+  );
+
+// Code Snippet Component
+const CodeSnippet = ({ snippet, language = 'javascript', snippetId }) => {
+  const [highlighted, setHighlighted] = useState('');
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     try {
-      const formatted = prettier.format(snippet, {
-        parser: language === 'javascript' ? 'babel' : language,
-        plugins: [parserBabel],
-        tabWidth: 2,
-        useTabs: false,
-        semi: true,
-        singleQuote: true,
-        trailingComma: 'es5',
-      });
-      setFormattedSnippet(formatted);
+      const result = hljs.highlight(snippet || '', { language });
+      setHighlighted(result.value);
     } catch (error) {
-      console.warn(`[CodeSnippet] Prettier formatting failed for ${snippetId}:`, error);
-      setFormattedSnippet(snippet);
+      console.warn(`[CodeSnippet] Highlighting failed for ${snippetId}:`, error);
+      setHighlighted(escapeHTML(snippet || ''));
     }
   }, [snippet, language, snippetId]);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(formattedSnippet).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    navigator.clipboard.writeText(snippet);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
   };
 
   return (
     <CodeSnippetWrapper id={snippetId} data-language={language} data-snippet={snippet}>
       <CodeHeader>
-        <CodeLanguage>{language.charAt(0).toUpperCase() + language.slice(1)}</CodeLanguage>
-        <CopyButton
-          className={copied ? 'copied' : ''}
-          onClick={handleCopy}
-          data-snippet-id={snippetId}
-          aria-label={`Copy ${language} code`}
-        >
+        <CodeLanguageLabel>{language.charAt(0).toUpperCase() + language.slice(1)}</CodeLanguageLabel>
+        <CopyButton onClick={handleCopy} className={copied ? 'copied' : ''}>
           {copied ? 'Copied' : 'Copy'}
         </CopyButton>
       </CodeHeader>
-      <CodeMirrorWrapper>
-        <CodeMirror
-          value={formattedSnippet}
-          extensions={[javascript()]}
-          theme={vscodeDark}
-          readOnly={true}
-          basicSetup={{
-            lineNumbers: true,
-            foldGutter: false,
-            autocompletion: false,
-            highlightActiveLine: true,
-            highlightActiveLineGutter: false,
-          }}
-        />
-      </CodeMirrorWrapper>
+      <CodeBlock>
+        <code className={`hljs ${language}`} dangerouslySetInnerHTML={{ __html: highlighted }} />
+      </CodeBlock>
     </CodeSnippetWrapper>
   );
 };
 
+// Main PostPage
 const PostPage = memo(() => {
   const { slug } = useParams();
   const dispatch = useDispatch();
   const [ssrHtml, setSsrHtml] = useState('');
-  const [loading, setLoading] = useState(!window.__POST_DATA__);
+  const [loading, setLoading] = useState(!window.__post__post_DATA__);
   const [snippets, setSnippets] = useState([]);
 
   useEffect(() => {
     const scripts = [
-      { src: '/scripts/sidebar.js', name: 'sidebar.js', defer: true },
-      { src: '/scripts/scrollToTop.js', name: 'scrollToTop.js', defer: true },
-      { src: '/scripts/copyCode.js', name: 'copyCode.js', defer: true },
+      { src: '/scripts/sidebar.js', defer: true },
+      { src: '/scripts/copyCode.js', defer: true },
+      { src: '/scripts/scrollToTop.js', defer: true },
     ];
-
-    scripts.forEach((script) => {
-      if (!document.querySelector(`script[src="${script.src}"]`)) {
-        const scriptElement = document.createElement('script');
-        scriptElement.src = script.src;
-        scriptElement.defer = script.defer;
-        document.head.appendChild(scriptElement);
-      }
+    scripts.forEach(script => {
+      const el = document.createElement('script');
+      el.src = script.src;
+      el.defer = script.defer;
+      document.head.appendChild(el);
     });
 
-    if (window.__POST_DATA__) {
+    if (window.__post__post__) {
       setSsrHtml(document.documentElement.outerHTML);
       setLoading(false);
-      dispatch({ type: 'FETCH_POST_SUCCESS', payload: window.__POST_DATA__ });
+      dispatch({ type: 'FETCH_POST_SUCCESS', payload: window.__post__post_data_data });
     } else {
       dispatch(fetchPostSSR(slug))
         .then(({ html }) => {
           setSsrHtml(html);
           setLoading(false);
         })
-        .catch((error) => {
-          console.error('[PostPage.jsx] Error fetching SSR HTML:', error);
+        .catch((err) => {
+          console.error('[PostPage.jsx] Error fetching SSR HTML:', err);
           setLoading(false);
         });
     }
@@ -229,15 +196,15 @@ const PostPage = memo(() => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(ssrHtml, 'text/html');
       const wrappers = doc.querySelectorAll('.code-snippet-wrapper');
-      const snippetData = Array.from(wrappers).map((wrapper) => ({
+      const snippetData = Array.from(wrappers).map(wrapper => ({
         id: wrapper.id,
         language: wrapper.getAttribute('data-language') || 'javascript',
         snippet: wrapper.getAttribute('data-snippet') || '',
       }));
       setSnippets(snippetData);
 
-      // Trigger DOMContentLoaded for copyCode.js
-      window.dispatchEvent(new Event('DOMContentLoaded'));
+      // Trigger event for copyCode.js if needed
+      document.dispatchEvent(new Event('DOMContentLoaded'));
     }
   }, [ssrHtml]);
 
@@ -255,9 +222,9 @@ const PostPage = memo(() => {
       <PostContent>
         <div
           dangerouslySetInnerHTML={{ __html: ssrHtml }}
-          ref={(el) => {
-            if (el) {
-              el.querySelectorAll('.code-snippet-wrapper').forEach((wrapper) => {
+          ref={(element) => {
+            if (element) {
+              element.querySelectorAll('.code-snippet-wrapper').forEach(wrapper => {
                 const placeholder = document.createElement('div');
                 placeholder.id = wrapper.id;
                 wrapper.parentNode.replaceChild(placeholder, wrapper);
