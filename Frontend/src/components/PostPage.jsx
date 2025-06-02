@@ -2,7 +2,7 @@ import { memo, useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import styled from 'styled-components';
-import {fetchPostSSR } from '../actions/postActions';
+import { fetchPostPage } from '../actions/postActions';
 import { RingLoader } from 'react-spinners';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
@@ -62,6 +62,7 @@ const CodeSnippetWrapper = styled.div`
   margin: 1rem 0;
   border-radius: 8px;
   overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 `;
 
 const CodeHeader = styled.div`
@@ -71,6 +72,7 @@ const CodeHeader = styled.div`
   background: #374151;
   color: #fff;
   font-size: 0.875rem;
+  border-bottom: 1px solid #1f2937;
 `;
 
 const CodeLanguage = styled.span`
@@ -85,6 +87,7 @@ const CopyButton = styled.button`
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.875rem;
+  transition: background 0.2s ease;
   &:hover,
   &:focus {
     background: #22c55e;
@@ -93,6 +96,30 @@ const CopyButton = styled.button`
   }
   &.copied {
     background: #22c55e;
+  }
+`;
+
+const CodeMirrorWrapper = styled.div`
+  .cm-editor {
+    font-family: 'Fira Code', 'Consolas', monospace;
+    font-size: 0.9375rem;
+    background: #1e1e1e;
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
+  }
+  .cm-scroller {
+    padding: 0.5rem;
+  }
+  .cm-content {
+    padding: 0;
+  }
+  .cm-lineNumbers .cm-gutterElement {
+    color: #858585;
+    padding-left: 0.5rem;
+    padding-right: 0.75rem;
+  }
+  .cm-activeLine {
+    background: rgba(255, 255, 255, 0.05);
   }
 `;
 
@@ -138,23 +165,21 @@ const CodeSnippet = ({ snippet, language, snippetId }) => {
           {copied ? 'Copied' : 'Copy'}
         </CopyButton>
       </CodeHeader>
-      <CodeMirror
-        value={formattedSnippet}
-        extensions={[javascript()]}
-        theme={vscodeDark}
-        readOnly={true}
-        basicSetup={{
-          lineNumbers: true,
-          foldGutter: false,
-          autocompletion: false,
-          highlightActiveLine: false,
-        }}
-        style={{
-          fontSize: '0.9375rem',
-          background: '#1e1e1e',
-          borderRadius: '0 0 8px 8px',
-        }}
-      />
+      <CodeMirrorWrapper>
+        <CodeMirror
+          value={formattedSnippet}
+          extensions={[javascript()]}
+          theme={vscodeDark}
+          readOnly={true}
+          basicSetup={{
+            lineNumbers: true,
+            foldGutter: false,
+            autocompletion: false,
+            highlightActiveLine: true,
+            highlightActiveLineGutter: false,
+          }}
+        />
+      </CodeMirrorWrapper>
     </CodeSnippetWrapper>
   );
 };
@@ -174,10 +199,12 @@ const PostPage = memo(() => {
     ];
 
     scripts.forEach((script) => {
-      const scriptElement = document.createElement('script');
-      scriptElement.src = script.src;
-      scriptElement.defer = script.defer;
-      document.head.appendChild(scriptElement);
+      if (!document.querySelector(`script[src="${script.src}"]`)) {
+        const scriptElement = document.createElement('script');
+        scriptElement.src = script.src;
+        scriptElement.defer = script.defer;
+        document.head.appendChild(scriptElement);
+      }
     });
 
     if (window.__POST_DATA__) {
@@ -185,7 +212,7 @@ const PostPage = memo(() => {
       setLoading(false);
       dispatch({ type: 'FETCH_POST_SUCCESS', payload: window.__POST_DATA__ });
     } else {
-      dispatch(fetchPostSSR(slug))
+      dispatch(fetchPostPage(slug))
         .then(({ html }) => {
           setSsrHtml(html);
           setLoading(false);
@@ -210,7 +237,7 @@ const PostPage = memo(() => {
       setSnippets(snippetData);
 
       // Trigger DOMContentLoaded for copyCode.js
-      document.dispatchEvent(new Event('DOMContentLoaded'));
+      window.dispatchEvent(new Event('DOMContentLoaded'));
     }
   }, [ssrHtml]);
 
@@ -230,7 +257,6 @@ const PostPage = memo(() => {
           dangerouslySetInnerHTML={{ __html: ssrHtml }}
           ref={(el) => {
             if (el) {
-              // Replace .code-snippet-wrapper to prevent duplication
               el.querySelectorAll('.code-snippet-wrapper').forEach((wrapper) => {
                 const placeholder = document.createElement('div');
                 placeholder.id = wrapper.id;
