@@ -249,6 +249,15 @@ const PostPage = memo(() => {
           setLoading(false);
         });
     }
+
+    // Cleanup
+    return () => {
+      scripts.forEach(({ src }) => {
+        const script = document.querySelector(`script[src="${src}"]`);
+        if (script) script.remove();
+      });
+      if (link) link.remove();
+    };
   }, [slug, dispatch]);
 
   useEffect(() => {
@@ -271,7 +280,7 @@ const PostPage = memo(() => {
   if (loading) {
     return (
       <LoadingContainer>
-        <RingLoader color="#22c55d4" size={50} />
+        <RingLoader color="#22c55e" size={50} />
         <LoadingText>Loading post...</LoadingText>
       </LoadingContainer>
     );
@@ -282,7 +291,7 @@ const PostPage = memo(() => {
       <PostContent>
         <div dangerouslySetInnerHTML={{ __html: ssrHtml }} />
         {snippets.map(({ id, snippet, language }) => (
-          <CodeSnippet key={id} snippetId={id" snippet={snippet} language={language} />
+          <CodeSnippet key={id} snippetId={id} snippet={snippet} language={language} />
         ))}
       </PostContent>
     </Layout>
