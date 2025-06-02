@@ -5,14 +5,14 @@ import styled from 'styled-components';
 import { fetchPostSSR } from '../actions/postActions';
 import { RingLoader } from 'react-spinners';
 import hljs from 'highlight.js/lib/core';
-import { javascript } from 'highlight.js/lib/languages/javascript';
-import { xml } from 'highlight.js/lib/languages/xml';
+import javascript from 'highlight.js/lib/languages/javascript';
+import xml from 'highlight.js/lib/languages/xml';
 import css from 'highlight.js/lib/languages/css';
 import python from 'highlight.js/lib/languages/python';
 
 // Register languages
 hljs.registerLanguage('javascript', javascript);
-hljs.registerLanguage('html', xml); // xml used for HTML in highlight.js
+hljs.registerLanguage('html', xml);
 hljs.registerLanguage('css', css);
 hljs.registerLanguage('python', python);
 
@@ -33,12 +33,6 @@ const LoadingContainer = styled.div`
   align-items: center;
   min-height: 100vh;
   background-color: #f9fafb;
-  animation: fadeIn 0.5s ease-in-out;
-
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
 `;
 
 const LoadingText = styled.div`
@@ -47,7 +41,7 @@ const LoadingText = styled.div`
   font-size: 0.875rem;
   color: #1f2937;
   font-weight: normal;
-  animation: pulse 1s ease-in-out infinite;
+  animation: pulse 500ms ease-in-out infinite;
 
   @keyframes pulse {
     0%, 100% { opacity: 0.7; }
@@ -56,12 +50,11 @@ const LoadingText = styled.div`
 `;
 
 const CodeSnippetWrapper = styled.div`
-  position: relative;
   margin: 1.5rem 0;
   border-radius: 12px;
   overflow: hidden;
   background: #1f2937;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 `;
 
 const CodeHeader = styled.div`
@@ -84,7 +77,7 @@ const CopyButton = styled.button`
   padding: 0.25rem 0.75rem;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: .875rem;
 
   &:hover, &:focus {
     background: #22c55e;
@@ -104,20 +97,14 @@ const CodeBlock = styled.pre`
   overflow-x: auto;
 
   code {
-    font-family: 'Consolas', 'Monaco', 'Andale Mono', monospace;
-    font-size: 0.875rem;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: .875rem;
     white-space: pre-wrap;
     line-height: 1.6;
   }
 `;
 
-// Escape fallback
-const escapeHTML = (str) =>
-  str?.replace(/[&<>'"]/g, (char) =>
-    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char])
-  );
-
-// Code Snippet Component
+// CodeSnippet Component
 const CodeSnippet = ({ snippet, language = 'javascript', snippetId }) => {
   const [highlighted, setHighlighted] = useState('');
   const [copied, setCopied] = useState(false);
@@ -128,21 +115,26 @@ const CodeSnippet = ({ snippet, language = 'javascript', snippetId }) => {
       setHighlighted(result.value);
     } catch (error) {
       console.warn(`[CodeSnippet] Highlighting failed for ${snippetId}:`, error);
-      setHighlighted(escapeHTML(snippet || ''));
+      setHighlighted(snippet);
     }
   }, [snippet, language, snippetId]);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(snippet);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+    navigator.clipboard.writeText(snippet).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   };
 
   return (
     <CodeSnippetWrapper id={snippetId} data-language={language} data-snippet={snippet}>
       <CodeHeader>
         <CodeLanguageLabel>{language.charAt(0).toUpperCase() + language.slice(1)}</CodeLanguageLabel>
-        <CopyButton onClick={handleCopy} className={copied ? 'copied' : ''}>
+        <CopyButton
+          onClick={handleCopy}
+          className={copied ? 'copied' : ''}
+          aria-label={`Copy ${language} code`}
+        >
           {copied ? 'Copied' : 'Copy'}
         </CopyButton>
       </CodeHeader>
@@ -153,7 +145,7 @@ const CodeSnippet = ({ snippet, language = 'javascript', snippetId }) => {
   );
 };
 
-// Main PostPage
+// Main Component
 const PostPage = memo(() => {
   const { slug } = useParams();
   const dispatch = useDispatch();
@@ -167,25 +159,26 @@ const PostPage = memo(() => {
       { src: '/scripts/copyCode.js', defer: true },
       { src: '/scripts/scrollToTop.js', defer: true },
     ];
-    scripts.forEach(script => {
-      const el = document.createElement('script');
-      el.src = script.src;
-      el.defer = script.defer;
-      document.head.appendChild(el);
+
+    scripts.forEach(({ src, defer }) => {
+      const script = document.createElement('script');
+      script.src = src;
+      script.defer = defer;
+      document.head.appendChild(script);
     });
 
-    if (window.__post__post__) {
+    if (window.__post__post_DATA__) {
       setSsrHtml(document.documentElement.outerHTML);
       setLoading(false);
-      dispatch({ type: 'FETCH_POST_SUCCESS', payload: window.__post__post_data_data });
+      dispatch({ type: 'FETCH_POST_SUCCESS', payload: window.__post__post_DATA__ });
     } else {
       dispatch(fetchPostSSR(slug))
         .then(({ html }) => {
           setSsrHtml(html);
           setLoading(false);
         })
-        .catch((err) => {
-          console.error('[PostPage.jsx] Error fetching SSR HTML:', err);
+        .catch((error) => {
+          console.error('[PostPage.jsx] Error fetching SSR HTML:', error);
           setLoading(false);
         });
     }
@@ -196,14 +189,14 @@ const PostPage = memo(() => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(ssrHtml, 'text/html');
       const wrappers = doc.querySelectorAll('.code-snippet-wrapper');
+
       const snippetData = Array.from(wrappers).map(wrapper => ({
         id: wrapper.id,
         language: wrapper.getAttribute('data-language') || 'javascript',
         snippet: wrapper.getAttribute('data-snippet') || '',
       }));
-      setSnippets(snippetData);
 
-      // Trigger event for copyCode.js if needed
+      setSnippets(snippetData);
       document.dispatchEvent(new Event('DOMContentLoaded'));
     }
   }, [ssrHtml]);
@@ -220,18 +213,7 @@ const PostPage = memo(() => {
   return (
     <Layout>
       <PostContent>
-        <div
-          dangerouslySetInnerHTML={{ __html: ssrHtml }}
-          ref={(element) => {
-            if (element) {
-              element.querySelectorAll('.code-snippet-wrapper').forEach(wrapper => {
-                const placeholder = document.createElement('div');
-                placeholder.id = wrapper.id;
-                wrapper.parentNode.replaceChild(placeholder, wrapper);
-              });
-            }
-          }}
-        />
+        <div dangerouslySetInnerHTML={{ __html: ssrHtml }} />
         {snippets.map(({ id, snippet, language }) => (
           <CodeSnippet key={id} snippetId={id} snippet={snippet} language={language} />
         ))}
