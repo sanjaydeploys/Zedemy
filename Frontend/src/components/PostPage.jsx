@@ -1,8 +1,8 @@
-import  { memo, useState, useEffect } from 'react';
+import { memo, useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import styled from 'styled-components';
-import { fetchPostSSR } from '../actions/postActions';
+import { fetchPostPage } from '../actions/postActions';
 import { RingLoader } from 'react-spinners';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
@@ -56,6 +56,44 @@ const LoadingText = styled.div`
   }
 `;
 
+const CodeSnippetWrapper = styled.div`
+  position: relative;
+  margin: 1rem 0;
+  border-radius: 8px;
+  overflow: hidden;
+`;
+
+const CodeHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background: #374151;
+  color: #fff;
+  font-size: 0.875rem;
+`;
+
+const CodeLanguage = styled.span`
+  font-weight: 700;
+`;
+
+const CopyButton = styled.button`
+  background: #4b5563;
+  color: #fff;
+  border: none;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  &:hover, &:focus {
+    background: #22c55e;
+    outline: 2px solid #1e40af;
+    outline-offset: 2px;
+  }
+  &.copied {
+    background: #22c55e;
+  }
+`;
+
 const ErrorBoundary = ({ children }) => {
   const [hasError, setHasError] = useState(false);
   useEffect(() => {
@@ -70,116 +108,91 @@ const ErrorBoundary = ({ children }) => {
   return children;
 };
 
+const CodeSnippet = ({ snippet, language, snippetId }) => {
+  const [formattedSnippet, setFormattedSnippet] = useState(snippet);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    try {
+      const formatted = prettier.format(snippet, {
+        parser: language === 'javascript' ? 'babel' : language,
+        plugins: [parserBabel],
+        tabWidth: 2,
+        useTabs: false,
+        semi: true,
+        singleQuote: true,
+        trailingComma: 'es5',
+      });
+      setFormattedSnippet(formatted);
+    } catch (error) {
+      console.warn(`[CodeSnippet] Prettier formatting failed for ${snippetId}:`, error);
+    }
+  }, [snippet, language, snippetId]);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(formattedSnippet).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(err => {
+      console.error(`[CodeSnippet] Copy failed for ${snippetId}:`, err);
+    });
+  };
+
+  return (
+    <CodeSnippetWrapper id={snippetId} data-language={language}>
+      <CodeHeader>
+        <CodeLanguage>{language.charAt(0).toUpperCase() + language.slice(1)}</CodeLanguage>
+        <CopyButton className={copied ? 'copied' : ''} onClick={handleCopy}>
+          {copied ? 'Copied' : 'Copy'}
+        </CopyButton>
+      </CodeHeader>
+      <CodeMirror
+        value={formattedSnippet}
+        extensions={[javascript()]}
+        theme={vscodeDark}
+        readOnly={true}
+        basicSetup={{
+          lineNumbers: true,
+          foldGutter: false,
+          autocompletion: false,
+          highlightActiveLine: false,
+        }}
+        style={{
+          fontSize: 'clamp(0.875rem, 1.8vw, 0.9375rem)',
+          background: '#1e1e1e',
+          borderRadius: '0 0 8px 8px',
+        }}
+      />
+    </CodeSnippetWrapper>
+  );
+};
+
 const PostPage = memo(() => {
   const { slug } = useParams();
   const dispatch = useDispatch();
   const [ssrHtml, setSsrHtml] = useState('');
   const [loading, setLoading] = useState(!window.__POST_DATA__);
+  const [snippets, setSnippets] = useState([]);
 
   useEffect(() => {
     const scripts = [
-      {
-        src: '/scripts/sidebar.js',
-        check: () => typeof window.toggleSidebar !== 'function' || typeof window.scrollToSection !== 'function',
-        name: 'sidebar.js',
-        defer: true,
-      },
-      {
-        src: '/scripts/scrollToTop.js',
-        check: () => !document.getElementById('scroll-to-top'),
-        name: 'scrollToTop.js',
-        defer: true,
-      },
-      {
-        src: '/scripts/copyCode.js',
-        check: () => !document.querySelector('.copy-button'),
-        name: 'copyCode.js',
-        defer: true,
-      },
-      {
-        src: '/scripts/codeHighlighter.js',
-        check: () => !document.querySelector('.code-snippet-wrapper'),
-        name: 'codeHighlighter.js',
-        defer: true,
-      },
+      { src: '/scripts/sidebar.js', name: 'sidebar.js', defer: true },
+      { src: '/scripts/scrollToTop.js', name: 'scrollToTop.js', defer: true },
     ];
 
     const loadScript = (script) => {
-      if (script.check()) {
-        console.log(`[PostPage.jsx] Loading ${script.name}`);
-        const scriptElement = document.createElement('script');
-        scriptElement.src = script.src;
-        scriptElement.async = false;
-        if (script.defer) scriptElement.defer = true;
-        scriptElement.onload = () => console.log(`[PostPage.jsx] ${script.name} loaded`);
-        scriptElement.onerror = () => console.error(`[PostPage.jsx] Error loading ${script.name}`);
-        document.head.appendChild(scriptElement);
-        return scriptElement;
-      } else {
-        console.log(`[PostPage.jsx] ${script.name} already loaded or not needed`);
-        return null;
-      }
+      console.log(`[PostPage.jsx] Loading ${script.name}`);
+      const scriptElement = document.createElement('script');
+      scriptElement.src = script.src;
+      scriptElement.async = false;
+      if (script.defer) scriptElement.defer = true;
+      scriptElement.onload = () => console.log(`[PostPage.jsx] ${script.name} loaded`);
+      scriptElement.onerror = () => console.error(`[PostPage.jsx] Error loading ${script.name}`);
+      document.head.appendChild(scriptElement);
+      return scriptElement;
     };
 
-    const loadedScripts = scripts.map(script => loadScript(script)).filter(Boolean);
-
-    const initializeCodeSnippets = () => {
-      const wrappers = document.querySelectorAll('.code-snippet-wrapper');
-      wrappers.forEach(wrapper => {
-        const snippetId = wrapper.id;
-        const language = wrapper.getAttribute('data-language') || 'javascript';
-        let snippet = wrapper.getAttribute('data-formatted-snippet') || wrapper.getAttribute('data-snippet') || '';
-        if (snippet) {
-          try {
-            // Format snippet if not pre-formatted
-            if (!wrapper.getAttribute('data-formatted-snippet')) {
-              try {
-                snippet = prettier.format(snippet, {
-                  parser: language === 'javascript' ? 'babel' : language,
-                  plugins: [parserBabel],
-                  tabWidth: 2,
-                  useTabs: false,
-                  semi: true,
-                  singleQuote: true,
-                  trailingComma: 'es5',
-                });
-              } catch (formatError) {
-                console.warn(`[PostPage.jsx] Prettier formatting failed for snippet ${snippetId}:`, formatError);
-              }
-            }
-
-            const root = ReactDOM.createRoot(wrapper);
-            root.render(
-              <CodeMirror
-                value={snippet}
-                extensions={[javascript()]}
-                theme={vscodeDark}
-                readOnly={true}
-                basicSetup={{
-                  lineNumbers: true,
-                  foldGutter: false,
-                  autocompletion: false,
-                  highlightActiveLine: false,
-                }}
-                style={{
-                  fontSize: 'clamp(0.875rem, 1.8vw, 0.9375rem)',
-                  background: '#1e1e1e',
-                  borderRadius: '0 0 8px 8px',
-                }}
-              />
-            );
-          } catch (error) {
-            console.error(`[PostPage.jsx] Error rendering snippet ${snippetId}:`, error);
-          }
-        }
-      });
-    };
-
-    if (ssrHtml) {
-      initializeCodeSnippets();
-      const event = new Event('DOMContentLoaded');
-      document.dispatchEvent(event);
-    }
+    const loadedScripts = scripts.map(loadScript);
 
     return () => {
       loadedScripts.forEach(scriptElement => {
@@ -188,7 +201,7 @@ const PostPage = memo(() => {
         }
       });
     };
-  }, [ssrHtml]);
+  }, []);
 
   useEffect(() => {
     if (window.__POST_DATA__) {
@@ -196,7 +209,7 @@ const PostPage = memo(() => {
       setLoading(false);
       dispatch({ type: 'FETCH_POST_SUCCESS', payload: window.__POST_DATA__ });
     } else {
-      dispatch(fetchPostSSR(slug))
+      dispatch(fetchPostPage(slug))
         .then(({ html }) => {
           setSsrHtml(html);
           setLoading(false);
@@ -208,6 +221,24 @@ const PostPage = memo(() => {
         });
     }
   }, [slug, dispatch]);
+
+  useEffect(() => {
+    if (ssrHtml) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(ssrHtml, 'text/html');
+      const wrappers = doc.querySelectorAll('.code-snippet-wrapper');
+      const snippetData = Array.from(wrappers).map(wrapper => ({
+        id: wrapper.id,
+        language: wrapper.getAttribute('data-language') || 'javascript',
+        snippet: wrapper.getAttribute('data-formatted-snippet') || wrapper.getAttribute('data-snippet') || '',
+      }));
+      setSnippets(snippetData);
+
+      // Trigger DOMContentLoaded for other scripts
+      const event = new Event('DOMContentLoaded');
+      document.dispatchEvent(event);
+    }
+  }, [ssrHtml]);
 
   if (loading) {
     return (
@@ -229,7 +260,12 @@ const PostPage = memo(() => {
   return (
     <ErrorBoundary>
       <Layout>
-        <PostContent dangerouslySetInnerHTML={{ __html: ssrHtml }} />
+        <PostContent>
+          <div dangerouslySetInnerHTML={{ __html: ssrHtml }} />
+          {snippets.map(({ id, snippet, language }) => (
+            snippet ? <CodeSnippet key={id} snippetId={id} snippet={snippet} language={language} /> : null
+          ))}
+        </PostContent>
       </Layout>
     </ErrorBoundary>
   );
