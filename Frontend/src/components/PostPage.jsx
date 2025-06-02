@@ -70,7 +70,7 @@ const PostPage = memo(() => {
         name: 'ReactDOM',
       },
       {
-        src: 'https://cdn.jsdelivr.net/npm/react-syntax-highlighter@15.5.0/dist/cjs/prism.min.js',
+        src: 'https://cdn.jsdelivr.net/npm/react-syntax-highlighter@15.5.0/dist/esm/prism.js',
         check: () => typeof window.ReactSyntaxHighlighter === 'undefined',
         name: 'ReactSyntaxHighlighter',
       },
@@ -106,7 +106,7 @@ const PostPage = memo(() => {
         console.log(`[PostPage.jsx] Loading ${script.name}`);
         const scriptElement = document.createElement('script');
         scriptElement.src = script.src;
-        scriptElement.async = false; // Ensure synchronous loading for dependencies
+        scriptElement.async = false;
         scriptElement.defer = true;
         scriptElement.onload = () => console.log(`[PostPage.jsx] ${script.name} loaded`);
         scriptElement.onerror = () => console.error(`[PostPage.jsx] Error loading ${script.name}`);
@@ -118,15 +118,20 @@ const PostPage = memo(() => {
       }
     };
 
+    // Load styles for Prism
+    if (!document.querySelector('link[href*="react-syntax-highlighter"]')) {
+      const styleLink = document.createElement('link');
+      styleLink.rel = 'stylesheet';
+      styleLink.href = 'https://cdn.jsdelivr.net/npm/react-syntax-highlighter@15.5.0/dist/esm/styles/prism/vs.css';
+      document.head.appendChild(styleLink);
+    }
+
     const loadedScripts = scripts.map(script => loadScript(script)).filter(Boolean);
 
-    // Trigger script initialization after SSR HTML is set
     const initializeScripts = () => {
-      // Manually trigger DOMContentLoaded for copyCode.js and scrollToTop.js
       const event = new Event('DOMContentLoaded');
       document.dispatchEvent(event);
 
-      // Re-run codeHighlighter.js initialization
       if (window.React && window.ReactDOM && window.ReactSyntaxHighlighter) {
         const wrappers = document.querySelectorAll('.code-snippet-wrapper');
         wrappers.forEach(wrapper => {
@@ -137,11 +142,16 @@ const PostPage = memo(() => {
             const root = window.ReactDOM.createRoot(wrapper);
             root.render(
               window.React.createElement(
-                window.React.lazy(() => Promise.resolve({ default: window.ReactSyntaxHighlighter.Prism })),
+                window.ReactSyntaxHighlighter.Prism,
                 {
                   language,
-                  style: window.ReactSyntaxHighlighterStyles?.vs || {},
-                  customStyle: { margin: 0, padding: '1rem', background: '#1f2937', fontSize: 'clamp(0.875rem, 1.8vw, 0.9375rem)' },
+                  style: window.ReactSyntaxHighlighter.styles?.prism?.vs || {},
+                  customStyle: {
+                    margin: 0,
+                    padding: '1rem',
+                    background: '#1f2937',
+                    fontSize: 'clamp(0.875rem, 1.8vw, 0.9375rem)',
+                  },
                   wrapLines: true,
                   wrapLongLines: true,
                   children: snippet,
