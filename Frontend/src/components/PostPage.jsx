@@ -125,33 +125,57 @@ const PostPage = memo(() => {
 
     const loadedScripts = scripts.map(script => loadScript(script)).filter(Boolean);
 
-    const initializeScripts = () => {
-      const event = new Event('DOMContentLoaded');
-      document.dispatchEvent(event);
+    const initializeScripts = (attempts = 5, delay = 100) => {
+      if (attempts <= 0) {
+        console.error('[PostPage.jsx] Failed to initialize code highlighters after retries');
+        return;
+      }
 
-      if (window.React && window.ReactDOM && window.ReactSyntaxHighlighter && window.ReactSyntaxHighlighterStyles) {
+      if (
+        window.React &&
+        window.ReactDOM &&
+        window.ReactSyntaxHighlighter &&
+        window.ReactSyntaxHighlighterStyles &&
+        window.ReactSyntaxHighlighterStyles.prism
+      ) {
+        console.log('[PostPage.jsx] Initializing code highlighters');
+        const event = new Event('DOMContentLoaded');
+        document.dispatchEvent(event);
+
         const wrappers = document.querySelectorAll('.code-snippet-wrapper');
         wrappers.forEach(wrapper => {
           const snippetId = wrapper.id;
           const language = wrapper.getAttribute('data-language') || 'javascript';
           const snippet = wrapper.getAttribute('data-snippet') || '';
           if (snippet) {
-            const root = window.ReactDOM.createRoot(wrapper);
-            root.render(
-              window.React.createElement(
-                window.ReactSyntaxHighlighter,
-                {
-                  language,
-                  style: window.ReactSyntaxHighlighterStyles.prism,
-                  customStyle: { margin: 0, padding: '1rem', background: '#1f2937', fontSize: 'clamp(0.875rem, 1.8vw, 0.9375rem)' },
-                  wrapLines: true,
-                  wrapLongLines: true,
-                  children: snippet,
-                }
-              )
-            );
+            try {
+              const root = window.ReactDOM.createRoot(wrapper);
+              root.render(
+                window.React.createElement(
+                  window.ReactSyntaxHighlighter,
+                  {
+                    language,
+                    style: window.ReactSyntaxHighlighterStyles.prism,
+                    customStyle: {
+                      margin: 0,
+                      padding: '1rem',
+                      background: '#1f2937',
+                      fontSize: 'clamp(0.875rem, 1.8vw, 0.9375rem)',
+                    },
+                    wrapLines: true,
+                    wrapLongLines: true,
+                    children: snippet,
+                  }
+                )
+              );
+            } catch (error) {
+              console.error(`[PostPage.jsx] Error rendering snippet ${snippetId}:`, error);
+            }
           }
         });
+      } else {
+        console.warn(`[PostPage.jsx] Dependencies not ready, retrying (${attempts} attempts left)`);
+        setTimeout(() => initializeScripts(attempts - 1, delay * 2), delay);
       }
     };
 
