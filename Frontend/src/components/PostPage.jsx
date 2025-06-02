@@ -2,13 +2,14 @@ import { memo, useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import styled from 'styled-components';
-import { fetchPostSSR } from '../actions/postActions';
+import { fetchPostPage } from '../actions/postActions';
 import { RingLoader } from 'react-spinners';
 import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { vscodeDark } from '@uiw/codemirror-theme-vscode';
 import prettier from 'prettier/standalone';
-import * as parserBabel from '@prettier/plugin-babel';
+import parserBabel from 'prettier/parser-babel';
+
 const Layout = styled.div`
   display: flex;
   min-height: 100vh;
@@ -19,12 +20,12 @@ const PostContent = styled.div`
 `;
 
 const LoadingContainer = styled.div`
-  display: flex;
+  display: #f9fafb;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: #f9fafb;
+  background-color: #f9fafb;
   animation: fadeIn 0.5s ease-in;
 
   @keyframes fadeIn {
@@ -39,8 +40,8 @@ const LoadingContainer = styled.div`
 
 const LoadingText = styled.div`
   margin-top: 1rem;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: clamp(0.875rem, 2vw, 1rem);
+  font-family: 'Inter', sans-serif;
+  font-size: .875rem;
   color: #1f2937;
   font-weight: 500;
   animation: pulse 1.5s ease-in-out infinite;
@@ -94,20 +95,6 @@ const CopyButton = styled.button`
   }
 `;
 
-const ErrorBoundary = ({ children }) => {
-  const [hasError, setHasError] = useState(false);
-  useEffect(() => {
-    const errorHandler = (error) => {
-      console.error('[ErrorBoundary] Rendering error:', error);
-      setHasError(true);
-    };
-    window.addEventListener('error', errorHandler);
-    return () => window.removeEventListener('error', errorHandler);
-  }, []);
-  if (hasError) return <div>Error rendering content. Please refresh.</div>;
-  return children;
-};
-
 const CodeSnippet = ({ snippet, language, snippetId }) => {
   const [formattedSnippet, setFormattedSnippet] = useState(snippet);
   const [copied, setCopied] = useState(false);
@@ -116,7 +103,7 @@ const CodeSnippet = ({ snippet, language, snippetId }) => {
     try {
       const formatted = prettier.format(snippet, {
         parser: language === 'javascript' ? 'babel' : language,
-        plugins: [prettierPluginBabel],
+        plugins: [parserBabel],
         tabWidth: 2,
         useTabs: false,
         semi: true,
@@ -126,7 +113,7 @@ const CodeSnippet = ({ snippet, language, snippetId }) => {
       setFormattedSnippet(formatted);
     } catch (error) {
       console.warn(`[CodeSnippet] Prettier formatting failed for ${snippetId}:`, error);
-      setFormattedSnippet(snippet); // Fallback to unformatted
+      setFormattedSnippet(snippet);
     }
   }, [snippet, language, snippetId]);
 
@@ -134,8 +121,6 @@ const CodeSnippet = ({ snippet, language, snippetId }) => {
     navigator.clipboard.writeText(formattedSnippet).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    }).catch((err) => {
-      console.error(`[CodeSnippet] Copy failed for ${snippetId}:`, err);
     });
   };
 
@@ -164,7 +149,7 @@ const CodeSnippet = ({ snippet, language, snippetId }) => {
           highlightActiveLine: false,
         }}
         style={{
-          fontSize: 'clamp(0.875rem, 1.8vw, 0.9375rem)',
+          fontSize: '0.9375rem',
           background: '#1e1e1e',
           borderRadius: '0 0 8px 8px',
         }}
@@ -187,43 +172,25 @@ const PostPage = memo(() => {
       { src: '/scripts/copyCode.js', name: 'copyCode.js', defer: true },
     ];
 
-    const loadScript = (script) => {
-      console.log(`[PostPage.jsx] Loading ${script.name}`);
+    scripts.forEach(script => {
       const scriptElement = document.createElement('script');
       scriptElement.src = script.src;
-      scriptElement.async = false;
-      if (script.defer) scriptElement.defer = true;
-      scriptElement.onload = () => console.log(`[PostPage.jsx] ${script.name} loaded`);
-      scriptElement.onerror = () => console.error(`[PostPage.jsx] Error loading ${script.name}`);
+      scriptElement.defer = script.defer;
       document.head.appendChild(scriptElement);
-      return scriptElement;
-    };
+    });
 
-    const loadedScripts = scripts.map(loadScript);
-
-    return () => {
-      loadedScripts.forEach((scriptElement) => {
-        if (scriptElement && document.head.contains(scriptElement)) {
-          document.head.removeChild(scriptElement);
-        }
-      });
-    };
-  }, []);
-
-  useEffect(() => {
     if (window.__POST_DATA__) {
       setSsrHtml(document.documentElement.outerHTML);
       setLoading(false);
       dispatch({ type: 'FETCH_POST_SUCCESS', payload: window.__POST_DATA__ });
     } else {
-      dispatch(fetchPostSSR(slug))
+      dispatch(fetchPostPage(slugs))
         .then(({ html }) => {
           setSsrHtml(html);
           setLoading(false);
         })
-        .catch((err) => {
-          console.error('[PostPage.jsx] Error fetching SSR HTML:', err.message);
-          setSsrHtml('');
+        .catch((error) => {
+          console.error('[PostPage.jsx] Error fetching SSR HTML:', error);
           setLoading(false);
         });
     }
@@ -234,60 +201,48 @@ const PostPage = memo(() => {
       const parser = new DOMParser();
       const doc = parser.parseFromString(ssrHtml, 'text/html');
       const wrappers = doc.querySelectorAll('.code-snippet-wrapper');
-      const snippetData = Array.from(wrappers).map((wrapper) => ({
+      const snippetData = Array.from(wrappers).map(wrapper => ({
         id: wrapper.id,
         language: wrapper.getAttribute('data-language') || 'javascript',
-        snippet: wrapper.getAttribute('data-formatted-snippet') || wrapper.getAttribute('data-snippet') || '',
+        wrapper.getAttribute('data-snippet') || '',
       }));
       setSnippets(snippetData);
 
       // Trigger DOMContentLoaded for copyCode.js
-      const event = new Event('DOMContentLoaded');
-      document.dispatchEvent(event);
+      document.dispatchEvent(new Event('DOMContentLoaded'));
     }
   }, [ssrHtml]);
 
   if (loading) {
     return (
       <LoadingContainer>
-        <RingLoader
-          color="#22c55e"
-          size={80}
-          speedMultiplier={1.2}
-          cssOverride={{
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-            borderWidth: '4px',
-          }}
-        />
-        <LoadingText>Loading your post...</LoadingText>
+        <RingLoader color="#22c55e" size={80} />
+        <LoadingText>Loading post...</LoadingText>
       </LoadingContainer>
     );
   }
 
   return (
-    <ErrorBoundary>
-      <Layout>
-        <PostContent>
-          <div
-            ref={(el) => {
-              if (el) {
-                // Replace .code-snippet-wrapper with empty divs to prevent duplicate rendering
-                const wrappers = el.querySelectorAll('.code-snippet-wrapper');
-                wrappers.forEach((wrapper) => {
-                  const placeholder = document.createElement('div');
-                  placeholder.id = wrapper.id;
-                  wrapper.parentNode.replaceChild(placeholder, wrapper);
-                });
-              }
-            }}
-            dangerouslySetInnerHTML={{ __html: ssrHtml }}
-          />
-          {snippets.map(({ id, snippet, language }) =>
-            snippet ? <CodeSnippet key={id} snippetId={id} snippet={snippet} language={language} /> : null
-          )}
-        </PostContent>
-      </Layout>
-    </ErrorBoundary>
+    <Layout>
+      <PostContent>
+        <div
+          dangerouslySetInnerHTML={{ __html: ssrHtml }}
+          ref={(el) => {
+            if (el) {
+              // Replace .code-snippet-wrapper to prevent duplication
+              el.querySelectorAll('.code-snippet-wrapper').forEach(wrapper => {
+                const placeholder = document.createElement('div');
+                placeholder.id = wrapper.id;
+                wrapper.parentNode.replaceChild(placeholder, wrapper);
+              });
+            }
+          }}
+        />
+        {snippets.map(({ id, snippet, language }) => (
+          <CodeSnippet key={id} snippetId={id} snippet={snippet} language={language} />
+        ))}
+      </PostContent>
+    </Layout>
   );
 });
 
