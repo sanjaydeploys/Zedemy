@@ -1,5 +1,5 @@
 (function () {
-  const initializeHighlighters = (attempts = 5, delay = 100) => {
+  const initializeHighlighters = (attempts = 10, delay = 200) => {
     // Ensure dependencies are loaded
     if (
       !window.React ||
@@ -7,14 +7,16 @@
       !window.ReactSyntaxHighlighter ||
       !window.CopyToClipboard ||
       !window.ReactSyntaxHighlighterStyles ||
-      !window.ReactSyntaxHighlighterStyles.prism
+      !window.ReactSyntaxHighlighterStyles.prism ||
+      !window.prettier ||
+      !window.prettierPlugins
     ) {
       if (attempts <= 0) {
-        console.error('[codeHighlighter.js] Required dependencies (React, ReactDOM, ReactSyntaxHighlighter, CopyToClipboard, or Styles) not loaded after retries');
+        console.error('[codeHighlighter.js] Required dependencies (React, ReactDOM, ReactSyntaxHighlighter, CopyToClipboard, Styles, Prettier, or PrettierPlugins) not loaded after retries');
         return;
       }
       console.warn(`[codeHighlighter.js] Dependencies not ready, retrying (${attempts} attempts left)`);
-      setTimeout(() => initializeHighlighters(attempts - 1, delay * 2), delay);
+      setTimeout(() => initializeHighlighters(attempts - 1, delay), delay);
       return;
     }
 
@@ -29,6 +31,22 @@
         setTimeout(() => setCopied(false), 2000);
       };
 
+      // Format snippet with Prettier
+      let formattedSnippet = snippet;
+      try {
+        formattedSnippet = window.prettier.format(snippet, {
+          parser: language === 'javascript' ? 'babel' : language,
+          plugins: window.prettierPlugins,
+          tabWidth: 2,
+          useTabs: false,
+          semi: true,
+          singleQuote: true,
+          trailingComma: 'es5',
+        });
+      } catch (formatError) {
+        console.warn(`[codeHighlighter.js] Prettier formatting failed for snippet ${snippetId}:`, formatError);
+      }
+
       return window.React.createElement(
         'div',
         { className: 'code-snippet-wrapper', id: snippetId },
@@ -42,7 +60,7 @@
           ),
           window.React.createElement(
             window.CopyToClipboard,
-            { text: snippet, onCopy: handleCopy },
+            { text: formattedSnippet, onCopy: handleCopy },
             window.React.createElement(
               'button',
               {
@@ -67,7 +85,7 @@
             wrapLines: true,
             wrapLongLines: true,
           },
-          snippet
+          formattedSnippet
         )
       );
     };
@@ -77,7 +95,7 @@
       wrappers.forEach(wrapper => {
         const snippetId = wrapper.id;
         const language = wrapper.getAttribute('data-language') || 'javascript';
-        const snippet = wrapper.getAttribute('data-snippet') || '';
+        const snippet = wrapper.getAttribute('data-raw-snippet') || wrapper.getAttribute('data-snippet') || '';
         if (snippet) {
           try {
             const root = createRoot(wrapper);
