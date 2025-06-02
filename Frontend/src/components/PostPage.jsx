@@ -8,8 +8,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import { javascript } from '@codemirror/lang-javascript';
 import { vscodeDark } from '@uiw/codemirror-theme-vscode';
 import prettier from 'prettier/standalone';
-const parserBabel = require('prettier/parser-babel'); // Correct plugin
-
+import * as parserBabel from '@prettier/plugin-babel';
 const Layout = styled.div`
   display: flex;
   min-height: 100vh;
