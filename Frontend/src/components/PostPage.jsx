@@ -24,6 +24,9 @@ const Layout = styled.div`
 
 const PostContent = styled.div`
   flex: 1;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 1rem;
 `;
 
 const LoadingContainer = styled.div`
@@ -50,58 +53,112 @@ const LoadingText = styled.div`
 `;
 
 const CodeSnippetWrapper = styled.div`
+  position: relative;
   margin: 1.5rem 0;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
-  background: #1f2937;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  background: #1e1e1e;
+  font-family: 'Consolas', monospace;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
 `;
 
 const CodeHeader = styled.div`
   display: flex;
   justify-content: space-between;
-  padding: 0.5rem 1rem;
-  background: #374151;
-  color: #fff;
+  padding: 0.75rem 1rem;
+  background: #2d2d2d;
+  color: #d4d4d4;
   font-size: 0.875rem;
+  align-items: center;
 `;
 
 const CodeLanguageLabel = styled.span`
-  font-weight: bold;
+  font-weight: 600;
+  color: #d4d4d4;
 `;
 
 const CopyButton = styled.button`
-  background: #4b5563;
-  color: white;
+  background: #3c3c3c;
+  color: #d4d4d4;
   border: none;
-  padding: 0.25rem 0.75rem;
+  padding: 0.5rem 1rem;
   border-radius: 4px;
   cursor: pointer;
-  font-size: .875rem;
+  font-size: 0.875rem;
+  transition: background 0.2s;
 
   &:hover, &:focus {
     background: #22c55e;
-    outline: 2px solid #1e40af;
-    outline-offset: 2px;
+    color: #fff;
+    outline: none;
   }
 
   &.copied {
     background: #22c55e;
+    color: #fff;
   }
 `;
 
 const CodeBlock = styled.pre`
-  background: #1f2937;
+  background: #1e1e1e;
   padding: 1rem;
   margin: 0;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 
   code {
-    font-family: 'Consolas', 'Monaco', monospace;
-    font-size: .875rem;
+    font-family: 'Consolas', monospace;
+    font-size: 0.875rem;
+    color: #d4d4d4;
     white-space: pre-wrap;
     line-height: 1.6;
   }
+
+  .hljs-comment,
+  .hljs-quote { color: #6a9955; }
+  .hljs-keyword,
+  .hljs-selector-tag,
+  .hljs-literal,
+  .hljs-title,
+  .hljs-name,
+  .hljs-strong,
+  .hljs-emphasis { color: #569cd6; }
+  .hljs-string,
+  .hljs-title,
+  .hljs-name,
+  .hljs-type,
+  .hljs-attribute,
+  .hljs-symbol,
+  .hljs-built_in,
+  .hljs-builtin-name,
+  .hljs-link,
+  .hljs-params,
+  .hljs-meta { color: #ce9178; }
+  .hljs-number,
+  .hljs-hexcolor,
+  .hljs-regexp,
+  .hljs-literal { color: #b5cea8; }
+  .hljs-class .hljs-title,
+  .hljs-function .hljs-title,
+  .hljs-tag .hljs-title,
+  .hljs-attr,
+  .hljs-subst,
+  .hljs-variable,
+  .hljs-template-variable,
+  .hljs-property,
+  .hljs-selector-class,
+  .hljs-selector-id { color: #9cdcfe; }
+  .hljs-section,
+  .hljs-type,
+  .hljs-function,
+  .hljs-name,
+  .hljs-built_in,
+  .hljs-builtin-name,
+  .hljs-doctag,
+  .hljs-meta-keyword,
+  .hljs-template-tag,
+  .hljs-selector-attr,
+  .hljs-selector-pseudo { color: #dcdcaa; }
 `;
 
 // CodeSnippet Component
@@ -115,7 +172,7 @@ const CodeSnippet = ({ snippet, language = 'javascript', snippetId }) => {
       setHighlighted(result.value);
     } catch (error) {
       console.warn(`[CodeSnippet] Highlighting failed for ${snippetId}:`, error);
-      setHighlighted(snippet);
+      setHighlighted(snippet || '');
     }
   }, [snippet, language, snippetId]);
 
@@ -123,6 +180,8 @@ const CodeSnippet = ({ snippet, language = 'javascript', snippetId }) => {
     navigator.clipboard.writeText(snippet).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }).catch(err => {
+      console.error(`[CodeSnippet] Copy failed for ${snippetId}:`, err);
     });
   };
 
@@ -149,11 +208,18 @@ const CodeSnippet = ({ snippet, language = 'javascript', snippetId }) => {
 const PostPage = memo(() => {
   const { slug } = useParams();
   const dispatch = useDispatch();
-  const [ssrHtml, setSsrHtml] = useState('');
-  const [loading, setLoading] = useState(!window.__post__post_DATA__);
+  const [postData, setPostData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [snippets, setSnippets] = useState([]);
 
   useEffect(() => {
+    // Load highlight.js stylesheet
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/vs2015.min.css';
+    document.head.appendChild(link);
+
+    // Load scripts
     const scripts = [
       { src: '/scripts/sidebar.js', defer: true },
       { src: '/scripts/copyCode.js', defer: true },
@@ -167,39 +233,38 @@ const PostPage = memo(() => {
       document.head.appendChild(script);
     });
 
+    // Fetch post data
     if (window.__post__post_DATA__) {
-      setSsrHtml(document.documentElement.outerHTML);
+      setPostData(window.__post__post_DATA__);
       setLoading(false);
-      dispatch({ type: 'FETCH_POST_SUCCESS', payload: window.__post__post_DATA__ });
     } else {
       dispatch(fetchPostSSR(slug))
-        .then(({ html }) => {
-          setSsrHtml(html);
+        .then(({ data }) => {
+          setPostData(data);
           setLoading(false);
         })
         .catch((error) => {
-          console.error('[PostPage.jsx] Error fetching SSR HTML:', error);
+          console.error('[PostPage.jsx] Error fetching post data:', error);
           setLoading(false);
         });
     }
   }, [slug, dispatch]);
 
   useEffect(() => {
-    if (ssrHtml) {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(ssrHtml, 'text/html');
-      const wrappers = doc.querySelectorAll('.code-snippet-wrapper');
-
-      const snippetData = Array.from(wrappers).map(wrapper => ({
-        id: wrapper.id,
-        language: wrapper.getAttribute('data-language') || 'javascript',
-        snippet: wrapper.getAttribute('data-snippet') || '',
-      }));
+    if (postData && postData.subtitles) {
+      const snippetData = postData.subtitles
+        .flatMap((subtitle, index) =>
+          (subtitle.bulletPoints || []).map((point, j) => ({
+            id: `snippet-${index}-${j}`,
+            language: point.language || 'javascript',
+            snippet: point.codeSnippet || '',
+          }))
+        )
+        .filter(snippet => snippet.snippet.trim());
 
       setSnippets(snippetData);
-      document.dispatchEvent(new Event('DOMContentLoaded'));
     }
-  }, [ssrHtml]);
+  }, [postData]);
 
   if (loading) {
     return (
@@ -213,10 +278,13 @@ const PostPage = memo(() => {
   return (
     <Layout>
       <PostContent>
-        <div dangerouslySetInnerHTML={{ __html: ssrHtml }} />
-        {snippets.map(({ id, snippet, language }) => (
-          <CodeSnippet key={id} snippetId={id} snippet={snippet} language={language} />
-        ))}
+        {snippets.length > 0 ? (
+          snippets.map(({ id, snippet, language }) => (
+            <CodeSnippet key={id} snippetId={id} snippet={snippet} language={language} />
+          ))
+        ) : (
+          <p>No code snippets available.</p>
+        )}
       </PostContent>
     </Layout>
   );
