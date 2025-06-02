@@ -55,9 +55,8 @@ const PostPage = memo(() => {
   const { slug } = useParams();
   const dispatch = useDispatch();
   const [ssrHtml, setSsrHtml] = useState('');
-  const [loading, setLoading] = useState(!window.__POST_DATA__); // Only true if no SSR data
+  const [loading, setLoading] = useState(!window.__POST_DATA__);
 
-  // Load all required scripts dynamically
   useEffect(() => {
     const scripts = [
       {
@@ -71,13 +70,23 @@ const PostPage = memo(() => {
         name: 'ReactDOM',
       },
       {
+        src: 'https://cdn.jsdelivr.net/npm/react-syntax-highlighter@15.5.0/dist/cjs/prism.min.js',
+        check: () => typeof window.ReactSyntaxHighlighter === 'undefined',
+        name: 'ReactSyntaxHighlighter',
+      },
+      {
+        src: 'https://cdn.jsdelivr.net/npm/react-copy-to-clipboard@5.1.0/build/react-copy-to-clipboard.min.js',
+        check: () => typeof window.CopyToClipboard === 'undefined',
+        name: 'CopyToClipboard',
+      },
+      {
         src: '/scripts/sidebar.js',
         check: () => typeof window.toggleSidebar !== 'function' || typeof window.scrollToSection !== 'function',
         name: 'sidebar.js',
       },
       {
         src: '/scripts/scrollToTop.js',
-        check: () => !document.getElementById('scroll-to-top') || !document.querySelector('.scroll-to-top'),
+        check: () => !document.getElementById('scroll-to-top'),
         name: 'scrollToTop.js',
       },
       {
@@ -97,7 +106,7 @@ const PostPage = memo(() => {
         console.log(`[PostPage.jsx] Loading ${script.name}`);
         const scriptElement = document.createElement('script');
         scriptElement.src = script.src;
-        scriptElement.async = true;
+        scriptElement.async = false; // Ensure synchronous loading for dependencies
         scriptElement.defer = true;
         scriptElement.onload = () => console.log(`[PostPage.jsx] ${script.name} loaded`);
         scriptElement.onerror = () => console.error(`[PostPage.jsx] Error loading ${script.name}`);
@@ -111,6 +120,43 @@ const PostPage = memo(() => {
 
     const loadedScripts = scripts.map(script => loadScript(script)).filter(Boolean);
 
+    // Trigger script initialization after SSR HTML is set
+    const initializeScripts = () => {
+      // Manually trigger DOMContentLoaded for copyCode.js and scrollToTop.js
+      const event = new Event('DOMContentLoaded');
+      document.dispatchEvent(event);
+
+      // Re-run codeHighlighter.js initialization
+      if (window.React && window.ReactDOM && window.ReactSyntaxHighlighter) {
+        const wrappers = document.querySelectorAll('.code-snippet-wrapper');
+        wrappers.forEach(wrapper => {
+          const snippetId = wrapper.id;
+          const language = wrapper.getAttribute('data-language') || 'javascript';
+          const snippet = wrapper.getAttribute('data-snippet') || '';
+          if (snippet) {
+            const root = window.ReactDOM.createRoot(wrapper);
+            root.render(
+              window.React.createElement(
+                window.React.lazy(() => Promise.resolve({ default: window.ReactSyntaxHighlighter.Prism })),
+                {
+                  language,
+                  style: window.ReactSyntaxHighlighterStyles?.vs || {},
+                  customStyle: { margin: 0, padding: '1rem', background: '#1f2937', fontSize: 'clamp(0.875rem, 1.8vw, 0.9375rem)' },
+                  wrapLines: true,
+                  wrapLongLines: true,
+                  children: snippet,
+                }
+              )
+            );
+          }
+        });
+      }
+    };
+
+    if (ssrHtml) {
+      initializeScripts();
+    }
+
     return () => {
       loadedScripts.forEach(scriptElement => {
         if (scriptElement && document.head.contains(scriptElement)) {
@@ -118,9 +164,8 @@ const PostPage = memo(() => {
         }
       });
     };
-  }, []);
+  }, [ssrHtml]);
 
-  // Fetch SSR HTML
   useEffect(() => {
     if (window.__POST_DATA__) {
       setSsrHtml(document.documentElement.outerHTML);
