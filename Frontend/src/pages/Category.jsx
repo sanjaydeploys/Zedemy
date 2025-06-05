@@ -8,7 +8,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { Helmet } from 'react-helmet';
 import {
     FaHtml5, FaCss3Alt, FaJs, FaNodeJs, FaReact, FaAngular, FaVuejs,
-    FaPython, FaJava, FaPhp, FaSwift, FaGithub
+    FaPython, FaJava, FaPhp, FaSwift, FaGithub, FaShieldAlt
 } from 'react-icons/fa';
 import {
     SiTypescript, SiGatsby, SiSvelte, SiGraphql, SiRuby, SiCsharp,
@@ -41,7 +41,9 @@ const categories = [
     { name: 'Kotlin', icon: <SiKotlin /> },
     { name: 'Dart', icon: <SiDart /> },
     { name: 'Flutter', icon: <SiFlutter /> },
-    { name: 'React Native', icon: <SiReactos /> }
+    { name: 'React Native', icon: <SiReactos /> },
+    { name: 'Life-Insurance', icon: <FaShieldAlt /> }
+
 ];
 
 const Category = () => {
