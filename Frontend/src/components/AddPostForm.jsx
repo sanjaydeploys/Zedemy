@@ -69,7 +69,7 @@ const AddPostForm = React.memo(() => {
   const categories = useMemo(() => [
     'VS Code', 'HTML', 'CSS', 'JavaScript', 'Node.js', 'React', 'Angular', 'Vue.js', 'Next.js', 'Nuxt.js',
     'Gatsby', 'Svelte', 'TypeScript', 'GraphQL', 'PHP', 'Python', 'Ruby', 'Java', 'C#', 'C++', 'Swift',
-    'Kotlin', 'Dart', 'Flutter', 'React Native',
+    'Kotlin', 'Dart', 'Flutter', 'React Native','Life-Insurance'
   ], []);
 
   const [superTitles, setSuperTitles] = useState([
