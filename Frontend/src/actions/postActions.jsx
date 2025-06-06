@@ -34,6 +34,7 @@ const fetchWithRetry = async (url, options, retries = 3, delay = 1000) => {
 
 export const fetchPostSSR = (slug) => async (dispatch) => {
   try {
+    // Ensure slug is not encoded here, as the backend will decode it
     const response = await fetch(`${SSR_BASE_URL}/post/${slug}?t=${Date.now()}`, {
       headers: {
         'Accept': 'text/html',
@@ -160,6 +161,7 @@ export const fetchPostBySlug = (slug) => async (dispatch, getState) => {
       return;
     }
 
+    // Use the raw slug without encoding, as the backend will decode it
     const apiRes = await fetch(`${API_BASE_URL}/${slug}?fields=postId,slug,title,titleImage,category,author,date&t=${Date.now()}`, {
       headers: { 'Accept': 'application/json' }
     });
@@ -185,7 +187,6 @@ export const fetchPostBySlug = (slug) => async (dispatch, getState) => {
     toast.error('Failed to load post data.', { position: 'top-right', autoClose: 2000 });
   }
 };
-
 export const addPost = (
   title,
   content,
