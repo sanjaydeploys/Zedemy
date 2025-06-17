@@ -224,6 +224,7 @@ const PostPage = memo(() => {
       { src: '/scripts/sidebar.js', defer: true },
       { src: '/scripts/copyCode.js', defer: true },
       { src: '/scripts/scrollToTop.js', defer: true },
+      { src: '/scripts/search.js', defer: true },
     ];
 
     scripts.forEach(({ src, defer }) => {
