@@ -15,7 +15,7 @@ const Content = styled.div`
 const LicHome = memo(() => {
   useEffect(() => {
     const scripts = [
-      { src: '/public/scripts/scrollToTop.js', defer: true }
+      { src: '/scripts/scrollToTop.js', defer: true }
     
 
 
