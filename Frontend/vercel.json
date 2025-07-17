@@ -89,7 +89,7 @@
   ],
   "routes": [
      {
-      "source": "/",
+      "source": "^/$",
       "destination": "https://gj48940cgb.execute-api.ap-south-1.amazonaws.com/prod"
     },
     {
