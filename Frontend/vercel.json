@@ -87,7 +87,7 @@
       ]
     }
   ],
- "routes": [
+  "routes": [
     {
       "src": "^/post/(.*)$",
       "dest": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/post/$1"
@@ -125,7 +125,7 @@
       "dest": "/error.html"
     },
     {
-      "src": "^/(.*)$",
+      "src": "^/(?!post|api|assets|get-presigned-url|error)(.*)$",
       "dest": "/index.html"
     }
   ]
