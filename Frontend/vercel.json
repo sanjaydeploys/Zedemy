@@ -29,7 +29,16 @@
       ]
     },
     {
-      "source": "/(.*)\\.(js|css|woff2|woff|ttf|eot|svg|jpg|jpeg|png|gif|webp|mp4|webm)",
+      "source": "/(.*).(js|css|woff2|woff|ttf|eot|svg)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
+    },
+    {
+      "source": "/(.*).(jpg|jpeg|png|gif|webp|mp4|webm)",
       "headers": [
         {
           "key": "Cache-Control",
@@ -47,7 +56,7 @@
       ]
     },
     {
-      "source": "/post/(.*)",
+      "source": "/post/:slug",
       "headers": [
         {
           "key": "Cache-Control",
@@ -78,46 +87,46 @@
       ]
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "^/$",
-      "dest": "https://gj48940cgb.execute-api.ap-south-1.amazonaws.com/prod"
+      "source": "/post/:slug",
+      "destination": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/post/:slug"
     },
     {
-      "src": "^/post/(.*)$",
-      "dest": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/post/$1"
+      "source": "/api/posts/complete/:postId",
+      "destination": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/api/posts/complete/:postId"
     },
     {
-      "src": "^/api/posts/complete/(.*)$",
-      "dest": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/api/posts/complete/$1"
+      "source": "/api/posts/completed",
+      "destination": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed"
     },
     {
-      "src": "^/api/posts/completed$",
-      "dest": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/api/posts/completed"
+      "source": "/api/posts",
+      "destination": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/api/posts"
     },
     {
-      "src": "^/api/posts$",
-      "dest": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/api/posts"
+      "source": "/get-presigned-url",
+      "destination": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/get-presigned-url"
     },
     {
-      "src": "^/api/(.*)$",
-      "dest": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/api/posts/$1"
+      "source": "/api/:path*",
+      "destination": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/api/posts/:path*"
     },
     {
-      "src": "^/get-presigned-url$",
-      "dest": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/get-presigned-url"
+      "source": "/assets/:path*",
+      "destination": "/assets/:path*"
     },
     {
-      "src": "^/assets/(.*)$",
-      "dest": "/assets/$1"
+      "source": "/error",
+      "destination": "/error.html"
     },
     {
-      "src": "^/error$",
-      "dest": "/error.html"
+      "source": "/",
+      "destination": "https://gj48940cgb.execute-api.ap-south-1.amazonaws.com/prod"
     },
     {
-      "src": "^(?!.*\\.(js|css|woff2|woff|ttf|eot|svg|jpg|jpeg|png|gif|webp|mp4|webm)$).*$",
-      "dest": "/index.html"
+      "source": "/:path*",
+      "destination": "/index.html"
     }
   ]
 }
