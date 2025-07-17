@@ -15,23 +15,8 @@ const Content = styled.div`
 const LicHome = memo(() => {
   useEffect(() => {
     const scripts = [
-      { src: '/public/scripts/sidebarToggle.js', defer: true },
-      { src: '/public/scripts/scrollToTop.js', defer: true },
-      { src: '/public/scripts/faqToggle.js', defer: true },
-      { src: '/public/scripts/search.js', defer: true },
-      { src: '/public/scripts/langToggleCaseStudy.js', defer: true },
-      { src: '/public/scripts/audio.js', defer: true },
-            { src: '/public/scripts/animations.js', defer: true },
-                  { src: '/public/scripts/impactAnimations.js', defer: true },
-                  { src: '/public/scripts/progressBorder.js', defer: true },
-                  { src: '/public/scripts/projectHover.js', defer: true },
-                        { src: '/public/scripts/awsManager.js', defer: true },
-                        { src: '/public/scripts/glitchEffect.js', defer: true },
-
-                  { src: '/public/scripts/awsArchitecture.js', defer: true },
-                  { src: '/public/scripts/awsDataFlow.js', defer: true },
-                  { src: '/public/scripts/awsTooltip.js', defer: true },
-                  { src: '/public/scripts/awsControls.js', defer: true },
+      { src: '/public/scripts/scrollToTop.js', defer: true }
+    
 
 
     ];
