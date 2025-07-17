@@ -61,7 +61,7 @@ const AppContent = () => {
       <ScrollToTop />
       <Suspense fallback={<div style={{ minHeight: '100vh' }} />}>
         <Routes>
-          <Route exact path="/" element={<HomePage />} />
+          <Route exact path="/" element={<Home />} />
           <Route path="/category" element={<Category />} />
           <Route exact path="/login" element={<SignInSignUp />} />
           <Route exact path="/register" element={<Register />} />
