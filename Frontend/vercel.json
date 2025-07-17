@@ -29,16 +29,7 @@
       ]
     },
     {
-      "source": "/(.*)\\.(js|css|woff2|woff|ttf|eot|svg)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    },
-    {
-      "source": "/(.*)\\.(jpg|jpeg|png|gif|webp|mp4|webm)",
+      "source": "/(.*)\\.(js|css|woff2|woff|ttf|eot|svg|jpg|jpeg|png|gif|webp|mp4|webm)",
       "headers": [
         {
           "key": "Cache-Control",
@@ -89,12 +80,12 @@
   ],
   "routes": [
     {
-      "src": "^/post/(.*)$",
-      "dest": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/post/$1"
-    },
-    {
       "src": "^/$",
       "dest": "https://gj48940cgb.execute-api.ap-south-1.amazonaws.com/prod"
+    },
+    {
+      "src": "^/post/(.*)$",
+      "dest": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/post/$1"
     },
     {
       "src": "^/api/posts/complete/(.*)$",
@@ -125,7 +116,7 @@
       "dest": "/error.html"
     },
     {
-      "src": "^/(?!post|api|assets|get-presigned-url|error)(.*)$",
+      "src": "^(?!.*\\.(js|css|woff2|woff|ttf|eot|svg|jpg|jpeg|png|gif|webp|mp4|webm)$).*$",
       "dest": "/index.html"
     }
   ]
