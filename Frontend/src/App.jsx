@@ -7,6 +7,7 @@ import PostPage from './components/PostPage';
 import SignInSignUp from './components/SignInSignUp';
 import Policy from './components/Policy';
 import { loadUser } from './actions/authActions';
+import HomePage from './pages/HomePage';
 
 // Lazy load non-critical components
 const Home = lazy(() => import('./pages/Home'));
@@ -61,7 +62,7 @@ const AppContent = () => {
       <ScrollToTop />
       <Suspense fallback={<div style={{ minHeight: '100vh' }} />}>
         <Routes>
-          <Route exact path="/" element={<Home />} />
+          <Route exact path="/" element={<HomePage />} />
           <Route path="/category" element={<Category />} />
           <Route exact path="/login" element={<SignInSignUp />} />
           <Route exact path="/register" element={<Register />} />
