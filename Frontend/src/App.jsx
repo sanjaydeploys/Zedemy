@@ -9,7 +9,6 @@ import Policy from './components/Policy';
 import { loadUser } from './actions/authActions';
 import HomePage from './pages/HomePage';
 
-// Lazy load non-critical components
 const Home = lazy(() => import('./pages/Home'));
 const Register = lazy(() => import('./pages/Register'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
