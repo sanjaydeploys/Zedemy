@@ -90,7 +90,11 @@
   "rewrites": [
     {
       "source": "/robots.txt",
-      "destination": "/index.html"
+      "destination": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/robots.txt"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/sitemap.xml"
     },
     {
       "source": "/post/:slug",
