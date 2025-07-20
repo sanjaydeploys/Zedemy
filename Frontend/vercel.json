@@ -89,7 +89,7 @@
   ],
   "rewrites": [
     {
-      "source": "/robots.txt,
+      "source": "/robots.txt",
       "destination": "/index.html"
     },
     {
