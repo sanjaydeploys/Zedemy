@@ -88,6 +88,14 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/robots.txt,
+      "destination": "/index.html"
+    },
+    {
+      "source": "/post/:slug",
+      "destination": "https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/post/:slug"
+    },
     
     {
       "source": "/post/:slug",
