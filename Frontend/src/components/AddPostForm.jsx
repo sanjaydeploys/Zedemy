@@ -312,6 +312,7 @@ const AddPostForm = React.memo(() => {
 
         await deps.axios.put(signedUrl, compressedFile, {
           headers: { 'Content-Type': compressedFile.type },
+          'Cache-Control': 'public, max-age=86400' 
         });
         console.log(`[Upload] Successfully uploaded ${compressedFile.name} to ${signedUrl}`);
 
