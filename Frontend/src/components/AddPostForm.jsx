@@ -243,114 +243,121 @@ const AddPostForm = React.memo(() => {
   }, []);
 
   // Handle image upload
-  const handleImageUpload = useCallback(async (event, setImage, setImageHash, categoryOverride = category, retries = 3) => {
-    if (!deps?.axios) return;
-    const file = event.target.files[0];
-    setError('');
-    setIsUploading(true);
-    if (!file) {
-      setError('No file selected');
-      setIsUploading(false);
-      return;
-    }
+// Handle image upload
+const handleImageUpload = useCallback(async (event, setImage, setImageHash, categoryOverride = category, retries = 3) => {
+  if (!deps?.axios) return;
+  const file = event.target.files[0];
+  setError('');
+  setIsUploading(true);
+  if (!file) {
+    setError('No file selected');
+    setIsUploading(false);
+    return;
+  }
 
-    const validationError = await validateFile(file, 'image');
-    if (validationError) {
-      setError(validationError);
-      setIsUploading(false);
-      return;
-    }
+  const validationError = await validateFile(file, 'image');
+  if (validationError) {
+    setError(validationError);
+    setIsUploading(false);
+    return;
+  }
 
-    let compressedFile;
+  let compressedFile;
+  try {
+    compressedFile = await compressAndConvertToWebP(file, 50);
+  } catch (err) {
+    setError(`Error compressing image ${file.name}: ${err.message}`);
+    console.error('Compression error:', err);
+    setIsUploading(false);
+    return;
+  }
+
+  const previewUrl = URL.createObjectURL(compressedFile);
+
+  if (setImage !== setTitleImage) {
+    setImage({ url: null, preview: previewUrl, file: compressedFile });
+  } else {
+    setTitleImagePreview(previewUrl);
+    setTitleImage(null);
+  }
+
+  let attempt = 1;
+  while (attempt <= retries) {
     try {
-      compressedFile = await compressAndConvertToWebP(file, 50);
-    } catch (err) {
-      setError(`Error compressing image ${file.name}: ${err.message}`);
-      console.error('Compression error:', err);
+      console.log(`Uploading image (attempt ${attempt}):`, {
+        name: compressedFile.name,
+        type: compressedFile.type,
+        size: compressedFile.size,
+        category: categoryOverride,
+      });
+
+      const res = await deps.axios.post(
+        'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/get-presigned-url',
+        {
+          fileType: compressedFile.type,
+          folder: 'images',
+          category: categoryOverride,
+        }
+      );
+      const { signedUrl, publicUrl, key } = res.data;
+
+      await deps.axios.put(signedUrl, compressedFile, {
+        headers: { 'Content-Type': compressedFile.type },
+      });
+
+      const fileHash = await generateFileHash(compressedFile);
+
+      await deps.axios.post(
+        'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
+        {
+          fileKey: key,
+          fileHash,
+          fileType: 'images',
+          category: categoryOverride,
+          userId: user?.id || 'anonymous',
+        }
+      );
+
+      // Console log to verify cache is enabled (fetch HEAD to check headers)
+      const cacheResponse = await fetch(publicUrl, { method: 'HEAD' });
+      const cacheControl = cacheResponse.headers.get('Cache-Control');
+      const etag = cacheResponse.headers.get('ETag');
+      console.log(`[Cache Verification] Uploaded image ${key} Cache-Control: ${cacheControl || 'Not set'}`);
+      console.log(`[Cache Verification] ETag: ${etag || 'Not set'}`);
+
+      if (!cacheResponse.ok) {
+        throw new Error(`S3 URL not accessible: ${cacheResponse.status}`);
+      }
+
+      if (setImage === setTitleImage) {
+        setTitleImage(publicUrl);
+        setTitleImagePreview(previewUrl);
+      } else {
+        setImage(publicUrl);
+      }
+      setImageHash(fileHash);
+      console.log('Image uploaded:', { filePath: publicUrl, fileHash });
       setIsUploading(false);
       return;
-    }
-
-    const previewUrl = URL.createObjectURL(compressedFile);
-
-    if (setImage !== setTitleImage) {
-      setImage({ url: null, preview: previewUrl, file: compressedFile });
-    } else {
-      setTitleImagePreview(previewUrl);
-      setTitleImage(null);
-    }
-
-    let attempt = 1;
-    while (attempt <= retries) {
-      try {
-        console.log(`Uploading image (attempt ${attempt}):`, {
-          name: compressedFile.name,
-          type: compressedFile.type,
-          size: compressedFile.size,
-          category: categoryOverride,
+    } catch (err) {
+      console.error(`Image upload attempt ${attempt} failed:`, err);
+      if (attempt === retries) {
+        const errorMsg = err.response?.data?.error || err.message;
+        setError(`Error uploading image ${file.name}: ${errorMsg}`);
+        console.error('Error uploading image:', {
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status,
         });
-
-        const res = await deps.axios.post(
-          'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/get-presigned-url',
-          {
-            fileType: compressedFile.type,
-            folder: 'images',
-            category: categoryOverride,
-          }
-        );
-        const { signedUrl, publicUrl, key } = res.data;
-
-        await deps.axios.put(signedUrl, compressedFile, {
-          headers: { 'Content-Type': compressedFile.type },
-        });
-
-        const fileHash = await generateFileHash(compressedFile);
-
-        await deps.axios.post(
-          'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
-          {
-            fileKey: key,
-            fileHash,
-            fileType: 'images',
-            category: categoryOverride,
-            userId: user?.id || 'anonymous',
-          }
-        );
-
-        const response = await fetch(publicUrl);
-        if (!response.ok) {
-          throw new Error(`S3 URL not accessible: ${response.status}`);
-        }
-
-        if (setImage === setTitleImage) {
-          setTitleImage(publicUrl);
-          setTitleImagePreview(previewUrl);
-        } else {
-          setImage(publicUrl);
-        }
-        setImageHash(fileHash);
-        console.log('Image uploaded:', { filePath: publicUrl, fileHash });
         setIsUploading(false);
         return;
-      } catch (err) {
-        console.error(`Image upload attempt ${attempt} failed:`, err);
-        if (attempt === retries) {
-          const errorMsg = err.response?.data?.error || err.message;
-          setError(`Error uploading image ${file.name}: ${errorMsg}`);
-          console.error('Error uploading image:', {
-            message: err.message,
-            response: err.response?.data,
-            status: err.response?.status,
-          });
-          setIsUploading(false);
-          return;
-        }
-        attempt++;
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
       }
+      attempt++;
+      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
     }
-  }, [deps, category, user, validateFile, compressAndConvertToWebP, generateFileHash, setTitleImage, setTitleImagePreview]);
-
+  }
+}, [deps, category, user, validateFile, compressAndConvertToWebP, generateFileHash, setTitleImage, setTitleImagePreview]);
+  
   // Handle video upload
   const handleVideoUpload = useCallback(async (event, setVideo, setVideoHash, categoryOverride = category, retries = 3) => {
     if (!deps?.axios) return;
