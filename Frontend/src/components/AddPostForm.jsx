@@ -87,6 +87,7 @@ const AddPostForm = React.memo(() => {
 
   // File validation
   const validateFile = useCallback(async (file, type) => {
+    console.log(`[Validation] Checking file: ${file?.name}, type: ${type}`);
     if (!file) return 'No file selected';
 
     const maxSize = type === 'image' ? 10 * 1024 * 1024 : 50 * 1024 * 1024;
@@ -130,6 +131,7 @@ const AddPostForm = React.memo(() => {
 
   // Generate file hash
   const generateFileHash = useCallback(async (file) => {
+    console.log(`[Hash] Generating hash for file: ${file?.name}`);
     try {
       const arrayBuffer = await file.arrayBuffer();
       const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
@@ -142,6 +144,7 @@ const AddPostForm = React.memo(() => {
 
   // Compress and convert to WebP
   const compressAndConvertToWebP = useCallback(async (file, targetSizeKB = 50) => {
+    console.log(`[Compression] Starting compression for file: ${file?.name}`);
     const supportsWebP = async () => {
       return new Promise(resolve => {
         const img = new Image();
@@ -226,6 +229,7 @@ const AddPostForm = React.memo(() => {
             }
 
             const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, extension), { type: format });
+            console.log(`[Compression] Successfully compressed ${file.name} to ${compressedFile.type}, size: ${compressedFile.size / 1024} KB`);
             resolve(compressedFile);
           } catch (err) {
             reject(new Error(`Image processing failed for ${file.name}: ${err.message}`));
@@ -243,130 +247,142 @@ const AddPostForm = React.memo(() => {
   }, []);
 
   // Handle image upload
-// Handle image upload
-const handleImageUpload = useCallback(async (event, setImage, setImageHash, categoryOverride = category, retries = 3) => {
-  if (!deps?.axios) return;
-  const file = event.target.files[0];
-  setError('');
-  setIsUploading(true);
-  if (!file) {
-    setError('No file selected');
-    setIsUploading(false);
-    return;
-  }
-
-  const validationError = await validateFile(file, 'image');
-  if (validationError) {
-    setError(validationError);
-    setIsUploading(false);
-    return;
-  }
-
-  let compressedFile;
-  try {
-    compressedFile = await compressAndConvertToWebP(file, 50);
-  } catch (err) {
-    setError(`Error compressing image ${file.name}: ${err.message}`);
-    console.error('Compression error:', err);
-    setIsUploading(false);
-    return;
-  }
-
-  const previewUrl = URL.createObjectURL(compressedFile);
-
-  if (setImage !== setTitleImage) {
-    setImage({ url: null, preview: previewUrl, file: compressedFile });
-  } else {
-    setTitleImagePreview(previewUrl);
-    setTitleImage(null);
-  }
-
-  let attempt = 1;
-  while (attempt <= retries) {
-    try {
-      console.log(`Uploading image (attempt ${attempt}):`, {
-        name: compressedFile.name,
-        type: compressedFile.type,
-        size: compressedFile.size,
-        category: categoryOverride,
-      });
-
-      const res = await deps.axios.post(
-        'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/get-presigned-url',
-        {
-          fileType: compressedFile.type,
-          folder: 'images',
-          category: categoryOverride,
-        }
-      );
-      const { signedUrl, publicUrl, key } = res.data;
-
-      await deps.axios.put(signedUrl, compressedFile, {
-        headers: { 'Content-Type': compressedFile.type },
-      });
-
-      const fileHash = await generateFileHash(compressedFile);
-
-      await deps.axios.post(
-        'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
-        {
-          fileKey: key,
-          fileHash,
-          fileType: 'images',
-          category: categoryOverride,
-          userId: user?.id || 'anonymous',
-        }
-      );
-
-      // Console log to verify cache is enabled (fetch HEAD to check headers)
-      const cacheResponse = await fetch(publicUrl, { method: 'HEAD' });
-      const cacheControl = cacheResponse.headers.get('Cache-Control');
-      const etag = cacheResponse.headers.get('ETag');
-      console.log(`[Cache Verification] Uploaded image ${key} Cache-Control: ${cacheControl || 'Not set'}`);
-      console.log(`[Cache Verification] ETag: ${etag || 'Not set'}`);
-
-      if (!cacheResponse.ok) {
-        throw new Error(`S3 URL not accessible: ${cacheResponse.status}`);
-      }
-
-      if (setImage === setTitleImage) {
-        setTitleImage(publicUrl);
-        setTitleImagePreview(previewUrl);
-      } else {
-        setImage(publicUrl);
-      }
-      setImageHash(fileHash);
-      console.log('Image uploaded:', { filePath: publicUrl, fileHash });
-      setIsUploading(false);
-      return;
-    } catch (err) {
-      console.error(`Image upload attempt ${attempt} failed:`, err);
-      if (attempt === retries) {
-        const errorMsg = err.response?.data?.error || err.message;
-        setError(`Error uploading image ${file.name}: ${errorMsg}`);
-        console.error('Error uploading image:', {
-          message: err.message,
-          response: err.response?.data,
-          status: err.response?.status,
-        });
-        setIsUploading(false);
-        return;
-      }
-      attempt++;
-      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-    }
-  }
-}, [deps, category, user, validateFile, compressAndConvertToWebP, generateFileHash, setTitleImage, setTitleImagePreview]);
-  
-  // Handle video upload
-  const handleVideoUpload = useCallback(async (event, setVideo, setVideoHash, categoryOverride = category, retries = 3) => {
+  const handleImageUpload = useCallback(async (event, setImage, setImageHash, categoryOverride = category, retries = 3) => {
     if (!deps?.axios) return;
     const file = event.target.files[0];
+    console.log(`[Upload] Starting image upload for file: ${file?.name}`);
     setError('');
     setIsUploading(true);
     if (!file) {
       setError('No file selected');
       setIsUploading(false);
+      console.log('[Upload] No file selected');
+      return;
+    }
+
+    const validationError = await validateFile(file, 'image');
+    if (validationError) {
+      setError(validationError);
+      setIsUploading(false);
+      console.log(`[Upload] Validation failed for ${file.name}: ${validationError}`);
+      return;
+    }
+
+    let compressedFile;
+    try {
+      compressedFile = await compressAndConvertToWebP(file, 50);
+    } catch (err) {
+      setError(`Error compressing image ${file.name}: ${err.message}`);
+      console.error('Compression error:', err);
+      setIsUploading(false);
+      console.log(`[Upload] Compression failed for ${file.name}: ${err.message}`);
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(compressedFile);
+    console.log(`[Upload] Generated preview URL for ${file.name}: ${previewUrl}`);
+
+    if (setImage !== setTitleImage) {
+      setImage({ url: null, preview: previewUrl, file: compressedFile });
+    } else {
+      setTitleImagePreview(previewUrl);
+      setTitleImage(null);
+    }
+
+    let attempt = 1;
+    while (attempt <= retries) {
+      try {
+        console.log(`Uploading image (attempt ${attempt}):`, {
+          name: compressedFile.name,
+          type: compressedFile.type,
+          size: compressedFile.size,
+          category: categoryOverride,
+        });
+
+        const res = await deps.axios.post(
+          'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/get-presigned-url',
+          {
+            fileType: compressedFile.type,
+            folder: 'images',
+            category: categoryOverride,
+          }
+        );
+        const { signedUrl, publicUrl, key } = res.data;
+        console.log(`[Upload] Received signed URL: ${signedUrl}, public URL: ${publicUrl}, key: ${key}`);
+
+        await deps.axios.put(signedUrl, compressedFile, {
+          headers: { 'Content-Type': compressedFile.type },
+        });
+        console.log(`[Upload] Successfully uploaded ${compressedFile.name} to ${signedUrl}`);
+
+        const fileHash = await generateFileHash(compressedFile);
+        console.log(`[Upload] Generated hash for ${compressedFile.name}: ${fileHash}`);
+
+        await deps.axios.post(
+          'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
+          {
+            fileKey: key,
+            fileHash,
+            fileType: 'images',
+            category: categoryOverride,
+            userId: user?.id || 'anonymous',
+          }
+        );
+        console.log(`[Upload] Stored metadata for ${key}`);
+
+        // Console log to verify cache is enabled (fetch HEAD to check headers)
+        const cacheResponse = await fetch(publicUrl, { method: 'HEAD' });
+        const cacheControl = cacheResponse.headers.get('Cache-Control');
+        const etag = cacheResponse.headers.get('ETag');
+        console.log(`[Cache Verification] Uploaded image ${key} Cache-Control: ${cacheControl || 'Not set'}`);
+        console.log(`[Cache Verification] ETag: ${etag || 'Not set'}`);
+
+        if (!cacheResponse.ok) {
+          throw new Error(`S3 URL not accessible: ${cacheResponse.status}`);
+        }
+        console.log(`[Upload] Cache response OK for ${publicUrl}`);
+
+        if (setImage === setTitleImage) {
+          setTitleImage(publicUrl);
+          setTitleImagePreview(previewUrl);
+        } else {
+          setImage(publicUrl);
+        }
+        setImageHash(fileHash);
+        console.log('Image uploaded:', { filePath: publicUrl, fileHash });
+        setIsUploading(false);
+        return;
+      } catch (err) {
+        console.error(`Image upload attempt ${attempt} failed:`, err);
+        if (attempt === retries) {
+          const errorMsg = err.response?.data?.error || err.message;
+          setError(`Error uploading image ${file.name}: ${errorMsg}`);
+          console.error('Error uploading image:', {
+            message: err.message,
+            response: err.response?.data,
+            status: err.response?.status,
+          });
+          setIsUploading(false);
+          console.log(`[Upload] Final attempt failed for ${file.name}: ${errorMsg}`);
+          return;
+        }
+        attempt++;
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+    }
+  }, [deps, category, user, validateFile, compressAndConvertToWebP, generateFileHash, setTitleImage, setTitleImagePreview]);
+
+  // Handle video upload
+  const handleVideoUpload = useCallback(async (event, setVideo, setVideoHash, categoryOverride = category, retries = 3) => {
+    if (!deps?.axios) return;
+    const file = event.target.files[0];
+    console.log(`[Upload] Starting video upload for file: ${file?.name}`);
+    setError('');
+    setIsUploading(true);
+    if (!file) {
+      setError('No file selected');
+      setIsUploading(false);
+      console.log('[Upload] No file selected');
       return;
     }
 
@@ -374,10 +390,12 @@ const handleImageUpload = useCallback(async (event, setImage, setImageHash, cate
     if (validationError) {
       setError(validationError);
       setIsUploading(false);
+      console.log(`[Upload] Validation failed for ${file.name}: ${validationError}`);
       return;
     }
 
     const previewUrl = URL.createObjectURL(file);
+    console.log(`[Upload] Generated preview URL for ${file.name}: ${previewUrl}`);
 
     if (setVideo !== setVideo) {
       setVideo({ url: null, preview: previewUrl, file });
@@ -405,12 +423,15 @@ const handleImageUpload = useCallback(async (event, setImage, setImageHash, cate
           }
         );
         const { signedUrl, publicUrl, key } = res.data;
+        console.log(`[Upload] Received signed URL: ${signedUrl}, public URL: ${publicUrl}, key: ${key}`);
 
         await deps.axios.put(signedUrl, file, {
           headers: { 'Content-Type': file.type },
         });
+        console.log(`[Upload] Successfully uploaded ${file.name} to ${signedUrl}`);
 
         const fileHash = await generateFileHash(file);
+        console.log(`[Upload] Generated hash for ${file.name}: ${fileHash}`);
 
         await deps.axios.post(
           'https://g3u06ptici.execute-api.ap-south-1.amazonaws.com/prod/store-metadata',
@@ -422,11 +443,13 @@ const handleImageUpload = useCallback(async (event, setImage, setImageHash, cate
             userId: user?.id || 'anonymous',
           }
         );
+        console.log(`[Upload] Stored metadata for ${key}`);
 
         const response = await fetch(publicUrl);
         if (!response.ok) {
           throw new Error(`S3 URL not accessible: ${response.status}`);
         }
+        console.log(`[Upload] Cache response OK for ${publicUrl}`);
 
         if (setVideo === setVideo) {
           setVideo(publicUrl);
@@ -449,6 +472,7 @@ const handleImageUpload = useCallback(async (event, setImage, setImageHash, cate
             status: err.response?.status,
           });
           setIsUploading(false);
+          console.log(`[Upload] Final attempt failed for ${file.name}: ${errorMsg}`);
           return;
         }
         attempt++;
